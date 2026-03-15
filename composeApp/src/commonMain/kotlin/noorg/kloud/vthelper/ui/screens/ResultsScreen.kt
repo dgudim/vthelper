@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.screens
+package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun ResultsScreen() {
+fun ResultsScreen(showSnack: (String) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()

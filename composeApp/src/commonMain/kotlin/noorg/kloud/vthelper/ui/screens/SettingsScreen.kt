@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.screens
+package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,14 +9,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun CalendarScreen() {
+fun SettingsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .wrapContentSize(Alignment.Center)
     ) {
         Text(
-            text = "Calendar Screen"
+            text = "Settings Screen"
         )
     }
 }

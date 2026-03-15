@@ -20,6 +20,8 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
@@ -36,11 +38,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import noorg.kloud.vthelper.screens.AccountScreen
-import noorg.kloud.vthelper.screens.CalendarScreen
-import noorg.kloud.vthelper.screens.CoursesScreen
-import noorg.kloud.vthelper.screens.DashboardScreen
-import noorg.kloud.vthelper.screens.ResultsScreen
+import noorg.kloud.vthelper.ui.screens.AccountScreen
+import noorg.kloud.vthelper.ui.screens.CalendarScreen
+import noorg.kloud.vthelper.ui.screens.CoursesScreen
+import noorg.kloud.vthelper.ui.screens.DashboardScreen
+import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -55,6 +57,8 @@ import vthelper.composeapp.generated.resources.settings_24px
 import vthelper.composeapp.generated.resources.vt_48px
 
 // https://stackoverflow.com/questions/72921484/navigating-between-composables-using-a-navigation-drawer-in-jetpack-compose
+// https://developer.android.com/develop/ui/compose/components/drawer
+// https://fonts.google.com/icons
 sealed class NavDrawerItem(var route: String, var icon: DrawableResource, var title: String) {
     object Account : NavDrawerItem("account", Res.drawable.account_circle_24px, "Account")
     object Settings : NavDrawerItem("settings", Res.drawable.settings_24px, "Settings")
@@ -104,7 +108,11 @@ fun DrawerItem(item: NavDrawerItem, selected: Boolean, onItemClick: (NavDrawerIt
 }
 
 @Composable
-fun Navigation(navController: NavHostController, innerPadding: PaddingValues) {
+fun Navigation(
+    navController: NavHostController,
+    innerPadding: PaddingValues,
+    showSnack: (String) -> Unit = {},
+) {
     NavHost(
         navController = navController,
         startDestination = NavDrawerItem.Dashboard.route,
@@ -114,19 +122,19 @@ fun Navigation(navController: NavHostController, innerPadding: PaddingValues) {
             .padding(innerPadding)
     ) {
         composable(NavDrawerItem.Dashboard.route) {
-            DashboardScreen()
+            DashboardScreen(showSnack)
         }
         composable(NavDrawerItem.Account.route) {
-            AccountScreen()
+            AccountScreen(showSnack)
         }
         composable(NavDrawerItem.Results.route) {
-            ResultsScreen()
+            ResultsScreen(showSnack)
         }
         composable(NavDrawerItem.Calendar.route) {
-            CalendarScreen()
+            CalendarScreen(showSnack)
         }
         composable(NavDrawerItem.Courses.route) {
-            CoursesScreen()
+            CoursesScreen(showSnack)
         }
     }
 }
@@ -135,7 +143,8 @@ fun Navigation(navController: NavHostController, innerPadding: PaddingValues) {
 fun NavigationDrawer(
     scope: CoroutineScope,
     drawerState: DrawerState,
-    navController: NavHostController
+    navController: NavHostController,
+    snackbarHostState: SnackbarHostState
 ) {
 
     val items = listOf(
@@ -208,9 +217,17 @@ fun NavigationDrawer(
         }
     ) {
         Scaffold(
-            topBar = { TopBar(scope, drawerState) }
+            // https://developer.android.com/develop/ui/compose/components/app-bars
+            topBar = { TopBar(scope, drawerState) },
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            }
         ) { innerPadding ->
-            Navigation(navController, innerPadding)
+            Navigation(navController, innerPadding, showSnack = { message ->
+                scope.launch {
+                    snackbarHostState.showSnackbar(message)
+                }
+            })
         }
     }
 }
@@ -222,10 +239,12 @@ fun Router() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     NavigationDrawer(
         scope = scope,
         drawerState = drawerState,
-        navController = navController
+        navController = navController,
+        snackbarHostState = snackbarHostState
     )
 }
