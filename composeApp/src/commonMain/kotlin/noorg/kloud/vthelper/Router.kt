@@ -43,6 +43,7 @@ import noorg.kloud.vthelper.ui.screens.CalendarScreen
 import noorg.kloud.vthelper.ui.screens.CoursesScreen
 import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
+import noorg.kloud.vthelper.ui.screens.SettingsScreen
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -135,6 +136,9 @@ fun Navigation(
         }
         composable(NavDrawerItem.Courses.route) {
             CoursesScreen(showSnack)
+        }
+        composable(NavDrawerItem.Settings.route) {
+            SettingsScreen(showSnack)
         }
     }
 }
