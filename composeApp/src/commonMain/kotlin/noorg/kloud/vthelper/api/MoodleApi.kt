@@ -12,6 +12,8 @@ class MoodleApi {
         val baseUrl = Url("https://moodle.vilniustech.lt/")
     }
 
+    private var sessionKey = ""
+
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json(Json {
@@ -26,5 +28,9 @@ class MoodleApi {
         mfaCode: String
     ) {
         VTBaseApi.loginIfNeeded(baseUrl, username, password, mfaCode)
+    }
+
+    suspend fun extractSessonKey() {
+
     }
 }

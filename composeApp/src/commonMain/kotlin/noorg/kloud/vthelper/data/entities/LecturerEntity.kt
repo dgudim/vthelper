@@ -14,5 +14,9 @@ data class LecturerEntity(
     @ColumnInfo(name = "fullname")
     val fullname: String,
     @ColumnInfo(name = "mano_id")
-    val manoId: String
+    val manoId: String,
+    @ColumnInfo(name = "mano_link")
+    val manoLink: String,
+    @ColumnInfo(name = "moodle_link")
+    val moodleLink: String
 )

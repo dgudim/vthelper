@@ -166,17 +166,20 @@ fun NavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     // https://stackoverflow.com/questions/78225866/how-to-align-a-specific-element-to-the-center-in-jetpack-compose-row
                     Text(
                         "Main menu",
-                        modifier = Modifier.padding(16.dp).align(Alignment.CenterStart),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.CenterStart),
                         style = MaterialTheme.typography.titleLarge
                     )
                     Icon(
                         painter = painterResource(Res.drawable.vt_48px),
-                        modifier = Modifier.padding(0.dp, 4.dp, 8.dp, 4.dp)
+                        modifier = Modifier
+                            .padding(0.dp, 4.dp, 8.dp, 4.dp)
                             .align(Alignment.CenterEnd),
                         contentDescription = null,
                         tint = Color.Unspecified
