@@ -97,7 +97,12 @@ fun DeadlineEntry(
                         painter = painterResource(if (isDone) Res.drawable.circle_24px else Res.drawable.circle_filled_24px),
                         contentDescription = null,
                         tint = daysToColor(daysTillDeadline),
-                        modifier = Modifier.padding(2.dp)
+                        modifier = Modifier.padding(
+                            end = 2.dp,
+                            top = 2.dp,
+                            bottom = 2.dp,
+                            start = 4.dp
+                        )
                     )
                 }
 

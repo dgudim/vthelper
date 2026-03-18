@@ -45,6 +45,7 @@ import vthelper.composeapp.generated.resources.account_circle_24px
 import vthelper.composeapp.generated.resources.alternate_email_24px
 import vthelper.composeapp.generated.resources.id_card_24px
 import vthelper.composeapp.generated.resources.link_24px
+import vthelper.composeapp.generated.resources.moodle
 import vthelper.composeapp.generated.resources.person_24px
 import vthelper.composeapp.generated.resources.school_24px
 import vthelper.composeapp.generated.resources.vt_48px
@@ -126,12 +127,12 @@ fun AccountScreen(showSnack: (String) -> Unit = {}) {
             InfoField(Res.drawable.id_card_24px, "Student id", "unknown")
             InfoField(Res.drawable.school_24px, "Group", "unknown")
             HorizontalDivider(modifier = Modifier.padding(16.dp))
-            InfoField(Res.drawable.link_24px, "Open mano", "mano.vilniustech.lt", {
+            InfoField(Res.drawable.vt_48px, "Open mano", "mano.vilniustech.lt", {
                 uriHandler.openUri("https://mano.vilniustech.lt")
-            })
-            InfoField(Res.drawable.link_24px, "Open moodle", "moodle.vilniustech.lt", {
+            }, true)
+            InfoField(Res.drawable.moodle, "Open moodle", "moodle.vilniustech.lt", {
                 uriHandler.openUri("https://moodle.vilniustech.lt")
-            })
+            }, true)
         }
 
     }

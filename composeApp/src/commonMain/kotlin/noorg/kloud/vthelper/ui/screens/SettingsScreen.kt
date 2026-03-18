@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import noorg.kloud.vthelper.ui.components.settings.SettingsHeader
 import noorg.kloud.vthelper.ui.components.settings.SettingsIcon
 import noorg.kloud.vthelper.ui.components.settings.SettingsSwitch
 import org.jetbrains.compose.resources.painterResource
@@ -26,9 +27,13 @@ fun SettingsScreen(showSnack: (String) -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
     ) {
+        SettingsHeader("Behaviour")
         SettingsSwitch("Stay in background")
         SettingsSwitch("Developer mode")
         SettingsSwitch("Fetch on startup")
+
+        SettingsHeader("Theme")
+        SettingsSwitch("Warm colors")
         SettingsIcon("Edit course colors", Res.drawable.edit_24px)
     }
 }

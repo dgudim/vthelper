@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +28,8 @@ fun InfoField(
     icon: DrawableResource,
     topText: String,
     bottomText: String,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    coloredIcon: Boolean = false
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -39,8 +43,9 @@ fun InfoField(
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
+            tint = if (coloredIcon) Color.Unspecified else LocalContentColor.current,
             modifier = Modifier
-                .width(60.dp)
+                .size(width = 60.dp, height = 24.dp)
                 .fillMaxHeight()
         )
         Column {
