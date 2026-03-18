@@ -2,21 +2,127 @@ package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.VicoZoomState
+import com.patrykandpatrick.vico.compose.cartesian.Zoom
+import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.columnSeries
+import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.common.ProvideVicoTheme
+import com.patrykandpatrick.vico.compose.common.VicoTheme
+import com.patrykandpatrick.vico.compose.common.VicoTheme.CandlestickCartesianLayerColors
+import com.patrykandpatrick.vico.compose.common.vicoTheme
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
+import noorg.kloud.vthelper.ui.components.DeadlineEntry
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
+
+// https://stackoverflow.com/questions/78323263/how-to-display-bars-in-different-colors-in-vico-bar-charts
 
 @Composable
 fun DashboardScreen(showSnack: (String) -> Unit = {}) {
+
+    val modelProducer = remember { CartesianChartModelProducer() }
+    LaunchedEffect(Unit) {
+        modelProducer.runTransaction {
+            lineSeries { series(8, 9, 8, 10, 9, 7, 10, 9, 8, 8, 9, 10) }
+        }
+    }
+
+    val colorScheme = MaterialTheme.colorScheme
+    val vico = vicoTheme
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .wrapContentSize(Alignment.Center)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Dashboard Screen"
+            text = "Your performance over time",
+            style = MaterialTheme.typography.titleLarge
         )
+        ProvideVicoTheme(
+            remember {
+                VicoTheme(
+                    lineColor = colorScheme.outline,
+                    textColor = colorScheme.onSurface,
+                    columnCartesianLayerColors = vico.columnCartesianLayerColors,
+                    lineCartesianLayerColors = listOf(colorScheme.primary),
+                    candlestickCartesianLayerColors = vico.candlestickCartesianLayerColors
+                )
+            }
+        ) {
+            CartesianChartHost(
+                chart = rememberCartesianChart(
+                    rememberLineCartesianLayer(),
+                    startAxis = VerticalAxis.rememberStart(),
+                    bottomAxis = HorizontalAxis.rememberBottom(),
+                ),
+                modelProducer = modelProducer,
+                zoomState = VicoZoomState(
+                    zoomEnabled = false,
+                    initialZoom = Zoom.fixed(1f),
+                    minZoom = Zoom.fixed(1f),
+                    maxZoom = Zoom.fixed(1f),
+                )
+            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp))
+        Text(
+            text = "Timetable for today and tomorrow",
+            style = MaterialTheme.typography.titleLarge
+        )
+        HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp))
+        Text(
+            text = "Upcoming deadlines",
+            style = MaterialTheme.typography.titleLarge
+        )
+        Column {
+            DeadlineEntry(
+                "Fundamentals of data mining", Color(0xff7dc9ff), "Lab 5",
+                Clock.System.now(),
+                Clock.System.now() + 1.days,
+                false
+            )
+            DeadlineEntry(
+                "Datacenters", Color(0xFFA57DFF), "Midterm 1",
+                Clock.System.now(),
+                Clock.System.now() + 3.days,
+                false
+            )
+            DeadlineEntry(
+                "Fundamentals of data mining", Color(0xff7dc9ff), "Midterm 1",
+                Clock.System.now(),
+                Clock.System.now() + 5.days,
+                false
+            )
+            DeadlineEntry(
+                "Information security management", Color(0xffffbe7d), "Homework 2",
+                Clock.System.now(),
+                Clock.System.now() + 14.days,
+                true
+            )
+        }
     }
 }

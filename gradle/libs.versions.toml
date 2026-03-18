@@ -33,6 +33,8 @@ sqlite = "2.6.2"
 
 calendar = "2.10.0"
 
+vico-charts = "3.0.3"
+
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -85,6 +87,10 @@ coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.r
 coil-mp = { module = "io.coil-kt.coil3:coil", version.ref = "coil3" }
 
 kizitonwose-calendar = { module = "com.kizitonwose.calendar:compose-multiplatform", version.ref = "calendar" }
+
+vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico-charts" }
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico-charts" }
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

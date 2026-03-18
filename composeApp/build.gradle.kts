@@ -61,6 +61,8 @@ kotlin {
 
             // 3d-party ui
             implementation(libs.kizitonwose.calendar)
+            implementation(libs.vico.compose)
+            implementation(libs.vico.compose.m3)
 
             // Debugging and developing
             implementation(libs.compose.uiToolingPreview)

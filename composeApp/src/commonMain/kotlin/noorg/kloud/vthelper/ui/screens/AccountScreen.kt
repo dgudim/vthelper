@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,8 @@ fun AccountScreen(showSnack: (String) -> Unit = {}) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var mfa by remember { mutableStateOf("") }
+
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -83,18 +86,20 @@ fun AccountScreen(showSnack: (String) -> Unit = {}) {
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp), // Distance to the screen border
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp), // Distance to the card border
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("You are not logged in, please log in")
                 OutlinedTextField(
                     value = username,
                     onValueChange = { newText -> username = newText },
-                    label = { Text("Enter your name") }
+                    label = { Text("Enter your student id") }
                 )
                 OutlinedTextField(
                     value = password,
@@ -121,8 +126,12 @@ fun AccountScreen(showSnack: (String) -> Unit = {}) {
             InfoField(Res.drawable.id_card_24px, "Student id", "unknown")
             InfoField(Res.drawable.school_24px, "Group", "unknown")
             HorizontalDivider(modifier = Modifier.padding(16.dp))
-            InfoField(Res.drawable.link_24px, "Open mano", "mano.vilniustech.lt")
-            InfoField(Res.drawable.link_24px, "Open moodle", "moodle.vilniustech.lt")
+            InfoField(Res.drawable.link_24px, "Open mano", "mano.vilniustech.lt", {
+                uriHandler.openUri("https://mano.vilniustech.lt")
+            })
+            InfoField(Res.drawable.link_24px, "Open moodle", "moodle.vilniustech.lt", {
+                uriHandler.openUri("https://moodle.vilniustech.lt")
+            })
         }
 
     }
