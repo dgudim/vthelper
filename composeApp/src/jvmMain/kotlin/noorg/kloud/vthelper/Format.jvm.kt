@@ -9,11 +9,11 @@ import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale as JavaLocale
 
 actual fun Month.getDisplayName(short: Boolean, locale: Locale): String {
-    val style = if (short) JavaTextStyle.SHORT else JavaTextStyle.FULL
+    val style = if (short) JavaTextStyle.SHORT_STANDALONE else JavaTextStyle.FULL_STANDALONE
     return toJavaMonth().getDisplayName(style, JavaLocale.forLanguageTag(locale.toLanguageTag()))
 }
 
 actual fun DayOfWeek.getDisplayName(narrow: Boolean, locale: Locale): String {
-    val style = if (narrow) JavaTextStyle.NARROW else JavaTextStyle.SHORT
+    val style = if (narrow) JavaTextStyle.NARROW_STANDALONE else JavaTextStyle.SHORT_STANDALONE
     return toJavaDayOfWeek().getDisplayName(style, JavaLocale.forLanguageTag(locale.toLanguageTag()))
 }

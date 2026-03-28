@@ -41,7 +41,7 @@ fun DayOfWeek.displayText(uppercase: Boolean = false, narrow: Boolean = false): 
 
 expect fun Month.getDisplayName(short: Boolean, locale: Locale): String
 
-expect fun DayOfWeek.getDisplayName(narrow: Boolean = false, locale: Locale): String
+expect fun DayOfWeek.getDisplayName(narrow: Boolean, locale: Locale): String
 
 fun Instant.formatLocalDate(): String {
     return toLocalDateTime(TimeZone.currentSystemDefault()).format(localDateFormat)

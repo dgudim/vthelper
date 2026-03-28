@@ -50,7 +50,7 @@ private fun CalendarLayoutInfo.firstMostVisibleMonth(viewportPercent: Float): Ca
     }
 }
 
-inline fun Color.setAlpha(newAlpha: Float): Color {
+fun Color.setAlpha(newAlpha: Float): Color {
     return copy(
         red = red,
         green = green,
