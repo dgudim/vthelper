@@ -131,6 +131,26 @@ val DarkColors = darkColorScheme(
     scrim = md_theme_dark_scrim,
 )
 
+data class ColorVariants(
+    val selected: Color = Color.Unspecified,
+    val deselected: Color = Color.Unspecified,
+    val disabled: Color = Color.Unspecified,
+    val today: Color = Color.Unspecified,
+)
+
+@Immutable
+data class CalendarColorPalette(
+    val toolbarColor: Color = Color.Unspecified,
+    val listItemBackgroundColor: Color = Color.Unspecified,
+
+    val calendarDividerColor: Color = Color.Unspecified,
+    val monthHeaderTextColor: Color = Color.Unspecified,
+
+    val textColor: ColorVariants = ColorVariants(),
+    val borderColor: ColorVariants = ColorVariants(),
+    val bgColor: ColorVariants = ColorVariants()
+)
+
 @Immutable
 data class CustomColorPalette(
     val goodResult: Color = Color.Unspecified,
@@ -159,3 +179,4 @@ val DarkCustomColorPalette = CustomColorPalette(
 )
 
 val LocalCustomColorPalette = staticCompositionLocalOf { CustomColorPalette() }
+val LocalCalendarColorPalette = staticCompositionLocalOf { CalendarColorPalette() }

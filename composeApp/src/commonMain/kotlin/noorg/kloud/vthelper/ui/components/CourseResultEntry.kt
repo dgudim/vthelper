@@ -14,14 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.toLocalDateTime
+import noorg.kloud.vthelper.formatLocalDate
 import noorg.kloud.vthelper.ui.theme.customColors
 import kotlin.time.Instant
 
@@ -48,9 +43,7 @@ fun CourseResultEntry(
     result: Long // TODO: Include course points
 ) {
     val formattedDate = remember {
-        completedOn.toLocalDateTime(TimeZone.currentSystemDefault()).format(LocalDateTime.Format {
-            date(LocalDate.Formats.ISO)
-        })
+        completedOn.formatLocalDate()
     }
 
     Row(
@@ -68,7 +61,7 @@ fun CourseResultEntry(
                     text = "$workName ($formattedDate)",
                 )
                 Text(
-                    color = Color(0xA0888888).compositeOver(MaterialTheme.colorScheme.onSurface),
+                    color = MaterialTheme.colorScheme.outline,
                     text = subjectName
                 )
             }

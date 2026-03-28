@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
@@ -49,6 +50,7 @@ private fun daysToColor(days: Long): Color {
     return MaterialTheme.customColors.goodResult
 }
 
+// TODO: Put inside a lazy column
 @Composable
 fun DeadlineEntry(
     subjectName: String,
@@ -74,18 +76,17 @@ fun DeadlineEntry(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 4.dp)
+                .padding(4.dp)
         ) {
             Icon(
                 painter = painterResource(if (isDone) Res.drawable.check_24px else Res.drawable.assignment_late_24px),
                 contentDescription = null,
                 modifier = Modifier
                     .width(48.dp)
-                    .padding(end = 8.dp)
                     .fillMaxHeight()
             )
             Box(modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.padding(end = 4.dp).align(Alignment.TopEnd)) {
+                Row(modifier = Modifier.align(Alignment.TopEnd)) {
                     Text(
                         text = "In $daysTillDeadline day(s)",
                         style = strikethroughIfDone
@@ -116,7 +117,7 @@ fun DeadlineEntry(
                         style = strikethroughIfDone
                     )
                     Text(
-                        color = Color(0xA0888888).compositeOver(MaterialTheme.colorScheme.onSurface),
+                        color = MaterialTheme.colorScheme.outline,
                         text = subjectName
                     )
                 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "10b64e23a4e2041dfc4a2b7d4caf60a8",
+    "identityHash": "3c9482ff8ffd4fb06c8e3eed7cd17fb2",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -48,11 +48,17 @@
       },
       {
         "tableName": "mano_courses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject` TEXT NOT NULL, `lecturer_id` INTEGER NOT NULL, `cover_image_path` TEXT NOT NULL, FOREIGN KEY(`lecturer_id`) REFERENCES `lecturers`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `mano_id` INTEGER NOT NULL, `subject` TEXT NOT NULL, `lecturer_id` INTEGER NOT NULL, `cover_image_path` TEXT NOT NULL, FOREIGN KEY(`lecturer_id`) REFERENCES `lecturers`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manoId",
+            "columnName": "mano_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -97,7 +103,7 @@
       },
       {
         "tableName": "mano_timetable",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `course_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `subgroup` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`course_id`) REFERENCES `mano_courses`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `course_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `student_group` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`course_id`) REFERENCES `mano_courses`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -130,8 +136,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "subgroup",
-            "columnName": "subgroup",
+            "fieldPath": "studentGroup",
+            "columnName": "student_group",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -255,7 +261,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '10b64e23a4e2041dfc4a2b7d4caf60a8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3c9482ff8ffd4fb06c8e3eed7cd17fb2')"
     ]
   }
 }

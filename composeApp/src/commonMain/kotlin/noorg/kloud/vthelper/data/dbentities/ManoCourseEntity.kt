@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.data.entities
+package noorg.kloud.vthelper.data.dbentities
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -21,6 +21,8 @@ data class ManoCourseEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
+    @ColumnInfo(name = "mano_id")
+    val manoId: Long = 0,
     @ColumnInfo(name = "subject")
     val subject: String,
     @ColumnInfo(name = "lecturer_id")

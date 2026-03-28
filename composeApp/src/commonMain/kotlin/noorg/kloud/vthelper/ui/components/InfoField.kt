@@ -54,7 +54,7 @@ fun InfoField(
                 text = topText
             )
             Text(
-                color = Color(0xA0888888).compositeOver(MaterialTheme.colorScheme.onSurface),
+                color = MaterialTheme.colorScheme.outline,
                 text = bottomText
             )
         }

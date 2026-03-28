@@ -4,16 +4,16 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
-import noorg.kloud.vthelper.data.daos.LecturerDao
-import noorg.kloud.vthelper.data.daos.LoggedInUserDao
-import noorg.kloud.vthelper.data.daos.ManoCourseDao
-import noorg.kloud.vthelper.data.daos.ManoCourseTimetableDao
-import noorg.kloud.vthelper.data.daos.MoodleCourseDao
-import noorg.kloud.vthelper.data.entities.LecturerEntity
-import noorg.kloud.vthelper.data.entities.LoggedInUserEntity
-import noorg.kloud.vthelper.data.entities.ManoCourseEntity
-import noorg.kloud.vthelper.data.entities.ManoCourseTimetableEntity
-import noorg.kloud.vthelper.data.entities.MoodleCourseEntity
+import noorg.kloud.vthelper.data.dbdaos.LecturerDao
+import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
+import noorg.kloud.vthelper.data.dbdaos.ManoCourseDao
+import noorg.kloud.vthelper.data.dbdaos.ManoCourseTimetableDao
+import noorg.kloud.vthelper.data.dbdaos.MoodleCourseDao
+import noorg.kloud.vthelper.data.dbentities.LecturerEntity
+import noorg.kloud.vthelper.data.dbentities.LoggedInUserEntity
+import noorg.kloud.vthelper.data.dbentities.ManoCourseEntity
+import noorg.kloud.vthelper.data.dbentities.ManoCourseTimetableEntity
+import noorg.kloud.vthelper.data.dbentities.MoodleCourseEntity
 
 // https://developer.android.com/kotlin/multiplatform/room
 

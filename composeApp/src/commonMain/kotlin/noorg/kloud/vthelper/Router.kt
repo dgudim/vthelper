@@ -119,7 +119,6 @@ fun Navigation(
         startDestination = NavDrawerItem.Dashboard.route,
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(innerPadding)
     ) {
         composable(NavDrawerItem.Dashboard.route) {
@@ -243,6 +242,9 @@ fun NavigationDrawer(
 @Composable
 @Preview
 fun Router() {
+
+    // https://stackoverflow.com/questions/65368007/what-does-jetpack-compose-remember-actually-do-how-does-it-work-under-the-hood
+
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()

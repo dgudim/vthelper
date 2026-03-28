@@ -2,27 +2,55 @@ package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import noorg.kloud.vthelper.ui.components.CourseResultEntry
-import kotlin.time.Clock
+import noorg.kloud.vthelper.ui.components.Calendar
+import noorg.kloud.vthelper.ui.theme.CalendarColorPalette
+import noorg.kloud.vthelper.ui.theme.ColorVariants
+import noorg.kloud.vthelper.ui.theme.LocalCalendarColorPalette
 
 @Composable
 fun CalendarScreen(showSnack: (String) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp)
     ) {
-        Text("Imagine there is a calendar here")
+        val calendarColors = CalendarColorPalette(
+            toolbarColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            listItemBackgroundColor = MaterialTheme.colorScheme.surfaceContainerLow,
+
+            calendarDividerColor = MaterialTheme.colorScheme.outline,
+            monthHeaderTextColor = MaterialTheme.colorScheme.secondary,
+
+            textColor = ColorVariants(
+                selected = MaterialTheme.colorScheme.primary,
+                deselected = MaterialTheme.colorScheme.onBackground,
+                disabled = MaterialTheme.colorScheme.outline,
+                today = MaterialTheme.colorScheme.tertiary
+            ),
+
+            borderColor = ColorVariants(
+                selected = MaterialTheme.colorScheme.primary,
+                deselected = Color.Transparent,
+                disabled = Color.Transparent,
+                today = MaterialTheme.colorScheme.outlineVariant
+            ),
+
+            bgColor = ColorVariants(
+                selected = MaterialTheme.colorScheme.surfaceContainerHighest,
+                deselected = Color.Transparent,
+                disabled = Color.Transparent,
+                today = Color.Transparent
+            ),
+        )
+
+        CompositionLocalProvider(
+            LocalCalendarColorPalette provides calendarColors
+        ) {
+            Calendar()
+        }
     }
 }

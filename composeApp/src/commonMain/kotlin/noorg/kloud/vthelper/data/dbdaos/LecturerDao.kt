@@ -1,9 +1,9 @@
-package noorg.kloud.vthelper.data.daos
+package noorg.kloud.vthelper.data.dbdaos
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import noorg.kloud.vthelper.data.entities.LecturerEntity
+import noorg.kloud.vthelper.data.dbentities.LecturerEntity
 
 @Dao
 interface LecturerDao {

@@ -39,3 +39,8 @@ val MaterialTheme.customColors: CustomColorPalette
     @Composable
     @ReadOnlyComposable
     get() = LocalCustomColorPalette.current
+
+val MaterialTheme.calendarColors: CalendarColorPalette
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalCalendarColorPalette.current

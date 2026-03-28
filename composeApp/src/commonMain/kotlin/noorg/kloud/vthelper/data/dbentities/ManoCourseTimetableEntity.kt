@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.data.entities
+package noorg.kloud.vthelper.data.dbentities
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -31,14 +31,17 @@ data class ManoCourseTimetableEntity(
     val id: Long = 0,
     @ColumnInfo(name = "course_id")
     val courseId: Long = 0,
+
     @ColumnInfo(name = "time_from_ms_utc")
     val timeFromMsUTC: Long,
     @ColumnInfo(name = "time_to_ms_utc")
     val timeToMsUTC: Long,
+
     @ColumnInfo(name = "type")
     val type: TimetableEntityType,
-    @ColumnInfo(name = "subgroup")
-    val subgroup: Int,
+
+    @ColumnInfo(name = "student_group")
+    val studentGroup: Int,
     @ColumnInfo(name = "week")
     val week: TimetableEntityWeek
 )

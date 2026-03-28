@@ -1,10 +1,10 @@
-package noorg.kloud.vthelper.data.daos
+package noorg.kloud.vthelper.data.dbdaos
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import noorg.kloud.vthelper.data.entities.ManoCourseEntity
+import noorg.kloud.vthelper.data.dbentities.ManoCourseEntity
 
 @Dao
 interface ManoCourseDao {
