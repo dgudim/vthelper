@@ -1,6 +1,8 @@
 package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonShapes
@@ -63,6 +67,7 @@ fun AccountScreen(showSnack: (String) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState(0))
             .wrapContentSize(Alignment.TopCenter),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
