@@ -28,6 +28,7 @@ fun rememberFirstMostVisibleMonth(
 ): CalendarMonth {
     val visibleMonth = remember(state) { mutableStateOf(state.firstVisibleMonth) }
     LaunchedEffect(state) {
+        // https://efeejemudaro.medium.com/firing-side-effects-from-compose-using-snapshotflow-e3581c624adb
         snapshotFlow { state.layoutInfo.firstMostVisibleMonth(viewportPercent) }
             .filterNotNull()
             .collect { month -> visibleMonth.value = month }

@@ -13,11 +13,20 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import io.ktor.http.parameters
 import io.ktor.util.appendAll
-import noorg.kloud.vthelper.api.models.LoginResult
+import noorg.kloud.vthelper.api.models.ApiResult
+import noorg.kloud.vthelper.api.models.expect200
+import noorg.kloud.vthelper.api.models.expectCode
+import noorg.kloud.vthelper.api.models.toApiResult
 
 object VTBaseApi {
 
-    private var cookieStorage = AcceptAllCookiesStorage()
+    var cookieStorage = AcceptAllCookiesStorage()
+
+    private val mfaExtractionRegex =
+        Regex("""id="context".*?value="(.*?)"""", RegexOption.MULTILINE)
+    val samlResponseRegex =
+        Regex("""name="SAMLResponse" value="(.*?)"""", RegexOption.MULTILINE)
+    val samlUrlRegex = Regex("""name="hiddenform" action="(.*?)"""", RegexOption.MULTILINE)
 
     private val client = HttpClient(CIO) {
         install(HttpCookies) {
@@ -54,11 +63,6 @@ object VTBaseApi {
         "Sec-Fetch-Site" to "same-origin",
     )
 
-    private fun resultWithLog(result: LoginResult): LoginResult {
-        println(result.getFullStatus())
-        return result
-    }
-
     private suspend fun loadCookies() {
 
     }
@@ -76,7 +80,7 @@ object VTBaseApi {
         username: String,
         password: String,
         mfaCode: String
-    ): LoginResult {
+    ): ApiResult<String> {
         // Try loading the page directly
         // MDL_SSP_SessID and MoodleSession are set if we are logging into moodle
         val initialResponse = client.get(serviceBaseUrl) {
@@ -86,29 +90,18 @@ object VTBaseApi {
         println("Initial request to $serviceBaseUrl")
 
         if (initialResponse.status == HttpStatusCode.OK) { // 200
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = initialResponse,
-                    context = "Already logged in",
-                    isSuccessful = true,
-                    step = "initial request"
-                )
+            return initialResponse.toApiResult(
+                context = "Already logged in",
+                isSuccessful = true,
+                operation = "initial request"
             )
         }
 
-        if (
-            initialResponse.status != HttpStatusCode.SeeOther &&
-            initialResponse.status != HttpStatusCode.Found
-        ) { // 303 or 302. We should get a redirection if it's not 200
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = initialResponse,
-                    context = "Unexpected response code (expected 303)",
-                    isSuccessful = false,
-                    step = "initial request"
-                )
-            )
-        }
+        // 303 or 302. We should get a redirection if it's not 200
+        initialResponse.expectCode<String>(
+            expectedCodes = listOf(HttpStatusCode.SeeOther, HttpStatusCode.Found),
+            operation = "initial request"
+        )?.let { return it }
 
         var redirectLocation = Url(initialResponse.headers[HttpHeaders.Location] ?: "")
 
@@ -118,14 +111,12 @@ object VTBaseApi {
         // We can also test by the status code, looks like it's 303 for normal redirects
         // and 302 for auth redirects, but I am not sure that it's always the case
         if (redirectLocation.host == serviceBaseUrl.host) {
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = initialResponse,
-                    context = "Already logged in, same-site redirection",
-                    isSuccessful = true,
-                    step = "initial request"
-                )
+            return initialResponse.toApiResult(
+                context = "Already logged in, same-site redirection",
+                isSuccessful = true,
+                operation = "initial request"
             )
+
         }
 
         // Load the redirected page to see what we got
@@ -134,16 +125,9 @@ object VTBaseApi {
             headers { appendAll(initialRequestHeaders) }
         }
 
-        if (initialRedirectResponse.status != HttpStatusCode.OK) { // 200
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = initialRedirectResponse,
-                    context = "Unexpected response code (expected 200)",
-                    isSuccessful = false,
-                    step = "load initial redirected page"
-                )
-            )
-        }
+        initialRedirectResponse.expect200<String>(
+            "load initial redirected page"
+        )?.let { return it }
 
         val initialRedirectResponseContent = initialRedirectResponse.bodyAsText()
         // Intermediate hidden form for SAML request, not relogin required, only local token/session refresh
@@ -168,16 +152,11 @@ object VTBaseApi {
         }
 
         // We must get 302, it we didn't, username or password is wrong
-        if (loginResponse.status != HttpStatusCode.Found) { // 302
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = loginResponse,
-                    context = "Wrong username or password",
-                    isSuccessful = false,
-                    step = "username login"
-                )
-            )
-        }
+        loginResponse.expectCode<String>(
+            context = "Wrong username or password",
+            expectedCodes = listOf(HttpStatusCode.Found),
+            operation = "username login"
+        )?.let { return it }
 
         // Same url, but different content, the page contains context key for MFA
         redirectLocation = Url(loginResponse.headers[HttpHeaders.Location] ?: "")
@@ -190,27 +169,18 @@ object VTBaseApi {
             headers { appendAll(initialRequestHeaders) }
         }
 
-        if (initialMfaPageResponse.status != HttpStatusCode.OK) { // 200
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = initialMfaPageResponse,
-                    context = "Unexpected response code (expected 200)",
-                    isSuccessful = false,
-                    step = "get mfa page after login"
-                )
-            )
-        }
+        initialMfaPageResponse.expect200<String>(
+            "get mfa page after login"
+        )?.let { return it }
 
         var mfaContext =
             extractMfaContext(initialMfaPageResponse.bodyAsText())
-                ?: return resultWithLog(
-                    LoginResult.fromHttpResult(
-                        response = initialMfaPageResponse,
-                        context = "Mfa context is null",
-                        isSuccessful = false,
-                        step = "extract initial mfa context from page"
-                    )
+                ?: return initialMfaPageResponse.toApiResult(
+                    context = "Mfa context is null",
+                    isSuccessful = false,
+                    operation = "extract initial mfa context from page"
                 )
+
 
         println("Posting initial mfa request")
 
@@ -226,27 +196,18 @@ object VTBaseApi {
             headers { appendAll(loginHeaders + mapOf("Referer" to redirectLocation.toString())) }
         }
 
-        if (mfaContextPostResponse.status != HttpStatusCode.OK) { // 200
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = mfaContextPostResponse,
-                    context = "Unexpected response code (expected 200)",
-                    isSuccessful = false,
-                    step = "post initial mfa context"
-                )
-            )
-        }
+        mfaContextPostResponse.expect200<String>(
+            "post initial mfa context"
+        )?.let { return it }
 
         mfaContext =
             extractMfaContext(mfaContextPostResponse.bodyAsText())
-                ?: return resultWithLog(
-                    LoginResult.fromHttpResult(
-                        response = mfaContextPostResponse,
-                        context = "Mfa context is null",
-                        isSuccessful = false,
-                        step = "extract updated mfa context from page"
-                    )
+                ?: return mfaContextPostResponse.toApiResult(
+                    context = "Mfa context is null",
+                    isSuccessful = false,
+                    operation = "extract updated mfa context from page"
                 )
+
 
         println("Posting mfa code")
 
@@ -265,16 +226,11 @@ object VTBaseApi {
         }
 
         // We must get 302, it we didn't, mfa code is wrong
-        if (mfaCodeResponse.status != HttpStatusCode.Found) { // 302
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = mfaCodeResponse,
-                    context = "Wrong mfa code",
-                    isSuccessful = false,
-                    step = "mfa login"
-                )
-            )
-        }
+        mfaCodeResponse.expectCode<String>(
+            context = "Wrong mfa code",
+            expectedCodes = listOf(HttpStatusCode.Found),
+            operation = "mfa login"
+        )?.let { return it }
 
         // Same url
         redirectLocation = Url(mfaCodeResponse.headers[HttpHeaders.Location] ?: "")
@@ -287,40 +243,29 @@ object VTBaseApi {
         }
 
         // We must get a page with a hidden form for saml
-        if (finalSamlLoadRequest.status != HttpStatusCode.OK) { // 200
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = finalSamlLoadRequest,
-                    context = "Unexpected response code (expected 200)",
-                    isSuccessful = false,
-                    step = "load final saml hidden form"
-                )
-            )
-        }
+        finalSamlLoadRequest.expect200<String>(
+            "load final saml hidden form"
+        )?.let { return it }
 
         return refreshLocalLogin(serviceBaseUrl, finalSamlLoadRequest.bodyAsText())
     }
 
     // This extracts and posts saml response to the corresponding mano or moodle endpoint and refreshes session cookies
-    suspend fun refreshLocalLogin(serviceBaseUrl: Url, pageContent: String): LoginResult {
-        val samlResponseRegex =
-            Regex("""name="SAMLResponse" value="(.*?)"""", RegexOption.MULTILINE)
+    suspend fun refreshLocalLogin(serviceBaseUrl: Url, pageContent: String): ApiResult<String> {
         val samlResponse = samlResponseRegex.find(pageContent)?.groupValues?.get(1)
-
-        val samlUrlRegex = Regex("""name="hiddenform" action="(.*?)"""", RegexOption.MULTILINE)
         val samlUrl = samlUrlRegex.find(pageContent)?.groupValues?.get(1)
             ?.replace(":443/", "/") // Remove explicit https port
 
         if (samlResponse == null || samlUrl == null) {
-            return resultWithLog(
-                LoginResult(
-                    statusCode = HttpStatusCode.OK,
-                    responseContent = "",
-                    context = "Saml response or url is null",
-                    isSuccessful = false,
-                    step = "extract saml response"
-                )
+            return ApiResult(
+                statusCode = HttpStatusCode.OK,
+                bodyRaw = pageContent,
+                bodyTyped = null,
+                context = "Saml response or url is null",
+                isSuccessful = false,
+                operation = "extract saml response"
             )
+
         }
 
         println("Refreshing local login, posting to '$samlUrl'")
@@ -337,16 +282,11 @@ object VTBaseApi {
         }
 
         // We must get a redirect to the actual service page
-        if (serviceSamlAuthResponse.status != HttpStatusCode.SeeOther) { // 303
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = serviceSamlAuthResponse,
-                    context = "Unexpected response code (expected 303)",
-                    isSuccessful = false,
-                    step = "post sam auth data"
-                )
-            )
-        }
+        serviceSamlAuthResponse.expectCode<String>(
+            context = "Unexpected response code (expected 303)",
+            expectedCodes = listOf(HttpStatusCode.SeeOther),
+            operation = "post sam auth data"
+        )?.let { return it }
 
         val redirectedServiceBaseUrl = serviceSamlAuthResponse.headers[HttpHeaders.Location] ?: ""
 
@@ -357,33 +297,21 @@ object VTBaseApi {
             headers { appendAll(initialRequestHeaders) }
         }
 
-        if (finalServiceResponse.status == HttpStatusCode.OK ||
-            finalServiceResponse.status == HttpStatusCode.SeeOther
-        ) { // 200 or 303
-            println("We are golden!")
+        finalServiceResponse.expectCode<String>(
+            expectedCodes = listOf(HttpStatusCode.OK, HttpStatusCode.SeeOther),
+            operation = "final service request"
+        )?.let { return it }
 
-            return resultWithLog(
-                LoginResult.fromHttpResult(
-                    response = finalServiceResponse,
-                    context = "Logged in successfully",
-                    isSuccessful = true,
-                    step = "final service request"
-                )
-            )
-        }
+        println("We are golden!")
 
-        return resultWithLog(
-            LoginResult.fromHttpResult(
-                response = finalServiceResponse,
-                context = "Unexpected return code (expected 200 or 303)",
-                isSuccessful = false,
-                step = "final service request"
-            )
+        return finalServiceResponse.toApiResult(
+            context = "Logged in successfully",
+            isSuccessful = true,
+            operation = "final service request"
         )
     }
 
     private fun extractMfaContext(content: String): String? {
-        val regex = Regex("""id="context".*?value="(.*?)"""", RegexOption.MULTILINE)
-        return regex.find(content)?.groupValues?.get(1)
+        return mfaExtractionRegex.find(content)?.groupValues?.get(1)
     }
 }
