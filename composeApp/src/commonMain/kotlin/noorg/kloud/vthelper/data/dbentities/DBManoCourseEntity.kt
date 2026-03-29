@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
     tableName = "mano_courses",
     foreignKeys = [
         ForeignKey(
-            entity = LecturerEntity::class,
+            entity = DBLecturerEntity::class,
             parentColumns = arrayOf("id"),
             childColumns = arrayOf("lecturer_id"),
             onUpdate = ForeignKey.CASCADE,
@@ -17,7 +17,7 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class ManoCourseEntity(
+data class DBManoCourseEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,

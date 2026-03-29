@@ -3,23 +3,23 @@ package noorg.kloud.vthelper.api.models.moodle
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-typealias ListCoursesResponse = List<ListCoursesResponseRootElem>
+typealias ApiMoodleListCoursesResponse = List<ApiMoodleListCoursesResponseRootElem>
 
 @Serializable
-data class ListCoursesResponseRootElem(
+data class ApiMoodleListCoursesResponseRootElem(
     val error: Boolean,
-    val data: ListCoursesResponseData,
+    val data: ApiMoodleListCoursesResponseData,
 )
 
 @Serializable
-data class ListCoursesResponseData(
-    val courses: List<ListCoursesResponseCourse>,
+data class ApiMoodleListCoursesResponseData(
+    val courses: List<ApiMoodleListCoursesResponseCourse>,
     @SerialName("nextoffset")
     val nextOffset: Long,
 )
 
 @Serializable
-data class ListCoursesResponseCourse(
+data class ApiMoodleListCoursesResponseCourse(
     val id: Long,
     @SerialName("fullname")
     val fullName: String,

@@ -9,14 +9,14 @@ import androidx.room.PrimaryKey
     tableName = "meta_courses",
     foreignKeys = [
         ForeignKey(
-            entity = ManoCourseEntity::class,
+            entity = DBManoCourseEntity::class,
             parentColumns = arrayOf("id"),
             childColumns = arrayOf("internal_mano_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = MoodleCourseEntity::class,
+            entity = DBMoodleCourseEntity::class,
             parentColumns = arrayOf("id"),
             childColumns = arrayOf("internal_moodle_id"),
             onUpdate = ForeignKey.CASCADE,
@@ -24,7 +24,7 @@ import androidx.room.PrimaryKey
         )
     ]
 )
-data class MetaCourseEntity(
+data class DBMetaCourseEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 

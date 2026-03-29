@@ -4,16 +4,16 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import noorg.kloud.vthelper.data.dbentities.ManoCourseEntity
+import noorg.kloud.vthelper.data.dbentities.DBManoCourseEntity
 
 @Dao
 interface ManoCourseDao {
     @Insert
-    suspend fun insert(item: ManoCourseEntity)
+    suspend fun insert(item: DBManoCourseEntity)
 
     @Query("SELECT count(*) FROM mano_courses")
     suspend fun count(): Int
 
     @Query("SELECT * FROM mano_courses")
-    fun getAllAsFlow(): Flow<List<ManoCourseEntity>>
+    fun getAllAsFlow(): Flow<List<DBManoCourseEntity>>
 }

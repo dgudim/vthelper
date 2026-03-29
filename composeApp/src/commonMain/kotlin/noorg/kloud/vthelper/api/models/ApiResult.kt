@@ -47,6 +47,21 @@ data class ApiResult<T>(
             ).logIt()
         }
 
+        fun <T> fromDeserializedModel(
+            response: T,
+            context: String? = null,
+            operation: String
+        ): ApiResult<T> {
+            return ApiResult(
+                statusCode = HttpStatusCode.OK,
+                bodyRaw = null,
+                bodyTyped = response,
+                context = context ?: "OK",
+                isSuccessful = true,
+                operation = operation
+            ).logIt()
+        }
+
         suspend inline fun <reified T> expectCode(
             response: HttpResponse,
             context: String? = null,
@@ -57,7 +72,7 @@ data class ApiResult<T>(
                 return null
             }
 
-            val expectedCodesMsg = "Unexpected return code, expected one of: $expectedCodes";
+            val expectedCodesMsg = "Unexpected return code, expected one of: $expectedCodes"
 
             return fromHttpResult<T>(
                 response,

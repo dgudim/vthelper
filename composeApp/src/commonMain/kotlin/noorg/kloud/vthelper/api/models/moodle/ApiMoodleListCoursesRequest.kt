@@ -3,18 +3,18 @@ package noorg.kloud.vthelper.api.models.moodle
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-typealias ListCoursesRequest = List<ListCoursesRequestRootElem>
+typealias ApiMoodleListCoursesRequest = List<ApiMoodleListCoursesRequestRootElem>
 
 @Serializable
-data class ListCoursesRequestRootElem(
+data class ApiMoodleListCoursesRequestRootElem(
     val index: Long,
     @SerialName("methodname")
     val methodName: String,
-    val args: ListCoursesRequestArgs,
+    val args: ApiMoodleListCoursesRequestArgs,
 )
 
 @Serializable
-data class ListCoursesRequestArgs(
+data class ApiMoodleListCoursesRequestArgs(
     val offset: Long,
     val limit: Long,
     val classification: String,

@@ -1,6 +1,6 @@
 package noorg.kloud.vthelper.api.models.moodle
 
-enum class MoodleNotificationType(key: String) {
+enum class ApiMoodleNotificationType(key: String) {
     ASSIGNMENT("message_provider_mod_assign_assign_notification_enabled"),
     ASSIGNMENT_DUE_SOON("message_provider_mod_assign_assign_due_soon_enabled"),
     ASSIGNMENT_OVERDUE("message_provider_mod_assign_assign_overdue_enabled"),

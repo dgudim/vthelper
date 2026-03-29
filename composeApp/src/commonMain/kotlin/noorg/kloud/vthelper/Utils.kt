@@ -59,3 +59,7 @@ fun Color.setAlpha(newAlpha: Float): Color {
         alpha = newAlpha
     )
 }
+
+fun Regex.findFirstGroup(str: String): String? {
+    return find(str)?.groupValues?.get(1)
+}

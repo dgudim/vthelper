@@ -402,7 +402,7 @@ private fun LazyItemScope.EventInformation(event: CalendarEvent, now: Instant) {
                         CalendarEventType.TIMETABLE -> Res.drawable.book_24px
                         CalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
                         CalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
-                        else -> Res.drawable.circle_24px
+                        CalendarEventType.OTHER -> Res.drawable.circle_24px
                     }
                 ),
                 contentDescription = null,

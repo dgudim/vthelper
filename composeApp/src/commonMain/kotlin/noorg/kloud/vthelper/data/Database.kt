@@ -9,21 +9,21 @@ import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
 import noorg.kloud.vthelper.data.dbdaos.ManoCourseDao
 import noorg.kloud.vthelper.data.dbdaos.ManoCourseTimetableDao
 import noorg.kloud.vthelper.data.dbdaos.MoodleCourseDao
-import noorg.kloud.vthelper.data.dbentities.LecturerEntity
-import noorg.kloud.vthelper.data.dbentities.LoggedInUserEntity
-import noorg.kloud.vthelper.data.dbentities.ManoCourseEntity
-import noorg.kloud.vthelper.data.dbentities.ManoCourseTimetableEntity
-import noorg.kloud.vthelper.data.dbentities.MoodleCourseEntity
+import noorg.kloud.vthelper.data.dbentities.DBLecturerEntity
+import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
+import noorg.kloud.vthelper.data.dbentities.DBManoCourseEntity
+import noorg.kloud.vthelper.data.dbentities.DBManoCourseTimetableEntity
+import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 
 // https://developer.android.com/kotlin/multiplatform/room
 
 @Database(
     entities = [
-        MoodleCourseEntity::class,
-        ManoCourseEntity::class,
-        ManoCourseTimetableEntity::class,
-        LoggedInUserEntity::class,
-        LecturerEntity::class
+        DBMoodleCourseEntity::class,
+        DBManoCourseEntity::class,
+        DBManoCourseTimetableEntity::class,
+        DBLoggedInUserEntity::class,
+        DBLecturerEntity::class
     ],
     version = 1
 )

@@ -19,10 +19,11 @@ import kotlinx.serialization.json.Json
 import noorg.kloud.vthelper.api.models.ApiResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
-import noorg.kloud.vthelper.api.models.moodle.ListCoursesRequestArgs
-import noorg.kloud.vthelper.api.models.moodle.ListCoursesRequestRootElem
-import noorg.kloud.vthelper.api.models.moodle.ListCoursesResponse
+import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesRequestArgs
+import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesRequestRootElem
+import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesResponse
 import noorg.kloud.vthelper.api.models.toApiResult
+import noorg.kloud.vthelper.findFirstGroup
 
 class MoodleApi {
     companion object {
@@ -74,7 +75,7 @@ class MoodleApi {
         )?.let { return it }
 
         val extractedSessionKey =
-            sessionKeyExtractionRegex.find(pageResponse.bodyAsText())?.groupValues?.get(1)
+            sessionKeyExtractionRegex.findFirstGroup(pageResponse.bodyAsText())
                 ?: return pageResponse.toApiResult(
                     "Session key not found",
                     false,
@@ -82,7 +83,7 @@ class MoodleApi {
                 )
 
         val extractedUserId =
-            userIdExtractionRegex.find(pageResponse.bodyAsText())?.groupValues?.get(1)
+            userIdExtractionRegex.findFirstGroup(pageResponse.bodyAsText())
                 ?: return pageResponse.toApiResult(
                     "User ID not found",
                     false,
@@ -120,8 +121,7 @@ class MoodleApi {
 
         val extractedCalendarUrl =
             calendarExportUrlExtractionRegex
-                .find(calendarUrlPageResponse.bodyAsText())
-                ?.groupValues?.get(1)
+                .findFirstGroup(calendarUrlPageResponse.bodyAsText())
                 ?: return calendarUrlPageResponse.toApiResult(
                     "Calendar URL not found",
                     false,
@@ -137,7 +137,7 @@ class MoodleApi {
         )
     }
 
-    suspend fun getCourses(): ApiResult<ListCoursesResponse> {
+    suspend fun getCourses(): ApiResult<ApiMoodleListCoursesResponse> {
         val methodName = "core_course_get_enrolled_courses_by_timeline_classification"
 
         val coursesResponse =
@@ -145,10 +145,10 @@ class MoodleApi {
                 contentType(ContentType.Application.Json)
                 setBody(
                     listOf(
-                        ListCoursesRequestRootElem(
+                        ApiMoodleListCoursesRequestRootElem(
                             index = 0,
                             methodName = methodName,
-                            args = ListCoursesRequestArgs(
+                            args = ApiMoodleListCoursesRequestArgs(
                                 classification = "all",
                                 customFieldName = "",
                                 customFieldValue = "",
@@ -172,7 +172,7 @@ class MoodleApi {
 
         val operation = "get courses"
 
-        coursesResponse.expect200<ListCoursesResponse>(
+        coursesResponse.expect200<ApiMoodleListCoursesResponse>(
             operation = operation
         )?.let { return it }
 

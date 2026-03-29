@@ -17,6 +17,7 @@ import noorg.kloud.vthelper.api.models.ApiResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
 import noorg.kloud.vthelper.api.models.toApiResult
+import noorg.kloud.vthelper.findFirstGroup
 
 object VTBaseApi {
 
@@ -121,15 +122,15 @@ object VTBaseApi {
 
         // Load the redirected page to see what we got
         // This doesn't normally set any cookies, unless it's a local session sefresh
-        val initialRedirectResponse = client.get(redirectLocation) {
+        val initialRedirectedResponse = client.get(redirectLocation) {
             headers { appendAll(initialRequestHeaders) }
         }
 
-        initialRedirectResponse.expect200<String>(
+        initialRedirectedResponse.expect200<String>(
             "load initial redirected page"
         )?.let { return it }
 
-        val initialRedirectResponseContent = initialRedirectResponse.bodyAsText()
+        val initialRedirectResponseContent = initialRedirectedResponse.bodyAsText()
         // Intermediate hidden form for SAML request, not relogin required, only local token/session refresh
         if (initialRedirectResponseContent.contains("Working...")) {
             return refreshLocalLogin(serviceBaseUrl, initialRedirectResponseContent)
@@ -174,7 +175,7 @@ object VTBaseApi {
         )?.let { return it }
 
         var mfaContext =
-            extractMfaContext(initialMfaPageResponse.bodyAsText())
+            mfaExtractionRegex.findFirstGroup(initialMfaPageResponse.bodyAsText())
                 ?: return initialMfaPageResponse.toApiResult(
                     context = "Mfa context is null",
                     isSuccessful = false,
@@ -201,7 +202,7 @@ object VTBaseApi {
         )?.let { return it }
 
         mfaContext =
-            extractMfaContext(mfaContextPostResponse.bodyAsText())
+            mfaExtractionRegex.findFirstGroup(mfaContextPostResponse.bodyAsText())
                 ?: return mfaContextPostResponse.toApiResult(
                     context = "Mfa context is null",
                     isSuccessful = false,
@@ -252,8 +253,8 @@ object VTBaseApi {
 
     // This extracts and posts saml response to the corresponding mano or moodle endpoint and refreshes session cookies
     suspend fun refreshLocalLogin(serviceBaseUrl: Url, pageContent: String): ApiResult<String> {
-        val samlResponse = samlResponseRegex.find(pageContent)?.groupValues?.get(1)
-        val samlUrl = samlUrlRegex.find(pageContent)?.groupValues?.get(1)
+        val samlResponse = samlResponseRegex.findFirstGroup(pageContent)
+        val samlUrl = samlUrlRegex.findFirstGroup(pageContent)
             ?.replace(":443/", "/") // Remove explicit https port
 
         if (samlResponse == null || samlUrl == null) {
@@ -290,6 +291,7 @@ object VTBaseApi {
 
         val redirectedServiceBaseUrl = serviceSamlAuthResponse.headers[HttpHeaders.Location] ?: ""
 
+        // Should be identical
         println("Final request to $redirectedServiceBaseUrl (Ours: '$serviceBaseUrl')")
 
         // This sets session cookies specific to the service
@@ -297,6 +299,7 @@ object VTBaseApi {
             headers { appendAll(initialRequestHeaders) }
         }
 
+        // 303 is ok here as we may get a redirection to some other page on the same site (e.g: moodle's /my)
         finalServiceResponse.expectCode<String>(
             expectedCodes = listOf(HttpStatusCode.OK, HttpStatusCode.SeeOther),
             operation = "final service request"
@@ -309,9 +312,5 @@ object VTBaseApi {
             isSuccessful = true,
             operation = "final service request"
         )
-    }
-
-    private fun extractMfaContext(content: String): String? {
-        return mfaExtractionRegex.find(content)?.groupValues?.get(1)
     }
 }

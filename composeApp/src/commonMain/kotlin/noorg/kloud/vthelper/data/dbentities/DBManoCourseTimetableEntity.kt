@@ -5,11 +5,11 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-enum class TimetableEntityType(val s: String) {
+enum class DBManoTimetableEntityType(val s: String) {
     LECTURE("lecture"), PRACTICE("practice"), LAB("lab")
 }
 
-enum class TimetableEntityWeek(val w: Int) {
+enum class DBManoTimetableEntityWeek(val w: Int) {
     ALL(0), FIRST(1), SECOND(2)
 }
 
@@ -17,7 +17,7 @@ enum class TimetableEntityWeek(val w: Int) {
     tableName = "mano_timetable",
     foreignKeys = [
         ForeignKey(
-            entity = ManoCourseEntity::class,
+            entity = DBManoCourseEntity::class,
             parentColumns = arrayOf("id"),
             childColumns = arrayOf("course_id"),
             onUpdate = ForeignKey.CASCADE,
@@ -25,7 +25,7 @@ enum class TimetableEntityWeek(val w: Int) {
         )
     ]
 )
-data class ManoCourseTimetableEntity(
+data class DBManoCourseTimetableEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
@@ -38,10 +38,10 @@ data class ManoCourseTimetableEntity(
     val timeToMsUTC: Long,
 
     @ColumnInfo(name = "type")
-    val type: TimetableEntityType,
+    val type: DBManoTimetableEntityType,
 
     @ColumnInfo(name = "student_group")
     val studentGroup: Int,
     @ColumnInfo(name = "week")
-    val week: TimetableEntityWeek
+    val week: DBManoTimetableEntityWeek
 )
