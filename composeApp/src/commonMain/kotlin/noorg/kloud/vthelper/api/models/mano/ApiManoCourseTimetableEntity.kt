@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.api.models.mano
 
 import kotlin.time.Duration
-import kotlin.time.Instant
 
 enum class ManoTimetableWeekday(day: String) {
     MONDAY("Monday"),

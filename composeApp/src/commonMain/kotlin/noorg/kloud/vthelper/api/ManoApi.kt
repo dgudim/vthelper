@@ -5,19 +5,21 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import noorg.kloud.vthelper.api.models.ApiResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
+import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
+import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
 import noorg.kloud.vthelper.api.models.mano.toApiResult
 import noorg.kloud.vthelper.findFirstGroup
 import kotlin.time.Duration
-import kotlin.time.Instant
 
 class ManoApi {
     companion object {
@@ -57,6 +59,15 @@ class ManoApi {
                 """data-title="Work day".*?>(.*?)<.*?data-title="Week".*?>(.*?)<.*?data-title="Time".*?>(.*?)<.*?data-title="Auditorium".*?>(.*?)<.*?data-title="Lecture type".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<""",
                 RegexOption.MULTILINE
             )
+
+        val outerContactsExtractionRegex = Regex(
+            """<div class=".*?loading-contacts-workers".*?<select.*?\n(?:<option.*option>\n)+""",
+            RegexOption.MULTILINE
+        )
+        val innerContactsExtractionRegex = Regex(
+            """<option value="(.*?)">(.*?)<.option>""",
+            RegexOption.MULTILINE
+        )
     }
 
     suspend fun loginIfNeeded(
@@ -199,4 +210,46 @@ class ManoApi {
         return ApiResult.fromDeserializedModel(subjects, operation = op)
     }
 
+    suspend fun getEmployees(): ApiResult<List<ApiManoEmployeeBasicEntity>> {
+        val op = "Get employees"
+
+        val contactsPageResponse =
+            client.get("$baseUrl/contacts/contacts")
+
+        contactsPageResponse.expect200<List<ApiManoEmployeeBasicEntity>>(
+            op
+        )?.let { return it }
+
+        val contactsPageContent = contactsPageResponse.bodyAsText()
+
+        val outerMatch = outerContactsExtractionRegex.findFirstGroup(
+            contactsPageContent.cleanHttpResponse()
+        )
+
+        if (outerMatch == null){
+            return ApiResult(
+                statusCode = HttpStatusCode.OK,
+                bodyRaw = contactsPageContent,
+                bodyTyped = null,
+                context = "Outer contacts extraction failed",
+                isSuccessful = false,
+                operation = op
+            )
+        }
+
+        val matches = innerContactsExtractionRegex.findAll(outerMatch)
+
+        val employees = matches.map { result ->
+            ApiManoEmployeeBasicEntity(
+                id = result.groupValues[1],
+                fullName = result.groupValues[2]
+            )
+        }.toList()
+
+        return ApiResult.fromDeserializedModel(employees, operation = op)
+    }
+
+    suspend fun getEmployeeDetails(employeeId: String): ApiResult<ApiManoEmployeeDetails> {
+
+    }
 }
