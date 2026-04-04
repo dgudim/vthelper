@@ -61,5 +61,5 @@ fun Color.setAlpha(newAlpha: Float): Color {
 }
 
 fun Regex.findFirstGroup(str: String): String? {
-    return find(str)?.groupValues?.get(1)
+    return find(str)?.groupValues?.get(1)?.trim()
 }

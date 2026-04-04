@@ -1,12 +1,21 @@
 package noorg.kloud.vthelper.api.models.mano
 
-data class ApiManoEmployeeDetails (
-    val position: String,
-    val departmentName: String,
-    val departmentId: String,
-    val phone: String,
-    val localPhone: String,
-    val email: String,
-    val office: String,
+data class ApiManoBasicDepartmentData(
+    val id: String,
+    val name: String
+)
+
+data class ApiManoBasicOfficeData(
+    val officeName: String,
     val address: String
+)
+
+// If there are multiple cards we bundle into one object
+data class ApiManoEmployeeDetails(
+    val fullName: String,
+    val positions: List<String>,
+    val departments: List<ApiManoBasicDepartmentData>,
+    val phones: List<String>,
+    val emails: List<String>,
+    val offices: List<ApiManoBasicOfficeData>
 )

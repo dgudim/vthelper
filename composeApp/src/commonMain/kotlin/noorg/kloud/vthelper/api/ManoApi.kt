@@ -9,6 +9,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import noorg.kloud.vthelper.api.models.ApiResult
 import noorg.kloud.vthelper.api.models.expect200
+import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
+import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
 import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
@@ -25,6 +27,7 @@ class ManoApi {
     companion object {
         val baseUrl = Url("https://mano.vilniustech.lt/")
 
+        /** [getStudentInfo] */
         val personalEmailExtractionRegex =
             Regex("""StudentContactForm\[email].*?" value="(.*?)"""", RegexOption.MULTILINE)
         val universityEmailExtractionRegex =
@@ -33,7 +36,6 @@ class ManoApi {
             Regex("""StudentContactForm\[address].*?" value="(.*?)"""", RegexOption.MULTILINE)
         val phoneExtractionRegex =
             Regex("""StudentContactForm\[phone].*?" value="(.*?)"""", RegexOption.MULTILINE)
-
         val birthDateExtractionRegex =
             Regex(
                 """Birth date .*\n.*<td class="border-none color-black">\n(.*?)\n""",
@@ -44,28 +46,66 @@ class ManoApi {
                 """Birthyear .*\n.*<td class="border-none color-black">\n(.*?)\n""",
                 RegexOption.MULTILINE
             )
-
         val fullNameAndAvatarExtractionRegex =
             Regex("""id="user_img_id".*\n.*?alt="(.*?)".*src="(.*?)"""", RegexOption.MULTILINE)
 
+        /** [getThisSemesterSubjects] */
         val studySubjectExtractionRegex =
             Regex(
                 """<a class="profile-link" href="(.*?)">(.*?)<.*?data-title="Lecturer".*?>(.*?)<.*?data-title="Evaluation".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<""",
                 RegexOption.MULTILINE
             )
 
+        /** [getSubjectTimetable] */
         val courseTimetableExtractionRegex =
             Regex(
                 """data-title="Work day".*?>(.*?)<.*?data-title="Week".*?>(.*?)<.*?data-title="Time".*?>(.*?)<.*?data-title="Auditorium".*?>(.*?)<.*?data-title="Lecture type".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<""",
                 RegexOption.MULTILINE
             )
 
+        /** [getEmployees] */
         val outerContactsExtractionRegex = Regex(
             """<div class=".*?loading-contacts-workers".*?<select.*?\n(?:<option.*option>\n)+""",
             RegexOption.MULTILINE
         )
         val innerContactsExtractionRegex = Regex(
             """<option value="(.*?)">(.*?)<.option>""",
+            RegexOption.MULTILINE
+        )
+
+        /** [getEmployeeDetails] */
+        var employeeNameExtractionRegex = Regex(
+            """<div class="employee-name">(.*?)<\\/div>""",
+            RegexOption.MULTILINE
+        )
+
+        var employeePositionExtractionRegex = Regex(
+            """<div class="employee-position">(.*?)<\\/div>""",
+            RegexOption.MULTILINE
+        )
+
+        var employeeDepartmentDataExtractionRegex = Regex(
+            """<div class="employee-department" department_id=(.*?)>.*?<a href="#">(.*?)<""",
+            RegexOption.MULTILINE
+        )
+
+        var employeePhoneExtractionRegex = Regex(
+            """<a href="tel:(.*?)"""",
+            RegexOption.MULTILINE
+        )
+
+        var employeeEmailExtractionRegex = Regex(
+            """<a href="mailto:(.*?)"""",
+            RegexOption.MULTILINE
+        )
+
+        var employeeOfficeExtractionRegex = Regex(
+            """<strong>Office<\\/strong>(.*?)<""",
+            RegexOption.MULTILINE
+        )
+
+        var employeeAddressExtractionRegex = Regex(
+            """<strong>Address<\\/strong>(.*?)<""",
             RegexOption.MULTILINE
         )
     }
@@ -172,10 +212,10 @@ class ManoApi {
     }
 
     private fun String.mapLectureType(): ApiManoTimetableEntityType {
-        if("Lecture" in this) {
+        if ("Lecture" in this) {
             return ApiManoTimetableEntityType.LECTURE
         }
-        if("Laboratory" in this) {
+        if ("Laboratory" in this) {
             return ApiManoTimetableEntityType.LAB
         }
         return ApiManoTimetableEntityType.PRACTICE
@@ -201,9 +241,9 @@ class ManoApi {
                 week = ApiManoTimetableEntityWeek.valueOf(result.groupValues[2]),
                 startTime = result.groupValues[3].split("-")[0].timeToDuration(),
                 endTime = result.groupValues[3].split("-")[1].timeToDuration(),
-                auditorium = result.groupValues[4],
+                auditorium = result.groupValues[4].trim(),
                 type = result.groupValues[5].mapLectureType(),
-                lecturerFullName = result.groupValues[6]
+                lecturerFullName = result.groupValues[6].trim()
             )
         }.toList()
 
@@ -226,7 +266,7 @@ class ManoApi {
             contactsPageContent.cleanHttpResponse()
         )
 
-        if (outerMatch == null){
+        if (outerMatch == null) {
             return ApiResult(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = contactsPageContent,
@@ -241,8 +281,8 @@ class ManoApi {
 
         val employees = matches.map { result ->
             ApiManoEmployeeBasicEntity(
-                id = result.groupValues[1],
-                fullName = result.groupValues[2]
+                id = result.groupValues[1].trim(),
+                fullName = result.groupValues[2].trim()
             )
         }.toList()
 
@@ -250,6 +290,64 @@ class ManoApi {
     }
 
     suspend fun getEmployeeDetails(employeeId: String): ApiResult<ApiManoEmployeeDetails> {
+        val op = "Get employee details for $employeeId"
 
+        val detailsPageResponse =
+            client.get("$baseUrl/contacts/contacts/employee-data?id=$employeeId")
+
+        detailsPageResponse.expect200<ApiManoEmployeeDetails>(
+            op
+        )?.let { return it }
+
+        val detailsPageContent = detailsPageResponse.bodyAsText().replace("\n", "")
+
+        val phones = employeePhoneExtractionRegex.findAll(detailsPageContent).map { result ->
+            result.groupValues[1].trim()
+        }.distinct().toList()
+
+        val emails = employeeEmailExtractionRegex.findAll(detailsPageContent).map { result ->
+            result.groupValues[1].trim()
+        }.distinct().toList()
+
+        val departments =
+            employeeDepartmentDataExtractionRegex.findAll(detailsPageContent).map { result ->
+                ApiManoBasicDepartmentData(
+                    id = result.groupValues[1].trim(),
+                    name = result.groupValues[2].trim()
+                )
+            }.distinct().toList()
+
+        val offices = employeeOfficeExtractionRegex
+            .findAll(detailsPageContent)
+            .map { result ->
+                result.groupValues[1].trim()
+            }.zip(
+                employeeAddressExtractionRegex
+                    .findAll(detailsPageContent)
+                    .map { result -> result.groupValues[1].trim() })
+            .map { result ->
+                ApiManoBasicOfficeData(
+                    officeName = result.first,
+                    address = result.second,
+                )
+            }.distinct().toList()
+
+        val positions =
+            employeePositionExtractionRegex.findAll(detailsPageContent).map { result ->
+                result.groupValues[1].trim()
+            }.distinct().toList()
+
+        val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
+
+        return ApiResult.fromDeserializedModel(
+            ApiManoEmployeeDetails(
+                phones = phones,
+                emails = emails,
+                departments = departments,
+                offices = offices,
+                positions = positions,
+                fullName = fullName ?: ""
+            ), operation = op
+        )
     }
 }
