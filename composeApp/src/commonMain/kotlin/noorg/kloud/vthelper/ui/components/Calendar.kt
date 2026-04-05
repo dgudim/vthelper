@@ -1,6 +1,7 @@
 package noorg.kloud.vthelper.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,13 +59,11 @@ import com.kizitonwose.calendar.core.plusMonths
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
-import noorg.kloud.vthelper.data.local_models.CalendarEvent
-import noorg.kloud.vthelper.data.local_models.CalendarEventType
+import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
+import noorg.kloud.vthelper.data.local_models.LocalCalendarEventType
 import noorg.kloud.vthelper.displayText
-import noorg.kloud.vthelper.formatLocalDate
 import noorg.kloud.vthelper.formatLocalTime
 import noorg.kloud.vthelper.next
 import noorg.kloud.vthelper.previous
@@ -96,8 +95,8 @@ fun Calendar() {
     val daysOfWeek = remember { daysOfWeek() }
 
     val events = listOf(
-        CalendarEvent(
-            CalendarEventType.TIMETABLE,
+        LocalCalendarEvent(
+            LocalCalendarEventType.TIMETABLE,
             "Test event",
             "Bla bla",
             Color.Red,
@@ -105,8 +104,8 @@ fun Calendar() {
             Clock.System.now(),
             Clock.System.now(),
         ),
-        CalendarEvent(
-            CalendarEventType.TIMETABLE,
+        LocalCalendarEvent(
+            LocalCalendarEventType.TIMETABLE,
             "Test event 2",
             "Bla bla 2",
             Color.Green,
@@ -114,8 +113,8 @@ fun Calendar() {
             Clock.System.now(),
             Clock.System.now(),
         ),
-        CalendarEvent(
-            CalendarEventType.TIMETABLE,
+        LocalCalendarEvent(
+            LocalCalendarEventType.TIMETABLE,
             "Test event 3",
             "Bla bla 3",
             Color.Yellow,
@@ -371,7 +370,7 @@ private fun CalendarNavigationIcon(
 }
 
 @Composable
-private fun LazyItemScope.EventInformation(event: CalendarEvent, now: Instant) {
+private fun LazyItemScope.EventInformation(event: LocalCalendarEvent, now: Instant) {
 
     val formattedTimeSpan = remember {
         "${event.startTime.formatLocalTime()} - ${event.endTime.formatLocalTime()}"
@@ -399,10 +398,10 @@ private fun LazyItemScope.EventInformation(event: CalendarEvent, now: Instant) {
             Icon(
                 painter = painterResource(
                     when (event.eventType) {
-                        CalendarEventType.TIMETABLE -> Res.drawable.book_24px
-                        CalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
-                        CalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
-                        CalendarEventType.OTHER -> Res.drawable.circle_24px
+                        LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
+                        LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
+                        LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
+                        LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
                     }
                 ),
                 contentDescription = null,

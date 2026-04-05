@@ -10,6 +10,9 @@ interface LoggedInUserDao {
     @Insert
     suspend fun insert(item: DBLoggedInUserEntity)
 
+    @Query("DELETE FROM mano_timetable")
+    suspend fun delete()
+
     @Query("SELECT count(*) > 0 FROM mano_timetable")
     suspend fun hasUser(): Int
 

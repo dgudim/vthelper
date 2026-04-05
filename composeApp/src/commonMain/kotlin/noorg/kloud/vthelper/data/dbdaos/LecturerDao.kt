@@ -3,6 +3,7 @@ package noorg.kloud.vthelper.data.dbdaos
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import noorg.kloud.vthelper.data.dbentities.DBLecturerEntity
 
 @Dao
@@ -14,5 +15,5 @@ interface LecturerDao {
     suspend fun count(): Int
 
     @Query("SELECT * FROM lecturers")
-    suspend fun get(): DBLecturerEntity
+    fun getAllAsFlow(): Flow<List<DBLecturerEntity>>
 }

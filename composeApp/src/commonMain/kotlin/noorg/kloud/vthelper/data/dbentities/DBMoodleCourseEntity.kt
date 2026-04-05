@@ -7,8 +7,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "moodle_courses")
 data class DBMoodleCourseEntity(
 
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey(autoGenerate = false)
     @ColumnInfo(name = "moodle_id")
     val moodleId: Long,
 

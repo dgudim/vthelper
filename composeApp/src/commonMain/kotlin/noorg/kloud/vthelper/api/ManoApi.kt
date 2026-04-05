@@ -191,15 +191,15 @@ class ManoApi {
 
         val subjects = matches.map { result ->
             ApiManoCourseEntity(
-                subjectModId = Url(result.groupValues?.get(1) ?: "/").parameters?.get("MOD_ID")
+                subjectModId = Url(result.groupValues[1]).parameters?.get("MOD_ID")
                     ?: "",
-                subjectModCode = Url(result.groupValues?.get(1) ?: "/").parameters?.get("MOD_CODE")
+                subjectModCode = Url(result.groupValues[1]).parameters?.get("MOD_CODE")
                     ?: "",
-                subjectLink = result.groupValues?.get(1) ?: "",
-                subjectName = result.groupValues?.get(2) ?: "",
-                subjectLecturerFullName = result.groupValues?.get(3) ?: "",
-                subjectEvaluationCode = result.groupValues?.get(4) ?: "",
-                subjectCredits = result.groupValues?.get(5)?.toInt() ?: 0,
+                subjectLink = result.groupValues[1],
+                subjectName = result.groupValues[2],
+                subjectLecturerFullName = result.groupValues[3],
+                subjectEvaluationCode = result.groupValues[4],
+                subjectCredits = result.groupValues[5].toInt(),
             )
         }.toList()
 

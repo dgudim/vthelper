@@ -176,9 +176,10 @@ class MoodleApi {
             operation = operation
         )?.let { return it }
 
-        return coursesResponse.toApiResult(
+        return coursesResponse.toApiResult<ApiMoodleListCoursesResponse>(
             context = "Got courses",
             isSuccessful = true,
+            successUpdater = { resp -> resp?.get(0)?.error == false },
             operation = operation
         )
     }

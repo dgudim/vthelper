@@ -10,13 +10,15 @@ import androidx.room.PrimaryKey
 data class DBLoggedInUserEntity (
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
-    val id: String,
+    val id: Long,
     @ColumnInfo(name = "student_id")
     val studentId: String,
     @ColumnInfo(name = "moodle_id")
     val moodleId: String,
     @ColumnInfo(name = "password")
     val password: String,
+    @ColumnInfo(name = "session_valid")
+    val isSessionValid: Boolean,
     @ColumnInfo(name = "personal_email")
     val personalEmail: String,
     @ColumnInfo(name = "university_email")

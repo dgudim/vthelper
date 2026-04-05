@@ -35,28 +35,29 @@ data class ApiResult<T>(
             response: HttpResponse,
             context: String? = null,
             isSuccessful: Boolean,
+            successUpdater: (T?) -> Boolean = { true },
             operation: String
         ): ApiResult<T> {
+            val bodyTyped = if (isSuccessful) response.body<T>() else null
             return ApiResult(
                 statusCode = response.status,
                 bodyRaw = if (!isSuccessful) response.bodyAsText() else null,
-                bodyTyped = if (isSuccessful) response.body<T>() else null,
+                bodyTyped = bodyTyped,
                 context = context ?: (if (isSuccessful) "OK" else "FAIL"),
-                isSuccessful = isSuccessful,
+                isSuccessful = isSuccessful && successUpdater(bodyTyped),
                 operation = operation
             ).logIt()
         }
 
         fun <T> fromDeserializedModel(
             response: T,
-            context: String? = null,
             operation: String
         ): ApiResult<T> {
             return ApiResult(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = null,
                 bodyTyped = response,
-                context = context ?: "OK",
+                context = "OK",
                 isSuccessful = true,
                 operation = operation
             ).logIt()
@@ -76,9 +77,9 @@ data class ApiResult<T>(
 
             return fromHttpResult<T>(
                 response,
-                if (context != null) "$context, $expectedCodesMsg" else expectedCodesMsg,
-                false,
-                operation
+                context = if (context != null) "$context, $expectedCodesMsg" else expectedCodesMsg,
+                isSuccessful = false,
+                operation = operation
             )
         }
 
@@ -105,7 +106,27 @@ suspend inline fun <reified T> HttpResponse.toApiResult(
     isSuccessful: Boolean,
     operation: String
 ): ApiResult<T> {
-    return ApiResult.fromHttpResult(this, context, isSuccessful, operation)
+    return ApiResult.fromHttpResult(
+        response = this,
+        context = context,
+        isSuccessful = isSuccessful,
+        operation = operation
+    )
+}
+
+suspend inline fun <reified T> HttpResponse.toApiResult(
+    context: String? = null,
+    isSuccessful: Boolean,
+    successUpdater: (T?) -> Boolean = { true },
+    operation: String
+): ApiResult<T> {
+    return ApiResult.fromHttpResult(
+        response = this,
+        context = context,
+        isSuccessful = isSuccessful,
+        successUpdater = successUpdater,
+        operation = operation
+    )
 }
 
 suspend inline fun <reified T> HttpResponse.expectCode(
@@ -113,6 +134,11 @@ suspend inline fun <reified T> HttpResponse.expectCode(
     expectedCodes: List<HttpStatusCode>,
     operation: String
 ): ApiResult<T>? {
-    return ApiResult.expectCode(this, context, expectedCodes, operation)
+    return ApiResult.expectCode(
+        response = this,
+        context = context,
+        expectedCodes = expectedCodes,
+        operation = operation
+    )
 }
 

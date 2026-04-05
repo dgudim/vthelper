@@ -47,7 +47,7 @@ data class ApiMoodleListCoursesResponseCourse(
     @SerialName("viewurl")
     val viewUrl: String,
     @SerialName("courseimage")
-    val courseImage: String,
+    val courseImageBase64: String,
     val progress: Long,
     @SerialName("hasprogress")
     val hasProgress: Boolean,

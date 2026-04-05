@@ -15,5 +15,5 @@ interface ManoCourseTimetableDao {
     suspend fun count(): Int
 
     @Query("SELECT * FROM mano_timetable")
-    fun getAllAsFlow(): Flow<List<DBManoCourseTimetableEntity>>
+    fun getAllAsFlow(): Flow<DBManoCourseTimetableEntity>
 }

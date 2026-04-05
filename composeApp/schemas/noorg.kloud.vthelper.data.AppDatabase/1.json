@@ -2,18 +2,12 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "3c9482ff8ffd4fb06c8e3eed7cd17fb2",
+    "identityHash": "10098b66029572e0621c58e61bc975d8",
     "entities": [
       {
         "tableName": "moodle_courses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `moodle_id` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `cover_image_path` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`moodle_id` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `cover_image_path` TEXT NOT NULL, PRIMARY KEY(`moodle_id`))",
         "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
           {
             "fieldPath": "moodleId",
             "columnName": "moodle_id",
@@ -40,9 +34,9 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "moodle_id"
           ]
         }
       },
@@ -170,11 +164,23 @@
       },
       {
         "tableName": "logged_in_user",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` TEXT NOT NULL, `password` TEXT NOT NULL, `email` TEXT NOT NULL, `full_name` TEXT NOT NULL, `avatar_path` TEXT NOT NULL, `cookies_json` TEXT NOT NULL, PRIMARY KEY(`user_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT NOT NULL, `university_email` TEXT NOT NULL, `phone` TEXT NOT NULL, `address` TEXT NOT NULL, `birth_date` TEXT NOT NULL, `full_name` TEXT NOT NULL, `avatar_path` TEXT NOT NULL, `cookies_json` TEXT NOT NULL)",
         "fields": [
           {
-            "fieldPath": "userId",
-            "columnName": "user_id",
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "studentId",
+            "columnName": "student_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "moodleId",
+            "columnName": "moodle_id",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -185,8 +191,38 @@
             "notNull": true
           },
           {
-            "fieldPath": "email",
-            "columnName": "email",
+            "fieldPath": "isSessionValid",
+            "columnName": "session_valid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "personalEmail",
+            "columnName": "personal_email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "universityEmail",
+            "columnName": "university_email",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phone",
+            "columnName": "phone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "address",
+            "columnName": "address",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "birthDate",
+            "columnName": "birth_date",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -210,9 +246,9 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": false,
+          "autoGenerate": true,
           "columnNames": [
-            "user_id"
+            "id"
           ]
         }
       },
@@ -261,7 +297,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3c9482ff8ffd4fb06c8e3eed7cd17fb2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '10098b66029572e0621c58e61bc975d8')"
     ]
   }
 }

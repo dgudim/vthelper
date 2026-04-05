@@ -4,31 +4,32 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import noorg.kloud.vthelper.LocalDb
+import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
 import noorg.kloud.vthelper.ui.components.CourseEntry
+import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.dc
-import vthelper.composeapp.generated.resources.isp
-import vthelper.composeapp.generated.resources.robotic_process_automation
 
 @Composable
 fun CoursesScreen(showSnack: (String) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState(0))
             .padding(start = 16.dp, end = 16.dp)
     ) {
         Text(
@@ -38,26 +39,23 @@ fun CoursesScreen(showSnack: (String) -> Unit = {}) {
             style = MaterialTheme.typography.titleLarge
         )
 
-        CourseEntry("Data Centers (ELF)",
-            "Department of Computer and Communication Technologies",
-            "",
-            Color(0xFFA57DFF),
-            painterResource(Res.drawable.dc)
-        )
+        val db = LocalDb.current!!
+        val coursesViewModel =
+            remember { MoodleCoursesViewModel(MoodleCoursesProvider(db.moodleCourseDao())) }
 
-        CourseEntry("Process Automatization (FMF) ",
-            "Department of Information Technology",
-            "",
-            Color(0xffff887d),
-            painterResource(Res.drawable.robotic_process_automation)
-        )
+        val courses by coursesViewModel.courses.collectAsStateWithLifecycle()
 
-        CourseEntry("Provision and Management of Internet Services (ELF)",
-            "Department of Computer and Communication Technologies",
-            "",
-            Color(0xffe77dff),
-            painterResource(Res.drawable.isp)
-        )
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(items = courses) { course ->
+                CourseEntry(
+                    course.title,
+                    course.description,
+                    "",
+                    course.color,
+                    painterResource(Res.drawable.dc)
+                )
+            }
+        }
 
     }
 }

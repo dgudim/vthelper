@@ -14,8 +14,7 @@ data class ApiManoStudentInfo (
 )
 
 fun ApiManoStudentInfo.toApiResult(
-    context: String? = null,
     operation: String
 ): ApiResult<ApiManoStudentInfo> {
-    return ApiResult.fromDeserializedModel(this, context, operation)
+    return ApiResult.fromDeserializedModel(this, operation)
 }
