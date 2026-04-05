@@ -107,7 +107,7 @@ stabilityAnalyzer = { id = "com.github.skydoves.compose.stability.analyzer", ver
 [bundles]
 ktor = [
     "ktor-client-core",
-    "ktor-client-cio",
+    # "ktor-client-cio",
     "ktor-client-content-negotiation",
     "ktor-client-auth",
     "ktor-client-logging",

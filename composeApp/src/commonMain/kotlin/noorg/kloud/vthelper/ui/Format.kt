@@ -1,8 +1,7 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.ui
 
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toUpperCase
-import com.kizitonwose.calendar.core.Week
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -12,7 +11,6 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.yearMonth
 import kotlin.time.Instant
 
 private val localDateFormat = LocalDateTime.Format {

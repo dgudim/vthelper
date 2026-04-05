@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.ui
 
 import androidx.compose.ui.text.intl.Locale
 import kotlinx.datetime.DayOfWeek

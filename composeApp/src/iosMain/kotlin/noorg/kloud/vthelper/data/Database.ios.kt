@@ -1,9 +1,8 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.data
 
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import kotlinx.cinterop.ExperimentalForeignApi
-import noorg.kloud.vthelper.data.AppDatabase
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask

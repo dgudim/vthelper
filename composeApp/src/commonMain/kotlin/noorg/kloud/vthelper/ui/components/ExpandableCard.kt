@@ -68,7 +68,6 @@ fun BoxScope.ExpandIcon(expandedState: MutableState<Boolean>) {
     )
 }
 
-@TraceRecomposition
 @Composable
 fun ExpandableCard(
     modifier: Modifier = Modifier,

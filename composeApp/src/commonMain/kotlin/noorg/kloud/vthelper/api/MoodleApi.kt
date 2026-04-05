@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.api
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
@@ -46,7 +45,7 @@ class MoodleApi {
 
     }
 
-    val client = HttpClient(CIO) {
+    val client = HttpClient(getHttpClientEngine()) {
         install(ContentNegotiation) {
             json(Json {
                 isLenient = true

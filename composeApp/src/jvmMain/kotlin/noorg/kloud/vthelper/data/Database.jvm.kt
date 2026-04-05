@@ -1,8 +1,7 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.data
 
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import noorg.kloud.vthelper.data.AppDatabase
 import java.io.File
 
 fun getDatabaseBuilder(): RoomDatabase.Builder<AppDatabase> {

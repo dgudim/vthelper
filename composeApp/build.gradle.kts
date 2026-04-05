@@ -84,7 +84,7 @@ kotlin {
             implementation(libs.bundles.coil)
             implementation(libs.kotlinx.serialization.json)
         }
-        nativeMain.dependencies {
+        nativeMain.dependencies { // Only ios
             implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {

@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -63,8 +62,8 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEventType
-import noorg.kloud.vthelper.displayText
-import noorg.kloud.vthelper.formatLocalTime
+import noorg.kloud.vthelper.ui.displayText
+import noorg.kloud.vthelper.ui.formatLocalTime
 import noorg.kloud.vthelper.next
 import noorg.kloud.vthelper.previous
 import noorg.kloud.vthelper.rememberFirstMostVisibleMonth

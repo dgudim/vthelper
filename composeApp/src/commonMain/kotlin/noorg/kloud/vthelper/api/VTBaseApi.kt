@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.api
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
@@ -29,7 +28,7 @@ object VTBaseApi {
         Regex("""name="SAMLResponse" value="(.*?)"""", RegexOption.MULTILINE)
     val samlUrlRegex = Regex("""name="hiddenform" action="(.*?)"""", RegexOption.MULTILINE)
 
-    private val client = HttpClient(CIO) {
+    private val client = HttpClient(getHttpClientEngine()) {
         install(HttpCookies) {
             storage = cookieStorage
         }
@@ -261,15 +260,14 @@ object VTBaseApi {
             ?.replace(":443/", "/") // Remove explicit https port
 
         if (samlResponse == null || samlUrl == null) {
-            return ApiResult(
+            return ApiResult<String>(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = pageContent,
                 bodyTyped = null,
                 context = "Saml response or url is null",
                 isSuccessful = false,
                 operation = "extract saml response"
-            )
-
+            ).logIt()
         }
 
         println("Refreshing local login, posting to '$samlUrl'")

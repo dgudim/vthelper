@@ -20,6 +20,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -235,7 +236,10 @@ fun NavigationDrawer(
                 navController, innerPadding, scope,
                 showSnack = { message ->
                     scope.launch {
-                        snackbarHostState.showSnackbar(message)
+                        snackbarHostState.showSnackbar(
+                            message = message,
+                            duration = SnackbarDuration.Long
+                        )
                     }
                 })
         }

@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.api
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -118,7 +117,7 @@ class ManoApi {
         return VTBaseApi.loginIfNeeded(baseUrl, username, password, mfaCode)
     }
 
-    val client = HttpClient(CIO) {
+    val client = HttpClient(getHttpClientEngine()) {
         install(HttpCookies) {
             storage = VTBaseApi.cookieStorage
         }
@@ -267,14 +266,14 @@ class ManoApi {
         )
 
         if (outerMatch == null) {
-            return ApiResult(
+            return ApiResult<List<ApiManoEmployeeBasicEntity>>(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = contactsPageContent,
                 bodyTyped = null,
                 context = "Outer contacts extraction failed",
                 isSuccessful = false,
                 operation = op
-            )
+            ).logIt()
         }
 
         val matches = innerContactsExtractionRegex.findAll(outerMatch)

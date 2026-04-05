@@ -1,9 +1,8 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.data
 
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import noorg.kloud.vthelper.data.AppDatabase
 
 fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
     val appContext = context.applicationContext
