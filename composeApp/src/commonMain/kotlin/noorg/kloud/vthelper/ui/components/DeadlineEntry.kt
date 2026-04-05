@@ -38,7 +38,7 @@ import kotlin.time.Instant
 
 @Composable
 @Stable
-private fun daysToColor(days: Long): Color {
+private fun daysToColor(days: Int): Color {
     if (days < 2) {
         return MaterialTheme.customColors.badResult
     }
@@ -56,12 +56,10 @@ fun DeadlineEntry(
     subjectName: String,
     subjectColor: Color,
     deadlineName: String,
-    currentDatetime: Instant,
-    deadlineDate: Instant,
+    daysTillDeadline: Int,
     isDone: Boolean
 ) {
 
-    val daysTillDeadline = remember { (deadlineDate - currentDatetime).inWholeDays }
     val strikethroughIfDone =
         if (isDone)
             LocalTextStyle.current.copy(textDecoration = TextDecoration.LineThrough)

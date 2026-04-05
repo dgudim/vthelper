@@ -1,11 +1,15 @@
 package noorg.kloud.vthelper
 
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
+import com.kizitonwose.calendar.compose.CalendarItemInfo
 import com.kizitonwose.calendar.compose.CalendarLayoutInfo
 import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.core.CalendarMonth
@@ -26,14 +30,15 @@ fun rememberFirstMostVisibleMonth(
     state: CalendarState,
     viewportPercent: Float = 50f,
 ): CalendarMonth {
-    val visibleMonth = remember(state) { mutableStateOf(state.firstVisibleMonth) }
+    var visibleMonth by remember(state) { mutableStateOf(state.firstVisibleMonth) }
+    // This launches once per calendar config and updates the values from BG
     LaunchedEffect(state) {
         // https://efeejemudaro.medium.com/firing-side-effects-from-compose-using-snapshotflow-e3581c624adb
         snapshotFlow { state.layoutInfo.firstMostVisibleMonth(viewportPercent) }
             .filterNotNull()
-            .collect { month -> visibleMonth.value = month }
+            .collect { month -> visibleMonth = month }
     }
-    return visibleMonth.value
+    return visibleMonth
 }
 
 private fun CalendarLayoutInfo.firstMostVisibleMonth(viewportPercent: Float): CalendarMonth? {
@@ -53,9 +58,6 @@ private fun CalendarLayoutInfo.firstMostVisibleMonth(viewportPercent: Float): Ca
 
 fun Color.setAlpha(newAlpha: Float): Color {
     return copy(
-        red = red,
-        green = green,
-        blue = blue,
         alpha = newAlpha
     )
 }

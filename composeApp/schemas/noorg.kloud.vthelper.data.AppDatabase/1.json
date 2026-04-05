@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "10098b66029572e0621c58e61bc975d8",
+    "identityHash": "7312037a0da16366bc66b9b775cd123b",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -164,14 +164,8 @@
       },
       {
         "tableName": "logged_in_user",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT NOT NULL, `university_email` TEXT NOT NULL, `phone` TEXT NOT NULL, `address` TEXT NOT NULL, `birth_date` TEXT NOT NULL, `full_name` TEXT NOT NULL, `avatar_path` TEXT NOT NULL, `cookies_json` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT NOT NULL, `university_email` TEXT NOT NULL, `phone` TEXT NOT NULL, `address` TEXT NOT NULL, `birth_date` TEXT NOT NULL, `full_name` TEXT NOT NULL, `avatar_path` TEXT NOT NULL, `cookies_json` TEXT NOT NULL, PRIMARY KEY(`student_id`))",
         "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
           {
             "fieldPath": "studentId",
             "columnName": "student_id",
@@ -246,9 +240,9 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "student_id"
           ]
         }
       },
@@ -297,7 +291,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '10098b66029572e0621c58e61bc975d8')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7312037a0da16366bc66b9b775cd123b')"
     ]
   }
 }

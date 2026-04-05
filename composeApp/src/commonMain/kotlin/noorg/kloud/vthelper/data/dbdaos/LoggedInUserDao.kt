@@ -2,20 +2,18 @@ package noorg.kloud.vthelper.data.dbdaos
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
 
 @Dao
 interface LoggedInUserDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: DBLoggedInUserEntity)
 
     @Query("DELETE FROM mano_timetable")
     suspend fun delete()
 
-    @Query("SELECT count(*) > 0 FROM mano_timetable")
-    suspend fun hasUser(): Int
-
     @Query("SELECT * FROM logged_in_user LIMIT 1")
-    suspend fun get(): DBLoggedInUserEntity
+    suspend fun get(): DBLoggedInUserEntity?
 }

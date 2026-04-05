@@ -82,13 +82,16 @@ object VTBaseApi {
         password: String,
         mfaCode: String
     ): ApiResult<String> {
+
+        println("Random bullsh*t, go! '$serviceBaseUrl'")
+
         // Try loading the page directly
         // MDL_SSP_SessID and MoodleSession are set if we are logging into moodle
         val initialResponse = client.get(serviceBaseUrl) {
             headers { appendAll(initialRequestHeaders) }
         }
 
-        println("Initial request to $serviceBaseUrl")
+        println("Initial request to '$serviceBaseUrl' done")
 
         if (initialResponse.status == HttpStatusCode.OK) { // 200
             return initialResponse.toApiResult(

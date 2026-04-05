@@ -64,12 +64,10 @@ fun DashboardScreen(showSnack: (String) -> Unit = {}) {
         )
         ProvideVicoTheme(
             remember {
-                VicoTheme(
+                vico.copy(
                     lineColor = colorScheme.outline,
                     textColor = colorScheme.onSurface,
-                    columnCartesianLayerColors = vico.columnCartesianLayerColors,
                     lineCartesianLayerColors = listOf(colorScheme.primary),
-                    candlestickCartesianLayerColors = vico.candlestickCartesianLayerColors
                 )
             }
         ) {
@@ -101,26 +99,22 @@ fun DashboardScreen(showSnack: (String) -> Unit = {}) {
         Column {
             DeadlineEntry(
                 "Fundamentals of data mining", Color(0xff7dc9ff), "Lab 5",
-                Clock.System.now(),
-                Clock.System.now() + 1.days,
+                1,
                 false
             )
             DeadlineEntry(
                 "Datacenters", Color(0xFFA57DFF), "Midterm 1",
-                Clock.System.now(),
-                Clock.System.now() + 3.days,
+                2,
                 false
             )
             DeadlineEntry(
                 "Fundamentals of data mining", Color(0xff7dc9ff), "Midterm 1",
-                Clock.System.now(),
-                Clock.System.now() + 5.days,
+                3,
                 false
             )
             DeadlineEntry(
                 "Information security management", Color(0xffffbe7d), "Homework 2",
-                Clock.System.now(),
-                Clock.System.now() + 14.days,
+                4,
                 true
             )
         }

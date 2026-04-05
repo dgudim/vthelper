@@ -20,6 +20,8 @@ plugins {
     // https://developer.android.com/jetpack/androidx/releases/room#gradle-plugin
     // room compiler configuration
     alias(libs.plugins.androidx.room)
+    // https://proandroiddev.com/compose-stability-analyzer-real-time-stability-insights-for-jetpack-compose-1399924a0a64
+    alias(libs.plugins.stabilityAnalyzer)
 }
 
 kotlin {

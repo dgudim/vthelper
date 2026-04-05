@@ -114,8 +114,8 @@ class ManoApi {
         username: String,
         password: String,
         mfaCode: String
-    ) {
-        VTBaseApi.loginIfNeeded(baseUrl, username, password, mfaCode)
+    ): ApiResult<String> {
+        return VTBaseApi.loginIfNeeded(baseUrl, username, password, mfaCode)
     }
 
     val client = HttpClient(CIO) {

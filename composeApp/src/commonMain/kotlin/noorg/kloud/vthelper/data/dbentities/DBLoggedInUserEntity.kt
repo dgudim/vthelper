@@ -8,9 +8,7 @@ import androidx.room.PrimaryKey
     tableName = "logged_in_user"
 )
 data class DBLoggedInUserEntity (
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "id")
-    val id: Long,
+    @PrimaryKey
     @ColumnInfo(name = "student_id")
     val studentId: String,
     @ColumnInfo(name = "moodle_id")

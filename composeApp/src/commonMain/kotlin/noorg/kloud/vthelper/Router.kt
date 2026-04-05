@@ -60,6 +60,7 @@ import vthelper.composeapp.generated.resources.vt_48px
 // https://stackoverflow.com/questions/72921484/navigating-between-composables-using-a-navigation-drawer-in-jetpack-compose
 // https://developer.android.com/develop/ui/compose/components/drawer
 // https://fonts.google.com/icons
+@Stable
 sealed class NavDrawerItem(var route: String, var icon: DrawableResource, var title: String) {
     object Account : NavDrawerItem("account", Res.drawable.account_circle_24px, "Account")
     object Settings : NavDrawerItem("settings", Res.drawable.settings_24px, "Settings")
@@ -112,6 +113,7 @@ fun DrawerItem(item: NavDrawerItem, selected: Boolean, onItemClick: (NavDrawerIt
 fun Navigation(
     navController: NavHostController,
     innerPadding: PaddingValues,
+    gloablCoroutineScope: CoroutineScope,
     showSnack: (String) -> Unit = {},
 ) {
     NavHost(
@@ -125,7 +127,7 @@ fun Navigation(
             DashboardScreen(showSnack)
         }
         composable(NavDrawerItem.Account.route) {
-            AccountScreen(showSnack)
+            AccountScreen(gloablCoroutineScope, showSnack)
         }
         composable(NavDrawerItem.Results.route) {
             ResultsScreen(showSnack)
@@ -229,11 +231,13 @@ fun NavigationDrawer(
                 SnackbarHost(hostState = snackbarHostState)
             }
         ) { innerPadding ->
-            Navigation(navController, innerPadding, showSnack = { message ->
-                scope.launch {
-                    snackbarHostState.showSnackbar(message)
-                }
-            })
+            Navigation(
+                navController, innerPadding, scope,
+                showSnack = { message ->
+                    scope.launch {
+                        snackbarHostState.showSnackbar(message)
+                    }
+                })
         }
     }
 }
