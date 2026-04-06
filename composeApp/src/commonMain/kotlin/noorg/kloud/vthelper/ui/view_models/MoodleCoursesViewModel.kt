@@ -12,8 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 
 // https://stackoverflow.com/questions/79814739/only-first-dao-flow-of-room-database-returns-values
 
-class MoodleCoursesViewModel(moodleCoursesProvider: MoodleCoursesProvider) :
-    ViewModel() {
+class MoodleCoursesViewModel(moodleCoursesProvider: MoodleCoursesProvider) : ViewModel() {
     val courses: StateFlow<List<ProvidedMoodleCourseEntity>> =
         moodleCoursesProvider
             .getAllCourses()

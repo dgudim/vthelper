@@ -24,26 +24,18 @@ import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesResponse
 import noorg.kloud.vthelper.api.models.toApiResult
 import noorg.kloud.vthelper.findFirstGroup
 
-class MoodleApi {
-    companion object {
-        val baseUrl = Url("https://moodle.vilniustech.lt/")
-        val sessionKeyExtractionRegex = Regex("""sesskey=(.*?)"""", RegexOption.MULTILINE)
-        val userIdExtractionRegex = Regex("""data-userid="(.*?)"""", RegexOption.MULTILINE)
-        val calendarExportUrlExtractionRegex =
-            Regex("""id="calendarexporturl".*value="(.*?)"""", RegexOption.MULTILINE)
-    }
+object MoodleApi {
+
+    val baseUrl = Url("https://moodle.vilniustech.lt/")
+    val sessionKeyExtractionRegex = Regex("""sesskey=(.*?)"""", RegexOption.MULTILINE)
+    val userIdExtractionRegex = Regex("""data-userid="(.*?)"""", RegexOption.MULTILINE)
+    val calendarExportUrlExtractionRegex =
+        Regex("""id="calendarexporturl".*value="(.*?)"""", RegexOption.MULTILINE)
 
     private var sessionKey = ""
     private var calendarUrl = ""
-    private var userId = 0
-
-    private suspend fun loadData() {
-
-    }
-
-    private suspend fun persistData() {
-
-    }
+    var userId: Int? = null
+        private set
 
     val client = HttpClient(getHttpClientEngine()) {
         install(ContentNegotiation) {
@@ -57,49 +49,65 @@ class MoodleApi {
     }
 
     suspend fun loginIfNeeded(
-        username: String,
+        studentId: String,
         password: String,
         mfaCode: String
-    ) {
-        VTBaseApi.loginIfNeeded(baseUrl, username, password, mfaCode)
+    ): ApiResult<String> {
+        return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode)
     }
 
-    suspend fun extractSessonInfo(): ApiResult<String> {
+    suspend fun updateSessionInfo(
+    ): ApiResult<String> {
+        return safeApiCall("update moodle session (user request)") {
+            updateSessionInfoUnsafe(it)
+        }
+    }
+
+    private suspend fun updateSessionInfoUnsafe(rootOperationName: String): ApiResult<String> {
         val pageResponse = client.get(baseUrl)
 
-        val operation = "session key extraction"
-
         pageResponse.expect200<String>(
-            operation = operation
+            operation = "$rootOperationName + main request"
         )?.let { return it }
 
         val extractedSessionKey =
             sessionKeyExtractionRegex.findFirstGroup(pageResponse.bodyAsText())
                 ?: return pageResponse.toApiResult(
-                    "Session key not found",
-                    false,
-                    operation
+                    context = "Session key not found",
+                    isSuccess = false,
+                    operation = "$rootOperationName + session key extraction"
                 )
 
         val extractedUserId =
             userIdExtractionRegex.findFirstGroup(pageResponse.bodyAsText())
                 ?: return pageResponse.toApiResult(
-                    "User ID not found",
-                    false,
-                    operation
+                    context = "User ID not found",
+                    isSuccess = false,
+                    operation = "$rootOperationName + user id extraction"
                 )
 
         sessionKey = extractedSessionKey
         userId = extractedUserId.toInt()
 
         return pageResponse.toApiResult(
-            context = "Extracted session info",
-            isSuccessful = true,
-            operation = operation
+            isSuccess = true,
+            operation = rootOperationName
         )
     }
 
-    suspend fun getCalendarUrl(): ApiResult<String> {
+    suspend fun getCalendarUrl(
+    ): ApiResult<String> {
+        return safeRetryOnDirectApiError(
+            "get moodle calendar url", "update session",
+            mainBlock = {
+                getCalendarUrlUnsafe(it)
+            },
+            beforeRetryBlock = {
+                updateSessionInfoUnsafe(it)
+            })
+    }
+
+    suspend fun getCalendarUrlUnsafe(rootOperationName: String): ApiResult<String> {
         val calendarUrlPageResponse = client.submitForm(
             url = "$baseUrl/calendar/export.php",
             formParameters = parameters {
@@ -111,33 +119,49 @@ class MoodleApi {
             }
         )
 
-        val operation = "calendar url extraction"
-
         calendarUrlPageResponse.expectCode<String>(
             expectedCodes = listOf(HttpStatusCode.OK),
-            operation = operation
+            operation = "$rootOperationName + main request"
         )?.let { return it }
 
         val extractedCalendarUrl =
             calendarExportUrlExtractionRegex
                 .findFirstGroup(calendarUrlPageResponse.bodyAsText())
                 ?: return calendarUrlPageResponse.toApiResult(
-                    "Calendar URL not found",
-                    false,
-                    operation
+                    context = "Calendar URL not found",
+                    isSuccess = false,
+                    operation = "$rootOperationName + calender url extraction"
                 )
 
         calendarUrl = extractedCalendarUrl
 
         return calendarUrlPageResponse.toApiResult(
-            context = "Got calendar url",
-            isSuccessful = true,
-            operation = operation
+            isSuccess = true,
+            operation = rootOperationName
         )
     }
 
     suspend fun getCourses(): ApiResult<ApiMoodleListCoursesResponse> {
+        return safeRetryOnDirectApiError(
+            "get moodle calendar url", "update session",
+            mainBlock = {
+                getCoursesUnsafe(it)
+            },
+            beforeRetryBlock = {
+                updateSessionInfoUnsafe(it)
+            })
+    }
+
+    suspend fun getCoursesUnsafe(rootOperationName: String): ApiResult<ApiMoodleListCoursesResponse> {
         val methodName = "core_course_get_enrolled_courses_by_timeline_classification"
+
+        if (sessionKey.isEmpty()) {
+            updateSessionInfoUnsafe("$rootOperationName + get session key").let {
+                if (!it.isSuccess) {
+                    return ApiResult.fromOtherResult(it)
+                }
+            }
+        }
 
         val coursesResponse =
             client.post("$baseUrl/lib/ajax/service.php?sesskey=$sessionKey&info=$methodName") {
@@ -169,17 +193,14 @@ class MoodleApi {
                 )
             }
 
-        val operation = "get courses"
-
         coursesResponse.expect200<ApiMoodleListCoursesResponse>(
-            operation = operation
+            operation = "$rootOperationName + main request"
         )?.let { return it }
 
         return coursesResponse.toApiResult<ApiMoodleListCoursesResponse>(
-            context = "Got courses",
-            isSuccessful = true,
+            isSuccess = true,
             successUpdater = { resp -> resp?.get(0)?.error == false },
-            operation = operation
+            operation = rootOperationName
         )
     }
 }

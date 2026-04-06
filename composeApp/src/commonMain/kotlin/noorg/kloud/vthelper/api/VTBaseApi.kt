@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.api
 
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
@@ -20,7 +19,9 @@ import noorg.kloud.vthelper.findFirstGroup
 
 object VTBaseApi {
 
-    var cookieStorage = AcceptAllCookiesStorage()
+    val cookieStorage = InMemoryCookieStorage()
+
+    val authDomainBaseUrl = Url("https://fs.vilniustech.lt/")
 
     private val mfaExtractionRegex =
         Regex("""id="context".*?value="(.*?)"""", RegexOption.MULTILINE)
@@ -36,7 +37,7 @@ object VTBaseApi {
     }
 
     private val baseHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0",
+        "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
         "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language" to "en-US,en;q=0.9",
         "DNT" to "1",
@@ -59,35 +60,44 @@ object VTBaseApi {
     // Headers used for all the login and auth requests
     private val loginHeaders = baseHeaders + mapOf(
         "Content-Type" to "application/x-www-form-urlencoded",
-        "Origin" to "https://fs.vilniustech.lt",
+        "Origin" to authDomainBaseUrl.toString(),
         "Sec-Fetch-Site" to "same-origin",
     )
 
-    private suspend fun loadCookies() {
-
-    }
-
-    private suspend fun persistCookies() {
-
-    }
-
     private fun clearCookies() {
-        cookieStorage = AcceptAllCookiesStorage()
+        cookieStorage.clear()
+    }
+
+    fun logout() {
+        clearCookies()
     }
 
     suspend fun loginIfNeeded(
         serviceBaseUrl: Url,
-        username: String,
+        studentId: String,
+        password: String,
+        mfaCode: String
+    ): ApiResult<String> {
+        return safeApiCall("login") {
+            loginIfNeededUnsafe(serviceBaseUrl, studentId, password, mfaCode)
+        }
+    }
+
+    private suspend fun loginIfNeededUnsafe(
+        serviceBaseUrl: Url,
+        studentId: String,
         password: String,
         mfaCode: String
     ): ApiResult<String> {
 
-        println("Random bullsh*t, go! '$serviceBaseUrl'")
+        println("Logging into '$serviceBaseUrl'")
+
+        var currentReferrer = authDomainBaseUrl.toString()
 
         // Try loading the page directly
         // MDL_SSP_SessID and MoodleSession are set if we are logging into moodle
         val initialResponse = client.get(serviceBaseUrl) {
-            headers { appendAll(initialRequestHeaders) }
+            headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         println("Initial request to '$serviceBaseUrl' done")
@@ -95,7 +105,7 @@ object VTBaseApi {
         if (initialResponse.status == HttpStatusCode.OK) { // 200
             return initialResponse.toApiResult(
                 context = "Already logged in",
-                isSuccessful = true,
+                isSuccess = true,
                 operation = "initial request"
             )
         }
@@ -116,16 +126,16 @@ object VTBaseApi {
         if (redirectLocation.host == serviceBaseUrl.host) {
             return initialResponse.toApiResult(
                 context = "Already logged in, same-site redirection",
-                isSuccessful = true,
+                isSuccess = true,
                 operation = "initial request"
             )
 
         }
 
         // Load the redirected page to see what we got
-        // This doesn't normally set any cookies, unless it's a local session sefresh
+        // This doesn't normally set any cookies, unless it's a local session refresh
         val initialRedirectedResponse = client.get(redirectLocation) {
-            headers { appendAll(initialRequestHeaders) }
+            headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         initialRedirectedResponse.expect200<String>(
@@ -135,7 +145,13 @@ object VTBaseApi {
         val initialRedirectResponseContent = initialRedirectedResponse.bodyAsText()
         // Intermediate hidden form for SAML request, not relogin required, only local token/session refresh
         if (initialRedirectResponseContent.contains("Working...")) {
-            return refreshLocalLogin(serviceBaseUrl, initialRedirectResponseContent)
+            return refreshLocalLogin(
+                serviceBaseUrl,
+                initialRedirectResponseContent,
+                currentReferrer
+            )
+        } else {
+            currentReferrer = redirectLocation.toString()
         }
 
         println("Posting login details")
@@ -145,13 +161,13 @@ object VTBaseApi {
         val loginResponse = client.submitForm(
             url = redirectLocation.toString(),
             formParameters = parameters {
-                append("UserName", "university\\$username")
+                append("UserName", "university\\$studentId")
                 append("Kmsi", "true") // 'Remember me' flag
                 append("AuthMethod", "FormsAuthentication")
                 append("Password", password)
             }
         ) {
-            headers { appendAll(loginHeaders + mapOf("Referer" to redirectLocation.toString())) }
+            headers { appendAll(loginHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         // We must get 302, it we didn't, username or password is wrong
@@ -169,7 +185,7 @@ object VTBaseApi {
         // Load the redirected page to see what we got and extract mfa context
         // This doesn't set any cookies
         val initialMfaPageResponse = client.get(redirectLocation) {
-            headers { appendAll(initialRequestHeaders) }
+            headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         initialMfaPageResponse.expect200<String>(
@@ -180,7 +196,7 @@ object VTBaseApi {
             mfaExtractionRegex.findFirstGroup(initialMfaPageResponse.bodyAsText())
                 ?: return initialMfaPageResponse.toApiResult(
                     context = "Mfa context is null",
-                    isSuccessful = false,
+                    isSuccess = false,
                     operation = "extract initial mfa context from page"
                 )
 
@@ -196,25 +212,26 @@ object VTBaseApi {
                 append("__EVENTTARGET", "")
             }
         ) {
-            headers { appendAll(loginHeaders + mapOf("Referer" to redirectLocation.toString())) }
+            headers { appendAll(loginHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         mfaContextPostResponse.expect200<String>(
             "post initial mfa context"
         )?.let { return it }
 
+        // Update mfa context
         mfaContext =
             mfaExtractionRegex.findFirstGroup(mfaContextPostResponse.bodyAsText())
                 ?: return mfaContextPostResponse.toApiResult(
-                    context = "Mfa context is null",
-                    isSuccessful = false,
+                    context = "Updated mfa context is null",
+                    isSuccess = false,
                     operation = "extract updated mfa context from page"
                 )
 
 
         println("Posting mfa code")
 
-        // This resets MSISAuth cookie and sets the MSISAuth1 cookie
+        // This resets MSISAuth on adfs/ls and sets the MSISAuth + MSISAuth1 on /adfs
         val mfaCodeResponse = client.submitForm(
             url = redirectLocation.toString(),
             formParameters = parameters {
@@ -225,7 +242,7 @@ object VTBaseApi {
                 append("SignIn", "Sign in")
             }
         ) {
-            headers { appendAll(loginHeaders + mapOf("Referer" to redirectLocation.toString())) }
+            headers { appendAll(loginHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         // We must get 302, it we didn't, mfa code is wrong
@@ -233,16 +250,23 @@ object VTBaseApi {
             context = "Wrong mfa code",
             expectedCodes = listOf(HttpStatusCode.Found),
             operation = "mfa login"
-        )?.let { return it }
+        )?.let {
+            // NOTE: Currently the case when the use inputs an incorrect mfa code
+            // and then inputs the correct one is not handled (we will get mfa form directly)
+            // TODO: Handle this case
+            logout() // Clear cookies to force full login flow on the next attempt
+            return it
+        }
 
-        // Same url
+        // Should be the same url
+        currentReferrer = redirectLocation.toString()
         redirectLocation = Url(mfaCodeResponse.headers[HttpHeaders.Location] ?: "")
 
         println("Loading final redirect page (should be a saml hidden form)")
 
-        // This sets a bunch of cookies, including SamlSession and MSISAuthenticated and clears MSISAuth1 cookie
+        // This sets a bunch of cookies, including SamlSession and MSISAuthenticated
         val finalSamlLoadRequest = client.get(redirectLocation) {
-            headers { appendAll(initialRequestHeaders) }
+            headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         // We must get a page with a hidden form for saml
@@ -250,11 +274,16 @@ object VTBaseApi {
             "load final saml hidden form"
         )?.let { return it }
 
-        return refreshLocalLogin(serviceBaseUrl, finalSamlLoadRequest.bodyAsText())
+        return refreshLocalLogin(serviceBaseUrl, finalSamlLoadRequest.bodyAsText(), currentReferrer)
     }
 
     // This extracts and posts saml response to the corresponding mano or moodle endpoint and refreshes session cookies
-    suspend fun refreshLocalLogin(serviceBaseUrl: Url, pageContent: String): ApiResult<String> {
+    suspend fun refreshLocalLogin(
+        serviceBaseUrl: Url,
+        pageContent: String,
+        currentReferrer: String
+    ): ApiResult<String> {
+        // println(pageContent)
         val samlResponse = samlResponseRegex.findFirstGroup(pageContent)
         val samlUrl = samlUrlRegex.findFirstGroup(pageContent)
             ?.replace(":443/", "/") // Remove explicit https port
@@ -265,7 +294,7 @@ object VTBaseApi {
                 bodyRaw = pageContent,
                 bodyTyped = null,
                 context = "Saml response or url is null",
-                isSuccessful = false,
+                isSuccess = false,
                 operation = "extract saml response"
             ).logIt()
         }
@@ -280,7 +309,7 @@ object VTBaseApi {
                 append("RelayState", serviceBaseUrl.toString())
             }
         ) {
-            headers { appendAll(loginHeaders + mapOf("Referer" to (loginHeaders["Origin"] ?: ""))) }
+            headers { appendAll(loginHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
         // We must get a redirect to the actual service page
@@ -297,21 +326,23 @@ object VTBaseApi {
 
         // This sets session cookies specific to the service
         val finalServiceResponse = client.get(redirectedServiceBaseUrl) {
-            headers { appendAll(initialRequestHeaders) }
+            headers { appendAll(initialRequestHeaders + mapOf("Referer" to samlUrl)) }
         }
+
+        val finalOp = "final service request"
 
         // 303 is ok here as we may get a redirection to some other page on the same site (e.g: moodle's /my)
         finalServiceResponse.expectCode<String>(
             expectedCodes = listOf(HttpStatusCode.OK, HttpStatusCode.SeeOther),
-            operation = "final service request"
+            operation = finalOp
         )?.let { return it }
 
         println("We are golden!")
 
         return finalServiceResponse.toApiResult(
             context = "Logged in successfully",
-            isSuccessful = true,
-            operation = "final service request"
+            isSuccess = true,
+            operation = finalOp
         )
     }
 }

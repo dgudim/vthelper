@@ -21,7 +21,13 @@ import vthelper.composeapp.generated.resources.visibility_off_24px
 // https://stackoverflow.com/questions/65304229/toggle-password-field-jetpack-compose
 
 @Composable
-fun PasswordTextField(value: String, onValueChange: (String) -> Unit, labelText: String, isError: Boolean) {
+fun PasswordTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    labelText: String,
+    isError: Boolean,
+    enabled: Boolean
+) {
 
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -34,6 +40,7 @@ fun PasswordTextField(value: String, onValueChange: (String) -> Unit, labelText:
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         isError = isError,
+        enabled = enabled,
         trailingIcon = {
             val image = if (passwordVisible)
                 Res.drawable.visibility_24px

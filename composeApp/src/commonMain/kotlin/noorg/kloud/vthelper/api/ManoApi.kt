@@ -18,103 +18,101 @@ import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
-import noorg.kloud.vthelper.api.models.mano.toApiResult
 import noorg.kloud.vthelper.findFirstGroup
 import kotlin.time.Duration
 
-class ManoApi {
-    companion object {
-        val baseUrl = Url("https://mano.vilniustech.lt/")
+object ManoApi {
 
-        /** [getStudentInfo] */
-        val personalEmailExtractionRegex =
-            Regex("""StudentContactForm\[email].*?" value="(.*?)"""", RegexOption.MULTILINE)
-        val universityEmailExtractionRegex =
-            Regex("""StudentContactForm\[email2].*?" value="(.*?)"""", RegexOption.MULTILINE)
-        val addressExtractionRegex =
-            Regex("""StudentContactForm\[address].*?" value="(.*?)"""", RegexOption.MULTILINE)
-        val phoneExtractionRegex =
-            Regex("""StudentContactForm\[phone].*?" value="(.*?)"""", RegexOption.MULTILINE)
-        val birthDateExtractionRegex =
-            Regex(
-                """Birth date .*\n.*<td class="border-none color-black">\n(.*?)\n""",
-                RegexOption.MULTILINE
-            )
-        val birthYearExtractionRegex =
-            Regex(
-                """Birthyear .*\n.*<td class="border-none color-black">\n(.*?)\n""",
-                RegexOption.MULTILINE
-            )
-        val fullNameAndAvatarExtractionRegex =
-            Regex("""id="user_img_id".*\n.*?alt="(.*?)".*src="(.*?)"""", RegexOption.MULTILINE)
+    val baseUrl = Url("https://mano.vilniustech.lt/")
 
-        /** [getThisSemesterSubjects] */
-        val studySubjectExtractionRegex =
-            Regex(
-                """<a class="profile-link" href="(.*?)">(.*?)<.*?data-title="Lecturer".*?>(.*?)<.*?data-title="Evaluation".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<""",
-                RegexOption.MULTILINE
-            )
-
-        /** [getSubjectTimetable] */
-        val courseTimetableExtractionRegex =
-            Regex(
-                """data-title="Work day".*?>(.*?)<.*?data-title="Week".*?>(.*?)<.*?data-title="Time".*?>(.*?)<.*?data-title="Auditorium".*?>(.*?)<.*?data-title="Lecture type".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<""",
-                RegexOption.MULTILINE
-            )
-
-        /** [getEmployees] */
-        val outerContactsExtractionRegex = Regex(
-            """<div class=".*?loading-contacts-workers".*?<select.*?\n(?:<option.*option>\n)+""",
+    /** [getStudentInfoUnsafe] */
+    val personalEmailExtractionRegex =
+        Regex("""StudentContactForm\[email].*?" value="(.*?)"""", RegexOption.MULTILINE)
+    val universityEmailExtractionRegex =
+        Regex("""StudentContactForm\[email2].*?" value="(.*?)"""", RegexOption.MULTILINE)
+    val addressExtractionRegex =
+        Regex("""StudentContactForm\[address].*?" value="(.*?)"""", RegexOption.MULTILINE)
+    val phoneExtractionRegex =
+        Regex("""StudentContactForm\[phone].*?" value="(.*?)"""", RegexOption.MULTILINE)
+    val birthDateExtractionRegex =
+        Regex(
+            """Birth date .*?<td class="border-none color-black">(.*?)<""",
             RegexOption.MULTILINE
         )
-        val innerContactsExtractionRegex = Regex(
-            """<option value="(.*?)">(.*?)<.option>""",
+    val birthYearExtractionRegex =
+        Regex(
+            """Birthyear .*?<td class="border-none color-black">(.*?)<""",
+            RegexOption.MULTILINE
+        )
+    val fullNameAndAvatarExtractionRegex =
+        Regex("""id="user_img_id".*?alt="(.*?)".*?src="(.*?)"""", RegexOption.MULTILINE)
+
+    /** [getThisSemesterSubjectsUnsafe] */
+    val studySubjectExtractionRegex =
+        Regex(
+            """<a class="profile-link" href="(.*?)">(.*?)<.*?data-title="Lecturer".*?>(.*?)<.*?data-title="Evaluation".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<""",
             RegexOption.MULTILINE
         )
 
-        /** [getEmployeeDetails] */
-        var employeeNameExtractionRegex = Regex(
-            """<div class="employee-name">(.*?)<\\/div>""",
+    /** [getSubjectTimetableUnsafe] */
+    val courseTimetableExtractionRegex =
+        Regex(
+            """data-title="Work day".*?>(.*?)<.*?data-title="Week".*?>(.*?)<.*?data-title="Time".*?>(.*?)<.*?data-title="Auditorium".*?>(.*?)<.*?data-title="Lecture type".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<""",
             RegexOption.MULTILINE
         )
 
-        var employeePositionExtractionRegex = Regex(
-            """<div class="employee-position">(.*?)<\\/div>""",
-            RegexOption.MULTILINE
-        )
+    /** [getEmployeesUnsafe] */
+    val outerContactsExtractionRegex = Regex(
+        """<div class=".*?loading-contacts-workers".*?<select.*?\n(?:<option.*option>\n)+""",
+        RegexOption.MULTILINE
+    )
+    val innerContactsExtractionRegex = Regex(
+        """<option value="(.*?)">(.*?)<.option>""",
+        RegexOption.MULTILINE
+    )
 
-        var employeeDepartmentDataExtractionRegex = Regex(
-            """<div class="employee-department" department_id=(.*?)>.*?<a href="#">(.*?)<""",
-            RegexOption.MULTILINE
-        )
+    /** [getEmployeeDetailsUnsafe] */
+    var employeeNameExtractionRegex = Regex(
+        """<div class="employee-name">(.*?)<\\/div>""",
+        RegexOption.MULTILINE
+    )
 
-        var employeePhoneExtractionRegex = Regex(
-            """<a href="tel:(.*?)"""",
-            RegexOption.MULTILINE
-        )
+    var employeePositionExtractionRegex = Regex(
+        """<div class="employee-position">(.*?)<\\/div>""",
+        RegexOption.MULTILINE
+    )
 
-        var employeeEmailExtractionRegex = Regex(
-            """<a href="mailto:(.*?)"""",
-            RegexOption.MULTILINE
-        )
+    var employeeDepartmentDataExtractionRegex = Regex(
+        """<div class="employee-department" department_id=(.*?)>.*?<a href="#">(.*?)<""",
+        RegexOption.MULTILINE
+    )
 
-        var employeeOfficeExtractionRegex = Regex(
-            """<strong>Office<\\/strong>(.*?)<""",
-            RegexOption.MULTILINE
-        )
+    var employeePhoneExtractionRegex = Regex(
+        """<a href="tel:(.*?)"""",
+        RegexOption.MULTILINE
+    )
 
-        var employeeAddressExtractionRegex = Regex(
-            """<strong>Address<\\/strong>(.*?)<""",
-            RegexOption.MULTILINE
-        )
-    }
+    var employeeEmailExtractionRegex = Regex(
+        """<a href="mailto:(.*?)"""",
+        RegexOption.MULTILINE
+    )
+
+    var employeeOfficeExtractionRegex = Regex(
+        """<strong>Office<\\/strong>(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    var employeeAddressExtractionRegex = Regex(
+        """<strong>Address<\\/strong>(.*?)<""",
+        RegexOption.MULTILINE
+    )
 
     suspend fun loginIfNeeded(
-        username: String,
+        studentId: String,
         password: String,
         mfaCode: String
     ): ApiResult<String> {
-        return VTBaseApi.loginIfNeeded(baseUrl, username, password, mfaCode)
+        return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode)
     }
 
     val client = HttpClient(getHttpClientEngine()) {
@@ -129,17 +127,38 @@ class ManoApi {
             .replace("\\/", "/")
     }
 
+    private fun String.timeToDuration(): Duration {
+        val parts = split(":")
+        return Duration.parse("${parts[0]}h ${parts[1]}m")
+    }
+
+    private fun String.mapLectureType(): ApiManoTimetableEntityType {
+        if ("Lecture" in this) {
+            return ApiManoTimetableEntityType.LECTURE
+        }
+        if ("Laboratory" in this) {
+            return ApiManoTimetableEntityType.LAB
+        }
+        return ApiManoTimetableEntityType.PRACTICE
+    }
+
     suspend fun getStudentInfo(): ApiResult<ApiManoStudentInfo> {
+        return safeApiCall("get student info") {
+            getStudentInfoUnsafe(it)
+        }
+    }
+
+    private suspend fun getStudentInfoUnsafe(rootOperationName: String): ApiResult<ApiManoStudentInfo> {
         val basePageResponse = client.get("$baseUrl/profile/site")
 
         basePageResponse.expect200<ApiManoStudentInfo>(
-            "Get student info (base page)"
+            "$rootOperationName + base page request"
         )?.let { return it }
 
         val contactsPageResponse = client.get("$baseUrl/profile/student/contacts")
 
         contactsPageResponse.expect200<ApiManoStudentInfo>(
-            "Get student info (contacts)"
+            "$rootOperationName + contacts page request"
         )?.let { return it }
 
         val basePageResponseContent = basePageResponse.bodyAsText().cleanHttpResponse()
@@ -163,25 +182,31 @@ class ManoApi {
         val fullName = fullNameAndAvatarMatch?.get(1)
         val avatarUrl = fullNameAndAvatarMatch?.get(2)
 
-        return ApiManoStudentInfo(
-            fullName = fullName ?: "",
-            birthYear = birthYear ?: 0,
-            birthDate = birthDate ?: "",
-            address = address ?: "",
-            phone = phone ?: "",
-            personalEmail = personalEmail ?: "",
-            universityEmail = universityEmail ?: "",
-            avatarUrl = "$baseUrl$avatarUrl"
-        ).toApiResult(operation = "Get student info")
+        return ApiResult.fromDeserializedModel(
+            ApiManoStudentInfo(
+                fullName = fullName ?: "",
+                birthYear = birthYear ?: 0,
+                birthDate = birthDate ?: "",
+                address = address ?: "",
+                phone = phone ?: "",
+                personalEmail = personalEmail ?: "",
+                universityEmail = universityEmail ?: "",
+                avatarUrl = "$baseUrl$avatarUrl"
+            ), operation = rootOperationName
+        )
     }
 
     suspend fun getThisSemesterSubjects(): ApiResult<List<ApiManoCourseEntity>> {
-        val op = "Get study subjects"
+        return safeApiCall("get subjects for current semester") {
+            getThisSemesterSubjectsUnsafe(it)
+        }
+    }
 
+    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): ApiResult<List<ApiManoCourseEntity>> {
         val studySubjectsPageResponse = client.get("$baseUrl/thissemester/site/studysubject")
 
         studySubjectsPageResponse.expect200<List<ApiManoCourseEntity>>(
-            op
+            "$rootOperationName + main request"
         )?.let { return it }
 
         val matches = studySubjectExtractionRegex.findAll(
@@ -190,9 +215,9 @@ class ManoApi {
 
         val subjects = matches.map { result ->
             ApiManoCourseEntity(
-                subjectModId = Url(result.groupValues[1]).parameters?.get("MOD_ID")
+                subjectModId = Url(result.groupValues[1]).parameters["MOD_ID"]
                     ?: "",
-                subjectModCode = Url(result.groupValues[1]).parameters?.get("MOD_CODE")
+                subjectModCode = Url(result.groupValues[1]).parameters["MOD_CODE"]
                     ?: "",
                 subjectLink = result.groupValues[1],
                 subjectName = result.groupValues[2],
@@ -202,32 +227,24 @@ class ManoApi {
             )
         }.toList()
 
-        return ApiResult.fromDeserializedModel(subjects, operation = op)
+        return ApiResult.fromDeserializedModel(subjects, operation = rootOperationName)
     }
 
-    private fun String.timeToDuration(): Duration {
-        val parts = split(":")
-        return Duration.parse("${parts[0]}h ${parts[1]}m")
-    }
-
-    private fun String.mapLectureType(): ApiManoTimetableEntityType {
-        if ("Lecture" in this) {
-            return ApiManoTimetableEntityType.LECTURE
+    suspend fun getThisSemesterSubjects(courseModId: String): ApiResult<List<ApiManoCourseTimetableEntity>> {
+        return safeApiCall("get subject timetable for '$courseModId'") {
+            getSubjectTimetableUnsafe(it, courseModId)
         }
-        if ("Laboratory" in this) {
-            return ApiManoTimetableEntityType.LAB
-        }
-        return ApiManoTimetableEntityType.PRACTICE
     }
 
-    suspend fun getSubjectTimetable(courseModId: String): ApiResult<List<ApiManoCourseTimetableEntity>> {
-        val op = "Get course timetable $courseModId"
-
+    private suspend fun getSubjectTimetableUnsafe(
+        rootOperationName: String,
+        courseModId: String
+    ): ApiResult<List<ApiManoCourseTimetableEntity>> {
         val courseTimetablePageResponse =
             client.get("$baseUrl/thissemester/site/tab-timetable?MOD_ID=$courseModId")
 
         courseTimetablePageResponse.expect200<List<ApiManoCourseTimetableEntity>>(
-            op
+            "$rootOperationName + main request"
         )?.let { return it }
 
         val matches = courseTimetableExtractionRegex.findAll(
@@ -246,17 +263,21 @@ class ManoApi {
             )
         }.toList()
 
-        return ApiResult.fromDeserializedModel(subjects, operation = op)
+        return ApiResult.fromDeserializedModel(subjects, operation = rootOperationName)
     }
 
     suspend fun getEmployees(): ApiResult<List<ApiManoEmployeeBasicEntity>> {
-        val op = "Get employees"
+        return safeApiCall("get employees") {
+            getEmployeesUnsafe(it)
+        }
+    }
 
+    private suspend fun getEmployeesUnsafe(rootOperationName: String): ApiResult<List<ApiManoEmployeeBasicEntity>> {
         val contactsPageResponse =
             client.get("$baseUrl/contacts/contacts")
 
         contactsPageResponse.expect200<List<ApiManoEmployeeBasicEntity>>(
-            op
+            "$rootOperationName + main request"
         )?.let { return it }
 
         val contactsPageContent = contactsPageResponse.bodyAsText()
@@ -270,9 +291,9 @@ class ManoApi {
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = contactsPageContent,
                 bodyTyped = null,
-                context = "Outer contacts extraction failed",
-                isSuccessful = false,
-                operation = op
+                context = "Extraction failed",
+                isSuccess = false,
+                operation = "$rootOperationName + outer contacts extraction"
             ).logIt()
         }
 
@@ -285,17 +306,24 @@ class ManoApi {
             )
         }.toList()
 
-        return ApiResult.fromDeserializedModel(employees, operation = op)
+        return ApiResult.fromDeserializedModel(employees, operation = rootOperationName)
     }
 
     suspend fun getEmployeeDetails(employeeId: String): ApiResult<ApiManoEmployeeDetails> {
-        val op = "Get employee details for $employeeId"
+        return safeApiCall("get employee details for '$employeeId'") {
+            getEmployeeDetailsUnsafe(it, employeeId)
+        }
+    }
 
+    private suspend fun getEmployeeDetailsUnsafe(
+        rootOperationName: String,
+        employeeId: String
+    ): ApiResult<ApiManoEmployeeDetails> {
         val detailsPageResponse =
             client.get("$baseUrl/contacts/contacts/employee-data?id=$employeeId")
 
         detailsPageResponse.expect200<ApiManoEmployeeDetails>(
-            op
+            "$rootOperationName + main request"
         )?.let { return it }
 
         val detailsPageContent = detailsPageResponse.bodyAsText().replace("\n", "")
@@ -346,7 +374,7 @@ class ManoApi {
                 offices = offices,
                 positions = positions,
                 fullName = fullName ?: ""
-            ), operation = op
+            ), operation = rootOperationName
         )
     }
 }

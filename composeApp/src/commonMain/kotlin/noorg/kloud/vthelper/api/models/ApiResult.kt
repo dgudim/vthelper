@@ -4,28 +4,37 @@ import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import noorg.kloud.vthelper.fullMessage
 
 data class ApiResult<T>(
     val statusCode: HttpStatusCode,
     val context: String,
     val bodyRaw: String?,
     val bodyTyped: T?,
-    val isSuccessful: Boolean,
+    val isSuccess: Boolean,
     val operation: String
 ) {
+
+    val isFailure get() = !isSuccess
+
     fun getFullStatus(): String {
-        if (isSuccessful) {
-            return "Completed successfully on step '$operation'"
+        if (isSuccess) {
+            return "Completed successfully on step '$operation'. Why: '$context'"
         }
-        return "Failed at '$operation' with status code '$statusCode'. Why: '$context'. Truncated content: '${
-            bodyRaw?.take(
-                100
-            )
-        }...'"
+        return "Failed at '$operation' with status code '$statusCode'. Why: '$context'"
+    }
+
+    fun toResult(): Result<String> {
+        return if (isSuccess) {
+            Result.success(getFullStatus())
+        } else {
+            Result.failure(Exception(getFullStatus()))
+        }
     }
 
     fun logIt(): ApiResult<T> {
         println(getFullStatus())
+        println(" == Truncated body: ${bodyRaw?.take(50)}\n")
         return this
     }
 
@@ -34,17 +43,17 @@ data class ApiResult<T>(
         suspend inline fun <reified T> fromHttpResult(
             response: HttpResponse,
             context: String? = null,
-            isSuccessful: Boolean,
+            isSuccess: Boolean,
             successUpdater: (T?) -> Boolean = { true },
             operation: String
         ): ApiResult<T> {
-            val bodyTyped = if (isSuccessful) response.body<T>() else null
+            val bodyTyped = if (isSuccess) response.body<T>() else null
             return ApiResult(
                 statusCode = response.status,
-                bodyRaw = if (!isSuccessful) response.bodyAsText() else null,
+                bodyRaw = if (!isSuccess) response.bodyAsText() else null,
                 bodyTyped = bodyTyped,
-                context = context ?: (if (isSuccessful) "OK" else "FAIL"),
-                isSuccessful = isSuccessful && successUpdater(bodyTyped),
+                context = context ?: (if (isSuccess) "OK" else "FAIL"),
+                isSuccess = isSuccess && successUpdater(bodyTyped),
                 operation = operation
             ).logIt()
         }
@@ -58,8 +67,33 @@ data class ApiResult<T>(
                 bodyRaw = null,
                 bodyTyped = response,
                 context = "OK",
-                isSuccessful = true,
+                isSuccess = true,
                 operation = operation
+            ).logIt()
+        }
+
+        fun <T> fromException(
+            exception: Throwable,
+            operation: String
+        ): ApiResult<T> {
+            return ApiResult<T>(
+                statusCode = HttpStatusCode.ServiceUnavailable,
+                bodyRaw = exception.stackTraceToString(),
+                bodyTyped = null,
+                context = exception.fullMessage(),
+                isSuccess = false,
+                operation = operation
+            ).logIt()
+        }
+
+        fun <T, R> fromOtherResult(otherResult: ApiResult<R>): ApiResult<T> {
+            return ApiResult<T>(
+                statusCode = otherResult.statusCode,
+                bodyRaw = otherResult.bodyRaw,
+                bodyTyped = null,
+                context = otherResult.context,
+                isSuccess = otherResult.isSuccess,
+                operation = otherResult.operation
             ).logIt()
         }
 
@@ -70,6 +104,7 @@ data class ApiResult<T>(
             operation: String
         ): ApiResult<T>? {
             if (response.status in expectedCodes) {
+                println("expectCode succeeded on '$operation', return code was '${response.status}'")
                 return null
             }
 
@@ -78,7 +113,7 @@ data class ApiResult<T>(
             return fromHttpResult<T>(
                 response,
                 context = if (context != null) "$context, $expectedCodesMsg" else expectedCodesMsg,
-                isSuccessful = false,
+                isSuccess = false,
                 operation = operation
             )
         }
@@ -103,27 +138,14 @@ suspend inline fun <reified T> HttpResponse.expect200(operation: String): ApiRes
 
 suspend inline fun <reified T> HttpResponse.toApiResult(
     context: String? = null,
-    isSuccessful: Boolean,
-    operation: String
-): ApiResult<T> {
-    return ApiResult.fromHttpResult(
-        response = this,
-        context = context,
-        isSuccessful = isSuccessful,
-        operation = operation
-    )
-}
-
-suspend inline fun <reified T> HttpResponse.toApiResult(
-    context: String? = null,
-    isSuccessful: Boolean,
+    isSuccess: Boolean,
     successUpdater: (T?) -> Boolean = { true },
     operation: String
 ): ApiResult<T> {
     return ApiResult.fromHttpResult(
         response = this,
         context = context,
-        isSuccessful = isSuccessful,
+        isSuccess = isSuccess,
         successUpdater = successUpdater,
         operation = operation
     )

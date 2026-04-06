@@ -34,6 +34,7 @@ fun rememberFirstMostVisibleMonth(
     // This launches once per calendar config and updates the values from BG
     LaunchedEffect(state) {
         // https://efeejemudaro.medium.com/firing-side-effects-from-compose-using-snapshotflow-e3581c624adb
+        // https://freedium-mirror.cfd/https://medium.com/@ramadan123sayed/understanding-snapshotflow-in-jetpack-compose-converting-state-to-flow-69b961282694
         snapshotFlow { state.layoutInfo.firstMostVisibleMonth(viewportPercent) }
             .filterNotNull()
             .collect { month -> visibleMonth = month }
@@ -64,4 +65,19 @@ fun Color.setAlpha(newAlpha: Float): Color {
 
 fun Regex.findFirstGroup(str: String): String? {
     return find(str)?.groupValues?.get(1)?.trim()
+}
+
+fun Throwable.fullMessage(): String {
+    var currentThrowable: Throwable? = this
+    var message = ""
+    while (currentThrowable != null) {
+        val msgPart = "${currentThrowable::class} (${currentThrowable.message})"
+        if (message.isEmpty()) {
+            message = msgPart
+        } else {
+            message += " caused by $msgPart"
+        }
+        currentThrowable = currentThrowable.cause
+    }
+    return message;
 }

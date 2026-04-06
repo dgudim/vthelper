@@ -1,32 +1,102 @@
 package noorg.kloud.vthelper.data.data_providers
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import noorg.kloud.vthelper.api.ManoApi
+import noorg.kloud.vthelper.api.MoodleApi
+import noorg.kloud.vthelper.api.VTBaseApi
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
+import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
 
-class LoggedInUserProvider(private val moodleCourseDao: LoggedInUserDao) {
+class LoggedInUserProvider(
+    private val loggedInUserDao: LoggedInUserDao
+) {
 
-    suspend fun getCurrentUserInfo(): ProvidedLoggedInUserEntity {
-        val dbUser = moodleCourseDao.get()
-        if(dbUser != null) {
-            return ProvidedLoggedInUserEntity(
-                phone = dbUser.phone,
-                address = dbUser.address,
-                personalEmail = dbUser.personalEmail,
-                universityEmail = dbUser.universityEmail,
+    suspend fun logout() {
+        loggedInUserDao.deleteAll()
+        VTBaseApi.logout()
+    }
 
-                moodleId = dbUser.moodleId,
-
-                studentId = dbUser.studentId,
-                password = dbUser.password,
-                fullName = dbUser.fullName,
-                birthDate = dbUser.birthDate,
-                avatarPath = dbUser.avatarPath,
-
-                cookiesJson = dbUser.cookiesJson,
-                isSessionValid = dbUser.isSessionValid
-            )
+    suspend fun login(
+        studentId: String,
+        password: String,
+        mfaCode: String
+    ): Result<String> {
+        val manoResult = ManoApi.loginIfNeeded(studentId, password, mfaCode)
+        if (manoResult.isFailure) {
+            return manoResult.toResult()
         }
-        return ProvidedLoggedInUserEntity()
+        val moodleResult = MoodleApi.loginIfNeeded(studentId, password, mfaCode)
+        if (moodleResult.isFailure) {
+            return moodleResult.toResult()
+        }
+        val userdataResult = fetchUserDataFromApi(studentId, password)
+        return userdataResult
+    }
+
+    private suspend fun fetchUserDataFromApi(
+        studentId: String, password: String
+    ): Result<String> {
+        val studentInfoResult = ManoApi.getStudentInfo()
+        if (studentInfoResult.isFailure) {
+            return studentInfoResult.toResult()
+        }
+
+        val moodleUserIdResult = MoodleApi.updateSessionInfo()
+        if (moodleUserIdResult.isFailure) {
+            return studentInfoResult.toResult()
+        }
+
+        val studentInfo = studentInfoResult.bodyTyped!!
+        val moodleUserId = MoodleApi.userId
+
+        loggedInUserDao.insert(
+            DBLoggedInUserEntity(
+                studentId = studentId,
+                password = password,
+                moodleId = moodleUserId.toString(),
+                isSessionValid = true,
+                universityEmail = studentInfo.universityEmail,
+                personalEmail = studentInfo.personalEmail,
+                fullName = studentInfo.fullName,
+                phone = studentInfo.phone,
+                cookiesJson = VTBaseApi.cookieStorage.getAllAsJson(),
+                address = studentInfo.address,
+                birthDate = studentInfo.birthDate,
+                avatarPath = "" // TODO: Fetch from api
+            )
+        )
+
+        return Result.success("OK")
+    }
+
+    fun getCurrentUserInfo(): Flow<ProvidedLoggedInUserEntity> {
+        return loggedInUserDao.getAllAsFlow().map {
+            try {
+                with(it.first()) {
+                    ProvidedLoggedInUserEntity(
+                        phone = phone,
+                        address = address,
+                        personalEmail = personalEmail,
+                        universityEmail = universityEmail,
+
+                        moodleId = moodleId,
+
+                        studentId = studentId,
+                        password = password,
+                        fullName = fullName,
+                        birthDate = birthDate,
+                        avatarPath = avatarPath,
+
+                        cookiesJson = cookiesJson,
+                        isSessionValid = isSessionValid
+                    )
+                }
+            } catch (_: NoSuchElementException) {
+                ProvidedLoggedInUserEntity()
+            }
+        }
     }
 
 }

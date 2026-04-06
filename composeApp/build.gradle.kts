@@ -22,6 +22,8 @@ plugins {
     alias(libs.plugins.androidx.room)
     // https://proandroiddev.com/compose-stability-analyzer-real-time-stability-insights-for-jetpack-compose-1399924a0a64
     alias(libs.plugins.stabilityAnalyzer)
+    // https://github.com/Kotlin/kotlinx-atomicfu#apply-plugin
+    alias(libs.plugins.atomicFu)
 }
 
 kotlin {
@@ -145,4 +147,10 @@ compose.desktop {
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+// https://github.com/Kotlin/kotlinx-atomicfu#apply-plugin
+atomicfu {
+    dependenciesVersion = libs.versions.atomicfu.get()
+    jvmVariant = "VH"
 }

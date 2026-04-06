@@ -2,8 +2,6 @@ package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,26 +22,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.AbstractCoroutine
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.LocalDb
-import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.ui.components.ExpandableCard
 import noorg.kloud.vthelper.ui.components.InfoField
@@ -59,17 +57,6 @@ import vthelper.composeapp.generated.resources.moodle
 import vthelper.composeapp.generated.resources.school_24px
 import vthelper.composeapp.generated.resources.vt_48px
 
-suspend fun tryLoggingIn(
-    api: ManoApi,
-    username: String,
-    password: String,
-    mfaCode: String,
-    showSnack: (String) -> Unit
-) {
-    val result = api.loginIfNeeded(username, password, mfaCode)
-    showSnack(result.getFullStatus())
-}
-
 @Composable
 fun AccountScreen(
     gloablCoroutineScope: CoroutineScope,
@@ -78,16 +65,23 @@ fun AccountScreen(
 
     val db = LocalDb.current!!
     val loggedInUserViewModel =
-        remember { LoggedInUserViewModel(LoggedInUserProvider(db.loggedInUserDao())) }
+        remember {
+            LoggedInUserViewModel(
+                LoggedInUserProvider(
+                    db.loggedInUserDao()
+                )
+            )
+        }
 
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
-    val mfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
 
-    val mfaInvalid = mfaCode.length != 6
-    val userLoginInvalid = (userState.studentId?.length ?: 0) < 4
-    val passwordInvalid = userState.password?.isEmpty() ?: true
+    val localMfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
+    val localStudentId by loggedInUserViewModel.studentId.collectAsStateWithLifecycle()
+    val localPassword by loggedInUserViewModel.password.collectAsStateWithLifecycle()
 
-    var api = remember { ManoApi() }
+    val mfaInvalid = localMfaCode.length != 6
+    val userLoginInvalid = localStudentId.length < 4
+    val passwordInvalid = localPassword.isEmpty()
 
     val uriHandler = LocalUriHandler.current
 
@@ -98,10 +92,26 @@ fun AccountScreen(
     val loggedInTopHeaderText =
         if (userState.isSessionValid) "${userState.fullName} (${userState.studentId})" else "Login into your Vilniustech account"
 
+    var isLoading by remember { mutableStateOf(false) }
+
     val loggedInColor = if (userState.isSessionValid)
         MaterialTheme.customColors.goodResult
     else
         MaterialTheme.customColors.badResult
+
+    val loginButtonColors =
+        ButtonDefaults.buttonColors().copy(
+            containerColor =
+                if (userState.isSessionValid)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.primary,
+            contentColor =
+                if (userState.isSessionValid)
+                    MaterialTheme.colorScheme.onError
+                else
+                    MaterialTheme.colorScheme.onPrimary
+        )
 
     val platformContext = LocalPlatformContext.current
     val userAvatarLoader by remember {
@@ -111,10 +121,6 @@ fun AccountScreen(
                 .crossfade(true)
                 .build()
         }
-    }
-
-    LaunchedEffect(Unit) {
-        loggedInUserViewModel.fetchUserDataFromDb()
     }
 
     Column(
@@ -159,7 +165,7 @@ fun AccountScreen(
                 .padding(16.dp), // Distance to the screen border
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
             internalPadding = 8.dp,  // Distance to the card border
-            expandedByDefault = !userState.isSessionValid,
+            shouldBeExpandedParent = !userState.isSessionValid,
             collapsedContent = {
                 Text(
                     color = loggedInColor,
@@ -173,21 +179,23 @@ fun AccountScreen(
             ) {
                 Text(text = loggedInExpandedCardHeaderText)
                 OutlinedTextField(
-                    value = userState.studentId ?: "",
+                    value = localStudentId,
                     onValueChange = loggedInUserViewModel::updateStudentId,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     placeholder = { Text("12345678") },
                     label = { Text("Enter your student id") },
                     isError = userLoginInvalid,
+                    enabled = !userState.isSessionValid
                 )
                 PasswordTextField(
-                    value = userState.password ?: "",
+                    value = localPassword,
                     onValueChange = loggedInUserViewModel::updatePassword,
                     "Enter your password",
                     isError = passwordInvalid,
+                    enabled = !userState.isSessionValid
                 )
-                OutlinedTextField(
-                    value = mfaCode,
+                if (!userState.isSessionValid) OutlinedTextField(
+                    value = localMfaCode,
                     onValueChange = loggedInUserViewModel::updateMfa,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     placeholder = { Text("123 456") },
@@ -196,37 +204,38 @@ fun AccountScreen(
                 )
                 Button(
                     onClick = {
+                        if (isLoading) {
+                            return@Button
+                        }
+                        isLoading = true
                         gloablCoroutineScope.launch {
-                            tryLoggingIn(
-                                api,
-                                userState.studentId ?: "",
-                                userState.password ?: "",
-                                mfaCode,
-                                showSnack
-                            )
+                            if (userState.isSessionValid) {
+                                loggedInUserViewModel.logout()
+                            } else {
+                                loggedInUserViewModel.login(
+                                    localStudentId, localPassword, localMfaCode,
+                                    showSnack
+                                )
+                            }
+                        }.invokeOnCompletion {
+                            isLoading = false
                         }
                     },
                     shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.padding(4.dp, 10.dp, 4.dp, 4.dp).width(160.dp),
-                    enabled = !(userLoginInvalid || passwordInvalid || mfaInvalid),
-                    colors = ButtonDefaults.buttonColors().copy(
-                        containerColor = if (userState.isSessionValid)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.primary,
-                        contentColor = if (userState.isSessionValid)
-                            MaterialTheme.colorScheme.onError
-                        else
-                            MaterialTheme.colorScheme.onPrimary
-                    )
+                    modifier = Modifier
+                        .padding(4.dp, 10.dp, 4.dp, 4.dp)
+                        .width(160.dp),
+                    enabled = !(userLoginInvalid || passwordInvalid || mfaInvalid || isLoading) || userState.isSessionValid,
+                    colors = loginButtonColors
                 ) {
                     Text(
-                        modifier = Modifier.padding(end = 12.dp),
+                        modifier = Modifier.padding(start = 12.dp, end = 12.dp),
                         text = if (userState.isSessionValid) "Logout" else "Login"
                     )
-                    CircularProgressIndicator(
+                    if (isLoading) CircularProgressIndicator(
                         strokeWidth = 2.dp,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

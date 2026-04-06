@@ -25,6 +25,9 @@ import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 // https://proandroiddev.com/storing-data-in-local-database-like-a-boss-introducing-room-in-compose-multiplatform-2e39781c7b6a
 // https://piashcse.medium.com/room-database-in-jetpack-compose-a-step-by-step-guide-for-android-development-6c7ae419105a
 
+// https://medium.com/@majidshahbaz75/kotlin-flows-with-room-database-2d8b4b18790a
+// https://medium.com/@kemal_codes/kotlin-flow-map-operator-3a2ad08bd953
+
 @Database(
     entities = [
         DBMoodleCourseEntity::class,

@@ -9,14 +9,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Indication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,6 +25,7 @@ import androidx.compose.material3.CardElevation
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,23 +33,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.skydoves.compose.stability.runtime.TraceRecomposition
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.keyboard_arrow_left_24px
 
 @Composable
-fun BoxScope.ExpandIcon(expandedState: MutableState<Boolean>) {
-
-    var expanded by expandedState
+fun BoxScope.ExpandIcon(
+    internalExpandedValue: MutableState<Boolean?>,
+    actualExpandedValue: Boolean
+) {
 
     val arrowAngle by animateFloatAsState(
-        targetValue = if (expanded) -90F else 0F,
+        targetValue = if (actualExpandedValue) -90F else 0F,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow) // Same as in expandVertically for consistency
     )
 
@@ -62,7 +59,7 @@ fun BoxScope.ExpandIcon(expandedState: MutableState<Boolean>) {
             .rotate(arrowAngle)
             .clip(CircleShape)
             .clickable {
-                expanded = !expanded
+                internalExpandedValue.value = !actualExpandedValue
             }.size(32.dp),
         contentDescription = "expand"
     )
@@ -76,13 +73,25 @@ fun ExpandableCard(
     elevation: CardElevation = CardDefaults.cardElevation(),
     border: BorderStroke? = null,
     internalPadding: Dp = 0.dp,
-    expandedByDefault: Boolean = false,
+    shouldBeExpandedParent: Boolean = false,
     collapsedContent: @Composable ColumnScope.() -> Unit,
     expandedContent: @Composable ColumnScope.() -> Unit,
 ) {
 
-    val expandedState = remember { mutableStateOf(expandedByDefault) }
-    var expanded by expandedState
+    // Collapse or uncollapse until first user interaction
+    val internalExpandedState = remember { mutableStateOf<Boolean?>(null) }
+
+    var internalExpandedValue by internalExpandedState
+    val actualExpandedValue by remember(shouldBeExpandedParent) {
+        derivedStateOf {
+            internalExpandedState.value ?: shouldBeExpandedParent
+        }
+    }
+
+    // Pass back control to the parent if the value matches
+    if (internalExpandedState.value == shouldBeExpandedParent) {
+        internalExpandedState.value = null
+    }
 
     Card(
         modifier = modifier,
@@ -95,18 +104,22 @@ fun ExpandableCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(internalPadding)
-                .clickable(enabled = !expanded, interactionSource = null, indication = null) {
-                    expanded = true
+                .clickable(
+                    enabled = !actualExpandedValue,
+                    interactionSource = null,
+                    indication = null
+                ) {
+                    internalExpandedState.value = true
                 },
             contentAlignment = Alignment.CenterStart
         ) {
-            ExpandIcon(expandedState)
+            ExpandIcon(internalExpandedState, actualExpandedValue)
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 // https://developer.android.com/develop/ui/compose/animation/composables-modifiers#animatedcontent
                 AnimatedVisibility(
-                    visible = expanded,
+                    visible = actualExpandedValue,
                     enter = expandVertically(
                         expandFrom = Alignment.Top
                     ) + fadeIn(
@@ -119,7 +132,7 @@ fun ExpandableCard(
                     expandedContent()
                 }
                 AnimatedVisibility(
-                    visible = !expanded,
+                    visible = !actualExpandedValue,
                     enter = expandVertically(
                         expandFrom = Alignment.Bottom
                     ) + fadeIn(
