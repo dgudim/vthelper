@@ -19,6 +19,7 @@ import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
 import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import kotlin.time.Duration
 
 object ManoApi {
@@ -112,7 +113,7 @@ object ManoApi {
         password: String,
         mfaCode: String
     ): ApiResult<String> {
-        return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode)
+        return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode, "login into mano")
     }
 
     val client = HttpClient(getHttpClientEngine()) {

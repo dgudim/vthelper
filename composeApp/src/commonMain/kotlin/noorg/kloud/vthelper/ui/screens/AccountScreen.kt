@@ -38,8 +38,6 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.LocalDb
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
@@ -59,7 +57,7 @@ import vthelper.composeapp.generated.resources.vt_48px
 
 @Composable
 fun AccountScreen(
-    gloablCoroutineScope: CoroutineScope,
+    globalScope: CoroutineScope,
     showSnack: (String) -> Unit = {}
 ) {
 
@@ -208,7 +206,7 @@ fun AccountScreen(
                             return@Button
                         }
                         isLoading = true
-                        gloablCoroutineScope.launch {
+                        globalScope.launch {
                             if (userState.isSessionValid) {
                                 loggedInUserViewModel.logout()
                             } else {

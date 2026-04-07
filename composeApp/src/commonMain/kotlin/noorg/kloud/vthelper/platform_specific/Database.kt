@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.data
+package noorg.kloud.vthelper.platform_specific
 
 import androidx.room.BuiltInTypeConverters
 import androidx.room.ConstructedBy
@@ -60,10 +60,12 @@ expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase
 }
 
+expect fun getDatabaseBuilder(dbName: String): RoomDatabase.Builder<AppDatabase>
+
 fun getRoomDatabase(
-    builder: RoomDatabase.Builder<AppDatabase>
+    dbName: String
 ): AppDatabase {
-    return builder
+    return getDatabaseBuilder(dbName)
         .addMigrations()
         .fallbackToDestructiveMigrationOnDowngrade(true)
         .setDriver(BundledSQLiteDriver())

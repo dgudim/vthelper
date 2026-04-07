@@ -5,6 +5,5 @@ import androidx.compose.ui.window.ComposeUIViewController
 import noorg.kloud.vthelper.data.getDatabaseBuilder
 
 fun MainViewController() = ComposeUIViewController {
-    val databaseBuilder = remember { getDatabaseBuilder() }
-    App(databaseBuilder)
+    App()
 }

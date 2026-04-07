@@ -48,6 +48,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.startupRuntime)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
             implementation(libs.kotlinx.coroutines.android)

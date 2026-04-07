@@ -23,6 +23,7 @@ import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesRequestRootEle
 import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesResponse
 import noorg.kloud.vthelper.api.models.toApiResult
 import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 
 object MoodleApi {
 
@@ -53,7 +54,7 @@ object MoodleApi {
         password: String,
         mfaCode: String
     ): ApiResult<String> {
-        return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode)
+        return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode, "login into moodle")
     }
 
     suspend fun updateSessionInfo(

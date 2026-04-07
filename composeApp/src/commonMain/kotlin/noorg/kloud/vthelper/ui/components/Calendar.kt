@@ -62,8 +62,8 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEventType
-import noorg.kloud.vthelper.ui.displayText
-import noorg.kloud.vthelper.ui.formatLocalTime
+import noorg.kloud.vthelper.platform_specific.displayText
+import noorg.kloud.vthelper.platform_specific.formatLocalTime
 import noorg.kloud.vthelper.next
 import noorg.kloud.vthelper.previous
 import noorg.kloud.vthelper.rememberFirstMostVisibleMonth
@@ -138,7 +138,7 @@ fun Calendar() {
             firstDayOfWeek = daysOfWeek.first(),
             outDateStyle = OutDateStyle.EndOfGrid,
         )
-        val coroutineScope = rememberCoroutineScope()
+        val localScope = rememberCoroutineScope()
 
         val visibleMonth = rememberFirstMostVisibleMonth(state)
 
@@ -148,12 +148,12 @@ fun Calendar() {
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             currentMonth = visibleMonth.yearMonth,
             goToPrevious = {
-                coroutineScope.launch {
+                localScope.launch {
                     state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.previous)
                 }
             },
             goToNext = {
-                coroutineScope.launch {
+                localScope.launch {
                     state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.next)
                 }
             },

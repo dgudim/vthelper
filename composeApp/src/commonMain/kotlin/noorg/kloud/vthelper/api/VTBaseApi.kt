@@ -16,6 +16,7 @@ import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
 import noorg.kloud.vthelper.api.models.toApiResult
 import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 
 object VTBaseApi {
 
@@ -76,9 +77,10 @@ object VTBaseApi {
         serviceBaseUrl: Url,
         studentId: String,
         password: String,
-        mfaCode: String
+        mfaCode: String,
+        operation: String
     ): ApiResult<String> {
-        return safeApiCall("login") {
+        return safeApiCall(operation) {
             loginIfNeededUnsafe(serviceBaseUrl, studentId, password, mfaCode)
         }
     }
