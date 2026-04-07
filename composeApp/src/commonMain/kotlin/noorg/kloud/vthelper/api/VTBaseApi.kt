@@ -11,7 +11,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import io.ktor.http.parameters
 import io.ktor.util.appendAll
-import noorg.kloud.vthelper.api.models.ApiResult
+import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
 import noorg.kloud.vthelper.api.models.toApiResult
@@ -30,7 +30,7 @@ object VTBaseApi {
         Regex("""name="SAMLResponse" value="(.*?)"""", RegexOption.MULTILINE)
     val samlUrlRegex = Regex("""name="hiddenform" action="(.*?)"""", RegexOption.MULTILINE)
 
-    private val client = HttpClient(getHttpClientEngine()) {
+    val client = HttpClient(getHttpClientEngine()) {
         install(HttpCookies) {
             storage = cookieStorage
         }
@@ -79,8 +79,8 @@ object VTBaseApi {
         password: String,
         mfaCode: String,
         operation: String
-    ): ApiResult<String> {
-        return safeApiCall(operation) {
+    ): NetResult<String> {
+        return safeNetCall(operation) {
             loginIfNeededUnsafe(serviceBaseUrl, studentId, password, mfaCode)
         }
     }
@@ -90,7 +90,7 @@ object VTBaseApi {
         studentId: String,
         password: String,
         mfaCode: String
-    ): ApiResult<String> {
+    ): NetResult<String> {
 
         println("Logging into '$serviceBaseUrl'")
 
@@ -284,14 +284,14 @@ object VTBaseApi {
         serviceBaseUrl: Url,
         pageContent: String,
         currentReferrer: String
-    ): ApiResult<String> {
+    ): NetResult<String> {
         // println(pageContent)
         val samlResponse = samlResponseRegex.findFirstGroup(pageContent)
         val samlUrl = samlUrlRegex.findFirstGroup(pageContent)
             ?.replace(":443/", "/") // Remove explicit https port
 
         if (samlResponse == null || samlUrl == null) {
-            return ApiResult<String>(
+            return NetResult<String>(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = pageContent,
                 bodyTyped = null,

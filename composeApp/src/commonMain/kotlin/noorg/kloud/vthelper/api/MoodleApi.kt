@@ -15,7 +15,7 @@ import io.ktor.http.contentType
 import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import noorg.kloud.vthelper.api.models.ApiResult
+import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
 import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesRequestArgs
@@ -53,18 +53,18 @@ object MoodleApi {
         studentId: String,
         password: String,
         mfaCode: String
-    ): ApiResult<String> {
+    ): NetResult<String> {
         return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode, "login into moodle")
     }
 
     suspend fun updateSessionInfo(
-    ): ApiResult<String> {
-        return safeApiCall("update moodle session (user request)") {
+    ): NetResult<String> {
+        return safeNetCall("update moodle session (user request)") {
             updateSessionInfoUnsafe(it)
         }
     }
 
-    private suspend fun updateSessionInfoUnsafe(rootOperationName: String): ApiResult<String> {
+    private suspend fun updateSessionInfoUnsafe(rootOperationName: String): NetResult<String> {
         val pageResponse = client.get(baseUrl)
 
         pageResponse.expect200<String>(
@@ -97,7 +97,7 @@ object MoodleApi {
     }
 
     suspend fun getCalendarUrl(
-    ): ApiResult<String> {
+    ): NetResult<String> {
         return safeRetryOnDirectApiError(
             "get moodle calendar url", "update session",
             mainBlock = {
@@ -108,7 +108,7 @@ object MoodleApi {
             })
     }
 
-    suspend fun getCalendarUrlUnsafe(rootOperationName: String): ApiResult<String> {
+    suspend fun getCalendarUrlUnsafe(rootOperationName: String): NetResult<String> {
         val calendarUrlPageResponse = client.submitForm(
             url = "$baseUrl/calendar/export.php",
             formParameters = parameters {
@@ -142,7 +142,7 @@ object MoodleApi {
         )
     }
 
-    suspend fun getCourses(): ApiResult<ApiMoodleListCoursesResponse> {
+    suspend fun getCourses(): NetResult<ApiMoodleListCoursesResponse> {
         return safeRetryOnDirectApiError(
             "get moodle calendar url", "update session",
             mainBlock = {
@@ -153,13 +153,13 @@ object MoodleApi {
             })
     }
 
-    suspend fun getCoursesUnsafe(rootOperationName: String): ApiResult<ApiMoodleListCoursesResponse> {
+    suspend fun getCoursesUnsafe(rootOperationName: String): NetResult<ApiMoodleListCoursesResponse> {
         val methodName = "core_course_get_enrolled_courses_by_timeline_classification"
 
         if (sessionKey.isEmpty()) {
             updateSessionInfoUnsafe("$rootOperationName + get session key").let {
                 if (!it.isSuccess) {
-                    return ApiResult.fromOtherResult(it)
+                    return NetResult.fromOtherResult(it)
                 }
             }
         }

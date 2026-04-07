@@ -1,39 +1,52 @@
 package noorg.kloud.vthelper.api
 
-import noorg.kloud.vthelper.api.models.ApiResult
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.Url
+import io.ktor.utils.io.asByteWriteChannel
+import io.ktor.utils.io.copyAndClose
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import noorg.kloud.vthelper.api.models.NetResult
 
-inline fun <T> safeApiCall(operation: String, block: (op: String) -> ApiResult<T>): ApiResult<T> {
+inline fun <T> safeNetCall(operation: String, block: (op: String) -> NetResult<T>): NetResult<T> {
     return runCatching {
         block(operation)
-    }.run {
-        if (isSuccess) {
-            getOrNull()!!
-        } else {
-            ApiResult.fromException(exceptionOrNull()!!, operation)
-        }
+    }.getOrElse {
+        NetResult.fromException(it, operation)
     }
 }
 
-/** Retry if the error was marked directly in the model somehow, see 'successUpdater' in [ApiResult] */
+/** Retry if the error was marked directly in the model somehow, see 'successUpdater' in [NetResult] */
 inline fun <T, R> safeRetryOnDirectApiError(
     operation: String,
     retryOperation: String,
-    mainBlock: (op: String) -> ApiResult<T>,
-    beforeRetryBlock: (op: String) -> ApiResult<R>
-): ApiResult<T> {
-    val result = safeApiCall(operation) { mainBlock(it) }
+    mainBlock: (op: String) -> NetResult<T>,
+    beforeRetryBlock: (op: String) -> NetResult<R>
+): NetResult<T> {
+    val result = safeNetCall(operation) { mainBlock(it) }
     // Model was deserialized successfully but the result is still failed -> Error in the model
     if (!result.isSuccess && result.bodyTyped != null) {
         val retryResult =
-            safeApiCall("$retryOperation (retry before '$operation')") { beforeRetryBlock(it) }
+            safeNetCall("$retryOperation (retry before '$operation')") { beforeRetryBlock(it) }
         if (!retryResult.isSuccess) {
             // 'Before retry' failed
-            return ApiResult.fromOtherResult(retryResult)
+            return NetResult.fromOtherResult(retryResult)
         }
         // Success of fail after second call
-        return safeApiCall("$operation (2nd attempt)") { mainBlock(it) }
+        return safeNetCall("$operation (2nd attempt)") { mainBlock(it) }
     }
     // Successful
     return result
 }
 
+suspend fun downloadImage(target: Path, sourceUrl: Url): NetResult<String> {
+    return safeNetCall("download $sourceUrl") {
+        VTBaseApi.client
+            .get(sourceUrl)
+            .bodyAsChannel()
+            .copyAndClose(SystemFileSystem.sink(target, false).asByteWriteChannel())
+
+        NetResult.fromDeserializedModel("OK", it)
+    }
+}

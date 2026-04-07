@@ -39,12 +39,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.ui.screens.AccountScreen
 import noorg.kloud.vthelper.ui.screens.CalendarScreen
 import noorg.kloud.vthelper.ui.screens.CoursesScreen
 import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
+import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -117,6 +119,11 @@ fun Navigation(
     gloablCoroutineScope: CoroutineScope,
     showSnack: (String) -> Unit = {},
 ) {
+
+    val db = LocalDb.current!!
+    val loggedInUserViewModel =
+        remember { LoggedInUserViewModel(LoggedInUserProvider(db.loggedInUserDao())) }
+
     NavHost(
         navController = navController,
         startDestination = NavDrawerItem.Dashboard.route,
@@ -128,7 +135,7 @@ fun Navigation(
             DashboardScreen(showSnack)
         }
         composable(NavDrawerItem.Account.route) {
-            AccountScreen(gloablCoroutineScope, showSnack)
+            AccountScreen(gloablCoroutineScope, loggedInUserViewModel, showSnack)
         }
         composable(NavDrawerItem.Results.route) {
             ResultsScreen(showSnack)

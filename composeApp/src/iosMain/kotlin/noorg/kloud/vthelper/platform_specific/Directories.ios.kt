@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.platform_specific
 
 import kotlinx.io.files.Path
 import platform.Foundation.NSApplicationSupportDirectory
@@ -17,7 +17,7 @@ internal actual fun cacheDirectory(appId: String): Path {
             .firstOrNull()?.toString()?.toPath() ?: error("Unable to get 'NSCachesDirectory'")
 
     return if (platform() is OS.MacOs) {
-        (cachesDirectory / appId)!!
+        cachesDirectory / appId
     } else {
         cachesDirectory
     }

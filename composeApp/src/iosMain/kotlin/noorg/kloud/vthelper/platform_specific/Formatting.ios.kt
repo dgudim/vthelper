@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.ui
+package noorg.kloud.vthelper.platform_specific
 
 import androidx.compose.ui.text.intl.Locale
 import com.kizitonwose.calendar.core.daysOfWeek

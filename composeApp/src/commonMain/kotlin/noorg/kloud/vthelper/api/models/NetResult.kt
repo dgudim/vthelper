@@ -6,7 +6,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import noorg.kloud.vthelper.fullMessage
 
-data class ApiResult<T>(
+data class NetResult<T>(
     val statusCode: HttpStatusCode,
     val context: String,
     val bodyRaw: String?,
@@ -32,7 +32,7 @@ data class ApiResult<T>(
         }
     }
 
-    fun logIt(): ApiResult<T> {
+    fun logIt(): NetResult<T> {
         println(getFullStatus())
         println(" == Truncated body: ${bodyRaw?.take(50)}\n")
         return this
@@ -46,9 +46,9 @@ data class ApiResult<T>(
             isSuccess: Boolean,
             successUpdater: (T?) -> Boolean = { true },
             operation: String
-        ): ApiResult<T> {
+        ): NetResult<T> {
             val bodyTyped = if (isSuccess) response.body<T>() else null
-            return ApiResult(
+            return NetResult(
                 statusCode = response.status,
                 bodyRaw = if (!isSuccess) response.bodyAsText() else null,
                 bodyTyped = bodyTyped,
@@ -61,8 +61,8 @@ data class ApiResult<T>(
         fun <T> fromDeserializedModel(
             response: T,
             operation: String
-        ): ApiResult<T> {
-            return ApiResult(
+        ): NetResult<T> {
+            return NetResult(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = null,
                 bodyTyped = response,
@@ -75,8 +75,8 @@ data class ApiResult<T>(
         fun <T> fromException(
             exception: Throwable,
             operation: String
-        ): ApiResult<T> {
-            return ApiResult<T>(
+        ): NetResult<T> {
+            return NetResult<T>(
                 statusCode = HttpStatusCode.ServiceUnavailable,
                 bodyRaw = exception.stackTraceToString(),
                 bodyTyped = null,
@@ -86,8 +86,8 @@ data class ApiResult<T>(
             ).logIt()
         }
 
-        fun <T, R> fromOtherResult(otherResult: ApiResult<R>): ApiResult<T> {
-            return ApiResult<T>(
+        fun <T, R> fromOtherResult(otherResult: NetResult<R>): NetResult<T> {
+            return NetResult<T>(
                 statusCode = otherResult.statusCode,
                 bodyRaw = otherResult.bodyRaw,
                 bodyTyped = null,
@@ -102,7 +102,7 @@ data class ApiResult<T>(
             context: String? = null,
             expectedCodes: List<HttpStatusCode>,
             operation: String
-        ): ApiResult<T>? {
+        ): NetResult<T>? {
             if (response.status in expectedCodes) {
                 println("expectCode succeeded on '$operation', return code was '${response.status}'")
                 return null
@@ -121,7 +121,7 @@ data class ApiResult<T>(
         suspend inline fun <reified T> expect200(
             response: HttpResponse,
             operation: String
-        ): ApiResult<T>? {
+        ): NetResult<T>? {
             return expectCode<T>(
                 response,
                 null,
@@ -132,8 +132,8 @@ data class ApiResult<T>(
     }
 }
 
-suspend inline fun <reified T> HttpResponse.expect200(operation: String): ApiResult<T>? {
-    return ApiResult.expect200(this, operation)
+suspend inline fun <reified T> HttpResponse.expect200(operation: String): NetResult<T>? {
+    return NetResult.expect200(this, operation)
 }
 
 suspend inline fun <reified T> HttpResponse.toApiResult(
@@ -141,8 +141,8 @@ suspend inline fun <reified T> HttpResponse.toApiResult(
     isSuccess: Boolean,
     successUpdater: (T?) -> Boolean = { true },
     operation: String
-): ApiResult<T> {
-    return ApiResult.fromHttpResult(
+): NetResult<T> {
+    return NetResult.fromHttpResult(
         response = this,
         context = context,
         isSuccess = isSuccess,
@@ -155,8 +155,8 @@ suspend inline fun <reified T> HttpResponse.expectCode(
     context: String? = null,
     expectedCodes: List<HttpStatusCode>,
     operation: String
-): ApiResult<T>? {
-    return ApiResult.expectCode(
+): NetResult<T>? {
+    return NetResult.expectCode(
         response = this,
         context = context,
         expectedCodes = expectedCodes,

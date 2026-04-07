@@ -81,6 +81,7 @@ kotlin {
             // Storage
             implementation(libs.androidx.room.runtime)
             implementation(libs.sqlite.bundled)
+            implementation(libs.kotlinx.io)
 
             // Network
             implementation(libs.bundles.ktor)

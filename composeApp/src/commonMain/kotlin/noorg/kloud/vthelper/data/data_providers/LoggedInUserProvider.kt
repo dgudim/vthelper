@@ -1,13 +1,17 @@
 package noorg.kloud.vthelper.data.data_providers
 
+import io.ktor.http.Url
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.VTBaseApi
+import noorg.kloud.vthelper.api.downloadImage
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
 import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
+import noorg.kloud.vthelper.platform_specific.appDataDirectory
+import noorg.kloud.vthelper.platform_specific.div
 
 class LoggedInUserProvider(
     private val loggedInUserDao: LoggedInUserDao
@@ -51,6 +55,10 @@ class LoggedInUserProvider(
         val studentInfo = studentInfoResult.bodyTyped!!
         val moodleUserId = MoodleApi.userId
 
+        val avatarPath = appDataDirectory() / "$studentId.img"
+
+        downloadImage(avatarPath, Url(studentInfo.avatarUrl))
+
         loggedInUserDao.insert(
             DBLoggedInUserEntity(
                 studentId = studentId,
@@ -64,7 +72,7 @@ class LoggedInUserProvider(
                 cookiesJson = VTBaseApi.cookieStorage.getAllAsJson(),
                 address = studentInfo.address,
                 birthDate = studentInfo.birthDate,
-                avatarPath = "" // TODO: Fetch from api
+                avatarPath = avatarPath.toString()
             )
         )
 

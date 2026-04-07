@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.data
+package noorg.kloud.vthelper.platform_specific
 
 import androidx.room.Room
 import androidx.room.RoomDatabase

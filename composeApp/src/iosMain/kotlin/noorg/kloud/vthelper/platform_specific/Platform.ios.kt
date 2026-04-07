@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper
+package noorg.kloud.vthelper.platform_specific
 
 import platform.Foundation.NSProcessInfo
 import platform.posix.TARGET_OS_SIMULATOR

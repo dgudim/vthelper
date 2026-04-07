@@ -6,7 +6,9 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
-import noorg.kloud.vthelper.api.models.ApiResult
+import kotlinx.io.Buffer
+import kotlinx.io.files.SystemFileSystem
+import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
@@ -19,6 +21,8 @@ import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
 import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.platform_specific.appDataDirectory
+import noorg.kloud.vthelper.platform_specific.div
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import kotlin.time.Duration
 
@@ -112,7 +116,7 @@ object ManoApi {
         studentId: String,
         password: String,
         mfaCode: String
-    ): ApiResult<String> {
+    ): NetResult<String> {
         return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode, "login into mano")
     }
 
@@ -126,6 +130,10 @@ object ManoApi {
         return replace("&amp;", "&")
             .replace("\\\"", "\"")
             .replace("\\/", "/")
+    }
+
+    private fun String.singleLine(): String {
+        return filterNot { it == '\n' || it == '\r' }
     }
 
     private fun String.timeToDuration(): Duration {
@@ -143,13 +151,13 @@ object ManoApi {
         return ApiManoTimetableEntityType.PRACTICE
     }
 
-    suspend fun getStudentInfo(): ApiResult<ApiManoStudentInfo> {
-        return safeApiCall("get student info") {
+    suspend fun getStudentInfo(): NetResult<ApiManoStudentInfo> {
+        return safeNetCall("get student info") {
             getStudentInfoUnsafe(it)
         }
     }
 
-    private suspend fun getStudentInfoUnsafe(rootOperationName: String): ApiResult<ApiManoStudentInfo> {
+    private suspend fun getStudentInfoUnsafe(rootOperationName: String): NetResult<ApiManoStudentInfo> {
         val basePageResponse = client.get("$baseUrl/profile/site")
 
         basePageResponse.expect200<ApiManoStudentInfo>(
@@ -162,7 +170,7 @@ object ManoApi {
             "$rootOperationName + contacts page request"
         )?.let { return it }
 
-        val basePageResponseContent = basePageResponse.bodyAsText().cleanHttpResponse()
+        val basePageResponseContent = basePageResponse.bodyAsText().singleLine()
         val contactsPageResponseContent = contactsPageResponse.bodyAsText().cleanHttpResponse()
 
         val personalEmail = personalEmailExtractionRegex.findFirstGroup(contactsPageResponseContent)
@@ -180,10 +188,10 @@ object ManoApi {
 
         val fullNameAndAvatarMatch =
             fullNameAndAvatarExtractionRegex.find(basePageResponseContent)?.groupValues
-        val fullName = fullNameAndAvatarMatch?.get(1)
-        val avatarUrl = fullNameAndAvatarMatch?.get(2)
+        val fullName = fullNameAndAvatarMatch?.get(1)?.trim()
+        val avatarUrl = fullNameAndAvatarMatch?.get(2)?.trim()
 
-        return ApiResult.fromDeserializedModel(
+        return NetResult.fromDeserializedModel(
             ApiManoStudentInfo(
                 fullName = fullName ?: "",
                 birthYear = birthYear ?: 0,
@@ -197,13 +205,13 @@ object ManoApi {
         )
     }
 
-    suspend fun getThisSemesterSubjects(): ApiResult<List<ApiManoCourseEntity>> {
-        return safeApiCall("get subjects for current semester") {
+    suspend fun getThisSemesterSubjects(): NetResult<List<ApiManoCourseEntity>> {
+        return safeNetCall("get subjects for current semester") {
             getThisSemesterSubjectsUnsafe(it)
         }
     }
 
-    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): ApiResult<List<ApiManoCourseEntity>> {
+    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<List<ApiManoCourseEntity>> {
         val studySubjectsPageResponse = client.get("$baseUrl/thissemester/site/studysubject")
 
         studySubjectsPageResponse.expect200<List<ApiManoCourseEntity>>(
@@ -228,11 +236,11 @@ object ManoApi {
             )
         }.toList()
 
-        return ApiResult.fromDeserializedModel(subjects, operation = rootOperationName)
+        return NetResult.fromDeserializedModel(subjects, operation = rootOperationName)
     }
 
-    suspend fun getThisSemesterSubjects(courseModId: String): ApiResult<List<ApiManoCourseTimetableEntity>> {
-        return safeApiCall("get subject timetable for '$courseModId'") {
+    suspend fun getThisSemesterSubjects(courseModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
+        return safeNetCall("get subject timetable for '$courseModId'") {
             getSubjectTimetableUnsafe(it, courseModId)
         }
     }
@@ -240,7 +248,7 @@ object ManoApi {
     private suspend fun getSubjectTimetableUnsafe(
         rootOperationName: String,
         courseModId: String
-    ): ApiResult<List<ApiManoCourseTimetableEntity>> {
+    ): NetResult<List<ApiManoCourseTimetableEntity>> {
         val courseTimetablePageResponse =
             client.get("$baseUrl/thissemester/site/tab-timetable?MOD_ID=$courseModId")
 
@@ -264,16 +272,16 @@ object ManoApi {
             )
         }.toList()
 
-        return ApiResult.fromDeserializedModel(subjects, operation = rootOperationName)
+        return NetResult.fromDeserializedModel(subjects, operation = rootOperationName)
     }
 
-    suspend fun getEmployees(): ApiResult<List<ApiManoEmployeeBasicEntity>> {
-        return safeApiCall("get employees") {
+    suspend fun getEmployees(): NetResult<List<ApiManoEmployeeBasicEntity>> {
+        return safeNetCall("get employees") {
             getEmployeesUnsafe(it)
         }
     }
 
-    private suspend fun getEmployeesUnsafe(rootOperationName: String): ApiResult<List<ApiManoEmployeeBasicEntity>> {
+    private suspend fun getEmployeesUnsafe(rootOperationName: String): NetResult<List<ApiManoEmployeeBasicEntity>> {
         val contactsPageResponse =
             client.get("$baseUrl/contacts/contacts")
 
@@ -288,7 +296,7 @@ object ManoApi {
         )
 
         if (outerMatch == null) {
-            return ApiResult<List<ApiManoEmployeeBasicEntity>>(
+            return NetResult<List<ApiManoEmployeeBasicEntity>>(
                 statusCode = HttpStatusCode.OK,
                 bodyRaw = contactsPageContent,
                 bodyTyped = null,
@@ -307,11 +315,11 @@ object ManoApi {
             )
         }.toList()
 
-        return ApiResult.fromDeserializedModel(employees, operation = rootOperationName)
+        return NetResult.fromDeserializedModel(employees, operation = rootOperationName)
     }
 
-    suspend fun getEmployeeDetails(employeeId: String): ApiResult<ApiManoEmployeeDetails> {
-        return safeApiCall("get employee details for '$employeeId'") {
+    suspend fun getEmployeeDetails(employeeId: String): NetResult<ApiManoEmployeeDetails> {
+        return safeNetCall("get employee details for '$employeeId'") {
             getEmployeeDetailsUnsafe(it, employeeId)
         }
     }
@@ -319,7 +327,7 @@ object ManoApi {
     private suspend fun getEmployeeDetailsUnsafe(
         rootOperationName: String,
         employeeId: String
-    ): ApiResult<ApiManoEmployeeDetails> {
+    ): NetResult<ApiManoEmployeeDetails> {
         val detailsPageResponse =
             client.get("$baseUrl/contacts/contacts/employee-data?id=$employeeId")
 
@@ -327,7 +335,7 @@ object ManoApi {
             "$rootOperationName + main request"
         )?.let { return it }
 
-        val detailsPageContent = detailsPageResponse.bodyAsText().replace("\n", "")
+        val detailsPageContent = detailsPageResponse.bodyAsText().singleLine()
 
         val phones = employeePhoneExtractionRegex.findAll(detailsPageContent).map { result ->
             result.groupValues[1].trim()
@@ -367,7 +375,7 @@ object ManoApi {
 
         val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
 
-        return ApiResult.fromDeserializedModel(
+        return NetResult.fromDeserializedModel(
             ApiManoEmployeeDetails(
                 phones = phones,
                 emails = emails,

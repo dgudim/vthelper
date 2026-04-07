@@ -6,16 +6,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,8 +40,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.LocalDb
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
+import noorg.kloud.vthelper.ui.components.ConfirmationDialog
 import noorg.kloud.vthelper.ui.components.ExpandableCard
 import noorg.kloud.vthelper.ui.components.InfoField
+import noorg.kloud.vthelper.ui.components.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
@@ -51,6 +52,7 @@ import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.account_circle_24px
 import vthelper.composeapp.generated.resources.alternate_email_24px
 import vthelper.composeapp.generated.resources.id_card_24px
+import vthelper.composeapp.generated.resources.logout_24px
 import vthelper.composeapp.generated.resources.moodle
 import vthelper.composeapp.generated.resources.school_24px
 import vthelper.composeapp.generated.resources.vt_48px
@@ -58,19 +60,9 @@ import vthelper.composeapp.generated.resources.vt_48px
 @Composable
 fun AccountScreen(
     globalScope: CoroutineScope,
+    loggedInUserViewModel: LoggedInUserViewModel,
     showSnack: (String) -> Unit = {}
 ) {
-
-    val db = LocalDb.current!!
-    val loggedInUserViewModel =
-        remember {
-            LoggedInUserViewModel(
-                LoggedInUserProvider(
-                    db.loggedInUserDao()
-                )
-            )
-        }
-
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
 
     val localMfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
@@ -121,6 +113,19 @@ fun AccountScreen(
         }
     }
 
+    val logoutDialogShown = remember { mutableStateOf(false) }
+
+    if (logoutDialogShown.value) ConfirmationDialog(
+        "Confirm logout",
+        "Do you really want to log out?",
+        Res.drawable.logout_24px,
+        logoutDialogShown
+    ) {
+        globalScope.launch {
+            loggedInUserViewModel.logout()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,15 +140,14 @@ fun AccountScreen(
                 contentScale = ContentScale.Inside,
                 modifier = Modifier
                     .height(102.dp)
-                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10))
             )
         } else {
             Icon(
                 painter = painterResource(Res.drawable.account_circle_24px),
                 contentDescription = null,
-                modifier = Modifier
-                    .height(102.dp)
-                    .fillMaxWidth()
+                modifier = Modifier.height(102.dp)
+
             )
         }
         Text(
@@ -200,15 +204,15 @@ fun AccountScreen(
                     label = { Text("Enter mfa code") },
                     isError = mfaInvalid,
                 )
-                Button(
+                LoaderTextButton(
                     onClick = {
                         if (isLoading) {
-                            return@Button
+                            return@LoaderTextButton
                         }
                         isLoading = true
                         globalScope.launch {
                             if (userState.isSessionValid) {
-                                loggedInUserViewModel.logout()
+                                logoutDialogShown.value = true;
                             } else {
                                 loggedInUserViewModel.login(
                                     localStudentId, localPassword, localMfaCode,
@@ -223,19 +227,11 @@ fun AccountScreen(
                     modifier = Modifier
                         .padding(4.dp, 10.dp, 4.dp, 4.dp)
                         .width(160.dp),
+                    isLoading = isLoading,
                     enabled = !(userLoginInvalid || passwordInvalid || mfaInvalid || isLoading) || userState.isSessionValid,
-                    colors = loginButtonColors
-                ) {
-                    Text(
-                        modifier = Modifier.padding(start = 12.dp, end = 12.dp),
-                        text = if (userState.isSessionValid) "Logout" else "Login"
-                    )
-                    if (isLoading) CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                    colors = loginButtonColors,
+                    text = if (userState.isSessionValid) "Logout" else "Login"
+                )
             }
         }
         Column {

@@ -79,5 +79,6 @@ fun Throwable.fullMessage(): String {
         }
         currentThrowable = currentThrowable.cause
     }
-    return message;
+    // Some messages get replaced with this, remove
+    return message.replace("(Kotlin reflection is not available)", "")
 }

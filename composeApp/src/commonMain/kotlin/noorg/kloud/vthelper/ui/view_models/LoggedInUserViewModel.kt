@@ -1,5 +1,6 @@
 package noorg.kloud.vthelper.ui.view_models
 
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 // https://developer.android.com/develop/ui/compose/quick-guides/content/validate-input
 // https://www.reddit.com/r/androiddev/comments/1dkyzbg/confused_about_when_to_use_mutablestateflow_vs/
 
+@Stable
 class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvider) : ViewModel() {
     val userState = loggedInUserProvider
         .getCurrentUserInfo()

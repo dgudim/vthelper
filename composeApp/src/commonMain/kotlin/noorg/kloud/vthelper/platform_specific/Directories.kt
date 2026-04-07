@@ -2,12 +2,14 @@ package noorg.kloud.vthelper.platform_specific
 
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.files.SystemTemporaryDirectory
 
 private const val APP_ID = "vthelper"
 
 fun String.toPath(): Path = Path(this)
 
-operator fun Path?.div(child: String): Path? = if (this != null) Path(this, child) else null
+// https://discuss.kotlinlang.org/t/keep-nullability-of-function-parameter-type-on-return-type/15233/4
+operator fun <T: Path?> T.div(child: String): T = (if (this != null) Path(this, child) else null) as T
 
 internal expect fun dataDirectory(appId: String): Path
 
@@ -24,3 +26,5 @@ fun appCacheDirectory(createDir: Boolean = true): Path = cacheDirectory(APP_ID).
         SystemFileSystem.createDirectories(it)
     }
 }
+
+fun appTempDirectory(): Path = SystemTemporaryDirectory
