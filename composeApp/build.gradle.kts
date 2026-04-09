@@ -81,7 +81,8 @@ kotlin {
             // Storage
             implementation(libs.androidx.room.runtime)
             implementation(libs.sqlite.bundled)
-            implementation(libs.kotlinx.io)
+            implementation(libs.kotlinx.io.core)
+            implementation(libs.kotlinx.io.bytestring)
 
             // Network
             implementation(libs.bundles.ktor)
@@ -133,6 +134,7 @@ android {
 dependencies {
     debugImplementation(libs.compose.uiTooling)
     add("kspAndroid", libs.androidx.room.compiler)
+    add("kspJvm", libs.androidx.room.compiler)
 }
 
 compose.desktop {

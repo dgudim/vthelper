@@ -17,6 +17,7 @@ val LocalDb = staticCompositionLocalOf<AppDatabase?> { null }
 fun App() {
 
     val dbInstance = remember { getRoomDatabase("main.db") }
+    val appScope = rememberCoroutineScope()
 
     // Init cookies from background
     rememberCoroutineScope().launch {
@@ -29,7 +30,7 @@ fun App() {
         LocalDb provides dbInstance
     ) {
         VTTheme {
-            Router()
+            Router(appScope)
         }
     }
 }

@@ -11,6 +11,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import io.ktor.http.parameters
 import io.ktor.util.appendAll
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
@@ -33,6 +35,9 @@ object VTBaseApi {
     val client = HttpClient(getHttpClientEngine()) {
         install(HttpCookies) {
             storage = cookieStorage
+        }
+        engine {
+            dispatcher = Dispatchers.IO
         }
         followRedirects = false
     }
@@ -80,12 +85,17 @@ object VTBaseApi {
         mfaCode: String,
         operation: String
     ): NetResult<String> {
-        return safeNetCall(operation) {
-            loginIfNeededUnsafe(serviceBaseUrl, studentId, password, mfaCode)
+        return safeRetry(operation, 3) { operation, _ ->
+            loginIfNeededUnsafe(operation, serviceBaseUrl, studentId, password, mfaCode)
         }
     }
 
+    fun String.isSamlIntermediateForm(): Boolean {
+        return contains("Working...")
+    }
+
     private suspend fun loginIfNeededUnsafe(
+        rootOperation: String,
         serviceBaseUrl: Url,
         studentId: String,
         password: String,
@@ -108,14 +118,14 @@ object VTBaseApi {
             return initialResponse.toApiResult(
                 context = "Already logged in",
                 isSuccess = true,
-                operation = "initial request"
+                operation = "$rootOperation + initial request"
             )
         }
 
         // 303 or 302. We should get a redirection if it's not 200
         initialResponse.expectCode<String>(
             expectedCodes = listOf(HttpStatusCode.SeeOther, HttpStatusCode.Found),
-            operation = "initial request"
+            operation = "$rootOperation + initial request"
         )?.let { return it }
 
         var redirectLocation = Url(initialResponse.headers[HttpHeaders.Location] ?: "")
@@ -129,9 +139,8 @@ object VTBaseApi {
             return initialResponse.toApiResult(
                 context = "Already logged in, same-site redirection",
                 isSuccess = true,
-                operation = "initial request"
+                operation = "$rootOperation + initial redirect"
             )
-
         }
 
         // Load the redirected page to see what we got
@@ -141,20 +150,18 @@ object VTBaseApi {
         }
 
         initialRedirectedResponse.expect200<String>(
-            "load initial redirected page"
+            "$rootOperation + load initial redirected page"
         )?.let { return it }
 
         val initialRedirectResponseContent = initialRedirectedResponse.bodyAsText()
-        // Intermediate hidden form for SAML request, not relogin required, only local token/session refresh
-        if (initialRedirectResponseContent.contains("Working...")) {
-            return refreshLocalLogin(
-                serviceBaseUrl,
-                initialRedirectResponseContent,
-                currentReferrer
-            )
-        } else {
-            currentReferrer = redirectLocation.toString()
-        }
+        // Intermediate hidden form for SAML request, no relogin required, only local token/session refresh
+        refreshSamlForPageIfNeededUnsafe(
+            "$rootOperation + refresh saml (immediate)",
+            serviceBaseUrl,
+            initialRedirectResponseContent
+        )?.let { return it }
+
+        currentReferrer = redirectLocation.toString()
 
         println("Posting login details")
 
@@ -176,7 +183,7 @@ object VTBaseApi {
         loginResponse.expectCode<String>(
             context = "Wrong username or password",
             expectedCodes = listOf(HttpStatusCode.Found),
-            operation = "username login"
+            operation = "$rootOperation + username login"
         )?.let { return it }
 
         // Same url, but different content, the page contains context key for MFA
@@ -191,7 +198,7 @@ object VTBaseApi {
         }
 
         initialMfaPageResponse.expect200<String>(
-            "get mfa page after login"
+            "$rootOperation + get mfa page after login"
         )?.let { return it }
 
         var mfaContext =
@@ -218,7 +225,7 @@ object VTBaseApi {
         }
 
         mfaContextPostResponse.expect200<String>(
-            "post initial mfa context"
+            "$rootOperation + post initial mfa context"
         )?.let { return it }
 
         // Update mfa context
@@ -251,7 +258,7 @@ object VTBaseApi {
         mfaCodeResponse.expectCode<String>(
             context = "Wrong mfa code",
             expectedCodes = listOf(HttpStatusCode.Found),
-            operation = "mfa login"
+            operation = "$rootOperation + mfa login"
         )?.let {
             // NOTE: Currently the case when the use inputs an incorrect mfa code
             // and then inputs the correct one is not handled (we will get mfa form directly)
@@ -273,19 +280,43 @@ object VTBaseApi {
 
         // We must get a page with a hidden form for saml
         finalSamlLoadRequest.expect200<String>(
-            "load final saml hidden form"
+            "$rootOperation + load final saml hidden form"
         )?.let { return it }
 
-        return refreshLocalLogin(serviceBaseUrl, finalSamlLoadRequest.bodyAsText(), currentReferrer)
+        return refreshSamlUnsafe(
+            "$rootOperation + refresh saml (the end)",
+            serviceBaseUrl,
+            finalSamlLoadRequest.bodyAsText(),
+            currentReferrer
+        )
+    }
+
+    suspend fun refreshSamlForPageIfNeededUnsafe(
+        parentOperation: String,
+        baseUrl: Url,
+        bodyText: String?
+    ): NetResult<String>? {
+        if (bodyText?.isSamlIntermediateForm() == true) {
+            val result = refreshSamlUnsafe(
+                parentOperation,
+                baseUrl,
+                bodyText,
+                baseUrl.toString()
+            )
+            if (result.isFailure) {
+                return result
+            }
+        }
+        return null
     }
 
     // This extracts and posts saml response to the corresponding mano or moodle endpoint and refreshes session cookies
-    suspend fun refreshLocalLogin(
+    suspend fun refreshSamlUnsafe(
+        parentOperation: String,
         serviceBaseUrl: Url,
         pageContent: String,
         currentReferrer: String
     ): NetResult<String> {
-        // println(pageContent)
         val samlResponse = samlResponseRegex.findFirstGroup(pageContent)
         val samlUrl = samlUrlRegex.findFirstGroup(pageContent)
             ?.replace(":443/", "/") // Remove explicit https port
@@ -297,7 +328,7 @@ object VTBaseApi {
                 bodyTyped = null,
                 context = "Saml response or url is null",
                 isSuccess = false,
-                operation = "extract saml response"
+                operation = "$parentOperation + extract saml response"
             ).logIt()
         }
 
@@ -316,9 +347,8 @@ object VTBaseApi {
 
         // We must get a redirect to the actual service page
         serviceSamlAuthResponse.expectCode<String>(
-            context = "Unexpected response code (expected 303)",
             expectedCodes = listOf(HttpStatusCode.SeeOther),
-            operation = "post sam auth data"
+            operation = "$parentOperation + post sam auth data"
         )?.let { return it }
 
         val redirectedServiceBaseUrl = serviceSamlAuthResponse.headers[HttpHeaders.Location] ?: ""
@@ -339,12 +369,9 @@ object VTBaseApi {
             operation = finalOp
         )?.let { return it }
 
-        println("We are golden!")
-
         return finalServiceResponse.toApiResult(
-            context = "Logged in successfully",
             isSuccess = true,
-            operation = finalOp
+            operation = parentOperation
         )
     }
 }

@@ -13,11 +13,18 @@ import com.kizitonwose.calendar.compose.CalendarItemInfo
 import com.kizitonwose.calendar.compose.CalendarLayoutInfo
 import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.core.CalendarMonth
+import io.ktor.util.cio.use
+import io.ktor.utils.io.asByteWriteChannel
+import io.ktor.utils.io.writeByteArray
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.io.bytestring.ByteString
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlin.io.encoding.Base64
 
 val YearMonth.next: YearMonth get() = this.plus(1, DateTimeUnit.MONTH)
 val YearMonth.previous: YearMonth get() = this.minus(1, DateTimeUnit.MONTH)
@@ -81,4 +88,17 @@ fun Throwable.fullMessage(): String {
     }
     // Some messages get replaced with this, remove
     return message.replace("(Kotlin reflection is not available)", "")
+}
+
+suspend fun String.decodeBase64ToFile(targetPath: Path) {
+    try {
+        val sourceString = this
+        SystemFileSystem.sink(targetPath, false)
+            .asByteWriteChannel()
+            .use {
+                writeByteArray(Base64.decode(sourceString))
+            }
+    } catch (e: Exception) {
+        println(e)
+    }
 }

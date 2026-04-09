@@ -14,7 +14,11 @@ import io.ktor.http.Url
 import io.ktor.http.contentType
 import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.serialization.json.Json
+import noorg.kloud.vthelper.api.VTBaseApi.isSamlIntermediateForm
+import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
@@ -47,6 +51,9 @@ object MoodleApi {
         install(HttpCookies) {
             storage = VTBaseApi.cookieStorage
         }
+        engine {
+            dispatcher = Dispatchers.IO
+        }
     }
 
     suspend fun loginIfNeeded(
@@ -59,12 +66,22 @@ object MoodleApi {
 
     suspend fun updateSessionInfo(
     ): NetResult<String> {
-        return safeNetCall("update moodle session (user request)") {
-            updateSessionInfoUnsafe(it)
+        return safeRetry("update moodle session (user request)", 3) { op, previousResult ->
+            updateSessionUnsafe(previousResult?.bodyRaw, op)
         }
     }
 
-    private suspend fun updateSessionInfoUnsafe(rootOperationName: String): NetResult<String> {
+    private suspend fun updateSessionUnsafe(
+        prevCallBody: String?,
+        rootOperationName: String
+    ): NetResult<String> {
+
+        refreshSamlForPageIfNeededUnsafe(
+            "$rootOperationName + refresh saml",
+            baseUrl,
+            prevCallBody
+        )?.let { return it }
+
         val pageResponse = client.get(baseUrl)
 
         pageResponse.expect200<String>(
@@ -98,17 +115,20 @@ object MoodleApi {
 
     suspend fun getCalendarUrl(
     ): NetResult<String> {
-        return safeRetryOnDirectApiError(
+        return safeRetryWithPrecall(
             "get moodle calendar url", "update session",
             mainBlock = {
                 getCalendarUrlUnsafe(it)
             },
-            beforeRetryBlock = {
-                updateSessionInfoUnsafe(it)
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionUnsafe(mainCallResult.bodyRaw, op)
             })
     }
 
-    suspend fun getCalendarUrlUnsafe(rootOperationName: String): NetResult<String> {
+    private suspend fun getCalendarUrlUnsafe(rootOperationName: String): NetResult<String> {
+
+        require(sessionKey.isNotEmpty()) { "Session key is empty" }
+
         val calendarUrlPageResponse = client.submitForm(
             url = "$baseUrl/calendar/export.php",
             formParameters = parameters {
@@ -143,26 +163,20 @@ object MoodleApi {
     }
 
     suspend fun getCourses(): NetResult<ApiMoodleListCoursesResponse> {
-        return safeRetryOnDirectApiError(
-            "get moodle calendar url", "update session",
+        return safeRetryWithPrecall(
+            "get moodle courses", "update session",
             mainBlock = {
                 getCoursesUnsafe(it)
             },
-            beforeRetryBlock = {
-                updateSessionInfoUnsafe(it)
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionUnsafe(mainCallResult.bodyRaw, op)
             })
     }
 
-    suspend fun getCoursesUnsafe(rootOperationName: String): NetResult<ApiMoodleListCoursesResponse> {
+    private suspend fun getCoursesUnsafe(rootOperationName: String): NetResult<ApiMoodleListCoursesResponse> {
         val methodName = "core_course_get_enrolled_courses_by_timeline_classification"
 
-        if (sessionKey.isEmpty()) {
-            updateSessionInfoUnsafe("$rootOperationName + get session key").let {
-                if (!it.isSuccess) {
-                    return NetResult.fromOtherResult(it)
-                }
-            }
-        }
+        require(sessionKey.isNotEmpty()) { "Session key is empty" }
 
         val coursesResponse =
             client.post("$baseUrl/lib/ajax/service.php?sesskey=$sessionKey&info=$methodName") {

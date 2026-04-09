@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +38,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
+import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
 import noorg.kloud.vthelper.ui.screens.AccountScreen
 import noorg.kloud.vthelper.ui.screens.CalendarScreen
 import noorg.kloud.vthelper.ui.screens.CoursesScreen
@@ -47,6 +46,7 @@ import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -74,12 +74,12 @@ sealed class NavDrawerItem(var route: String, var icon: DrawableResource, var ti
 }
 
 @Composable
-fun TopBar(scope: CoroutineScope, drawerState: DrawerState) {
+fun TopBar(appScope: CoroutineScope, drawerState: DrawerState) {
     TopAppBar(
         title = { Text("VTHelper") },
         navigationIcon = {
             IconButton(onClick = {
-                scope.launch {
+                appScope.launch {
                     if (drawerState.isClosed) {
                         drawerState.open()
                     } else {
@@ -116,13 +116,14 @@ fun DrawerItem(item: NavDrawerItem, selected: Boolean, onItemClick: (NavDrawerIt
 fun Navigation(
     navController: NavHostController,
     innerPadding: PaddingValues,
-    gloablCoroutineScope: CoroutineScope,
     showSnack: (String) -> Unit = {},
 ) {
 
     val db = LocalDb.current!!
     val loggedInUserViewModel =
         remember { LoggedInUserViewModel(LoggedInUserProvider(db.loggedInUserDao())) }
+    val moodleCoursesViewModel =
+        remember { MoodleCoursesViewModel(MoodleCoursesProvider(db.moodleCourseDao())) }
 
     NavHost(
         navController = navController,
@@ -135,7 +136,7 @@ fun Navigation(
             DashboardScreen(showSnack)
         }
         composable(NavDrawerItem.Account.route) {
-            AccountScreen(gloablCoroutineScope, loggedInUserViewModel, showSnack)
+            AccountScreen(loggedInUserViewModel, showSnack)
         }
         composable(NavDrawerItem.Results.route) {
             ResultsScreen(showSnack)
@@ -144,7 +145,7 @@ fun Navigation(
             CalendarScreen(showSnack)
         }
         composable(NavDrawerItem.Courses.route) {
-            CoursesScreen(showSnack)
+            CoursesScreen(loggedInUserViewModel, moodleCoursesViewModel, showSnack)
         }
         composable(NavDrawerItem.Settings.route) {
             SettingsScreen(showSnack)
@@ -154,7 +155,7 @@ fun Navigation(
 
 @Composable
 fun NavigationDrawer(
-    scope: CoroutineScope,
+    appScope: CoroutineScope,
     drawerState: DrawerState,
     navController: NavHostController,
     snackbarHostState: SnackbarHostState
@@ -224,7 +225,7 @@ fun NavigationDrawer(
                             // User clicks on several items or some other shenenigans
                         }
 
-                        scope.launch {
+                        appScope.launch {
                             drawerState.close()
                         }
                     })
@@ -234,15 +235,15 @@ fun NavigationDrawer(
     ) {
         Scaffold(
             // https://developer.android.com/develop/ui/compose/components/app-bars
-            topBar = { TopBar(scope, drawerState) },
+            topBar = { TopBar(appScope, drawerState) },
             snackbarHost = {
                 SnackbarHost(hostState = snackbarHostState)
             }
         ) { innerPadding ->
             Navigation(
-                navController, innerPadding, scope,
+                navController, innerPadding,
                 showSnack = { message ->
-                    scope.launch {
+                    appScope.launch {
                         snackbarHostState.showSnackbar(
                             message = message,
                             duration = SnackbarDuration.Long
@@ -255,18 +256,16 @@ fun NavigationDrawer(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview
-fun Router() {
+fun Router(appScope: CoroutineScope) {
 
     // https://stackoverflow.com/questions/65368007/what-does-jetpack-compose-remember-actually-do-how-does-it-work-under-the-hood
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
 
     NavigationDrawer(
-        scope = scope,
+        appScope = appScope,
         drawerState = drawerState,
         navController = navController,
         snackbarHostState = snackbarHostState

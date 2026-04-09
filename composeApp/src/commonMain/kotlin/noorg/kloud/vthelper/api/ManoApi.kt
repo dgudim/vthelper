@@ -6,8 +6,14 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.runBlocking
 import kotlinx.io.Buffer
 import kotlinx.io.files.SystemFileSystem
+import noorg.kloud.vthelper.api.MoodleApi.getCoursesUnsafe
+import noorg.kloud.vthelper.api.MoodleApi.updateSessionUnsafe
+import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
@@ -124,6 +130,9 @@ object ManoApi {
         install(HttpCookies) {
             storage = VTBaseApi.cookieStorage
         }
+        engine {
+            dispatcher = Dispatchers.IO
+        }
     }
 
     private fun String.cleanHttpResponse(): String {
@@ -151,10 +160,28 @@ object ManoApi {
         return ApiManoTimetableEntityType.PRACTICE
     }
 
+    suspend fun updateSessionIfNeeded(
+        rootOperationName: String,
+        prevCallBody: String?
+    ): NetResult<String> {
+        refreshSamlForPageIfNeededUnsafe(
+            "$rootOperationName + refresh saml",
+            MoodleApi.baseUrl,
+            prevCallBody
+        )?.let { return it }
+
+        return NetResult.fromDeserializedModel("OK", rootOperationName)
+    }
+
     suspend fun getStudentInfo(): NetResult<ApiManoStudentInfo> {
-        return safeNetCall("get student info") {
-            getStudentInfoUnsafe(it)
-        }
+        return safeRetryWithPrecall(
+            "get student info", "update session",
+            mainBlock = {
+                getStudentInfoUnsafe(it)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
     }
 
     private suspend fun getStudentInfoUnsafe(rootOperationName: String): NetResult<ApiManoStudentInfo> {
@@ -206,9 +233,14 @@ object ManoApi {
     }
 
     suspend fun getThisSemesterSubjects(): NetResult<List<ApiManoCourseEntity>> {
-        return safeNetCall("get subjects for current semester") {
-            getThisSemesterSubjectsUnsafe(it)
-        }
+        return safeRetryWithPrecall(
+            "get subjects for current semester", "update session",
+            mainBlock = {
+                getThisSemesterSubjectsUnsafe(it)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
     }
 
     private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<List<ApiManoCourseEntity>> {
@@ -240,9 +272,14 @@ object ManoApi {
     }
 
     suspend fun getThisSemesterSubjects(courseModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
-        return safeNetCall("get subject timetable for '$courseModId'") {
-            getSubjectTimetableUnsafe(it, courseModId)
-        }
+        return safeRetryWithPrecall(
+            "get subject timetable for '$courseModId'", "update session",
+            mainBlock = {
+                getSubjectTimetableUnsafe(it, courseModId)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
     }
 
     private suspend fun getSubjectTimetableUnsafe(
@@ -276,9 +313,14 @@ object ManoApi {
     }
 
     suspend fun getEmployees(): NetResult<List<ApiManoEmployeeBasicEntity>> {
-        return safeNetCall("get employees") {
-            getEmployeesUnsafe(it)
-        }
+        return safeRetryWithPrecall(
+            "get employees", "update session",
+            mainBlock = {
+                getEmployeesUnsafe(it)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
     }
 
     private suspend fun getEmployeesUnsafe(rootOperationName: String): NetResult<List<ApiManoEmployeeBasicEntity>> {
@@ -319,9 +361,14 @@ object ManoApi {
     }
 
     suspend fun getEmployeeDetails(employeeId: String): NetResult<ApiManoEmployeeDetails> {
-        return safeNetCall("get employee details for '$employeeId'") {
-            getEmployeeDetailsUnsafe(it, employeeId)
-        }
+        return safeRetryWithPrecall(
+            "get employee details for '$employeeId'", "update session",
+            mainBlock = {
+                getEmployeeDetailsUnsafe(it, employeeId)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
     }
 
     private suspend fun getEmployeeDetailsUnsafe(

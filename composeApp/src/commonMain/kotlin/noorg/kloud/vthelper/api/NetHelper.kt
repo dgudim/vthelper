@@ -18,20 +18,24 @@ inline fun <T> safeNetCall(operation: String, block: (op: String) -> NetResult<T
 }
 
 /** Retry if the error was marked directly in the model somehow, see 'successUpdater' in [NetResult] */
-inline fun <T, R> safeRetryOnDirectApiError(
+inline fun <T, R> safeRetryWithPrecall(
     operation: String,
     retryOperation: String,
     mainBlock: (op: String) -> NetResult<T>,
-    beforeRetryBlock: (op: String) -> NetResult<R>
+    beforeRetryBlock: (op: String, mainBlockResult: NetResult<T>) -> NetResult<R>
 ): NetResult<T> {
     val result = safeNetCall(operation) { mainBlock(it) }
-    // Model was deserialized successfully but the result is still failed -> Error in the model
-    if (!result.isSuccess && result.bodyTyped != null) {
-        val retryResult =
-            safeNetCall("$retryOperation (retry before '$operation')") { beforeRetryBlock(it) }
-        if (!retryResult.isSuccess) {
+    if (!result.isSuccess) {
+        val beforeRetryResult =
+            safeNetCall("$retryOperation (retry before '$operation')") {
+                beforeRetryBlock(
+                    it,
+                    result
+                )
+            }
+        if (!beforeRetryResult.isSuccess) {
             // 'Before retry' failed
-            return NetResult.fromOtherResult(retryResult)
+            return NetResult.fromOtherResult(beforeRetryResult)
         }
         // Success of fail after second call
         return safeNetCall("$operation (2nd attempt)") { mainBlock(it) }
@@ -40,12 +44,30 @@ inline fun <T, R> safeRetryOnDirectApiError(
     return result
 }
 
+inline fun <T> safeRetry(
+    operation: String,
+    nRetries: Int,
+    mainBlock: (op: String, previousResult: NetResult<T>?) -> NetResult<T>
+): NetResult<T> {
+    var prevResult: NetResult<T>? = null
+    for (i in 1..nRetries) {
+        prevResult = safeNetCall("$operation (attempt No $i)") { mainBlock(it, prevResult) }
+        if (prevResult.isSuccess) {
+            return prevResult
+        }
+    }
+    return prevResult!!
+}
+
 suspend fun downloadImage(target: Path, sourceUrl: Url): NetResult<String> {
     return safeNetCall("download $sourceUrl") {
         VTBaseApi.client
             .get(sourceUrl)
             .bodyAsChannel()
-            .copyAndClose(SystemFileSystem.sink(target, false).asByteWriteChannel())
+            .copyAndClose(
+                SystemFileSystem.sink(target, false)
+                    .asByteWriteChannel()
+            )
 
         NetResult.fromDeserializedModel("OK", it)
     }

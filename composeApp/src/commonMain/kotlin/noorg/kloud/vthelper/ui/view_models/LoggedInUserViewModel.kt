@@ -3,6 +3,7 @@ package noorg.kloud.vthelper.ui.view_models
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
 import kotlin.time.Duration.Companion.seconds
@@ -37,19 +39,23 @@ class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvid
     private var _password = MutableStateFlow("")
     val password = _password.asStateFlow()
 
-    suspend fun logout() {
-        loggedInUserProvider.logout()
+    fun logout(): Job {
+        return viewModelScope.launch {
+            loggedInUserProvider.logout()
+        }
     }
 
-    suspend fun login(
+    fun login(
         studentId: String,
         password: String,
         mfaCode: String,
         showSnack: (String) -> Unit
-    ) {
-        val result = loggedInUserProvider.login(studentId, password, mfaCode)
-        if (result.isFailure) {
-            showSnack(result.exceptionOrNull()?.message ?: "")
+    ): Job {
+        return viewModelScope.launch {
+            val result = loggedInUserProvider.login(studentId, password, mfaCode)
+            if (result.isFailure) {
+                showSnack(result.exceptionOrNull()?.message ?: "")
+            }
         }
     }
 

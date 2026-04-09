@@ -1,30 +1,44 @@
 package noorg.kloud.vthelper.data.data_providers
 
 import androidx.compose.ui.graphics.Color
-import androidx.room.ColumnInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.yield
+import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesResponse
 import noorg.kloud.vthelper.data.dbdaos.MoodleCourseDao
 import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedMoodleCourseEntity
-import kotlin.Long
+import noorg.kloud.vthelper.decodeBase64ToFile
+import noorg.kloud.vthelper.platform_specific.appDataDirectory
+import noorg.kloud.vthelper.platform_specific.div
 
 class MoodleCoursesProvider(private val moodleCourseDao: MoodleCourseDao) {
 
-    suspend fun insertCoursesFromApi(courses: ApiMoodleListCoursesResponse) {
+    val appDataDir = appDataDirectory()
+
+    suspend fun fetchCoursesFromApi(): Result<String> {
+        val coursesResponse = MoodleApi.getCourses()
+
+        if (coursesResponse.isFailure) {
+            return coursesResponse.toResult()
+        }
+
         moodleCourseDao.insertMany(
-            courses
+            coursesResponse.bodyTyped!!
                 .flatMap { apiCoursesResp -> apiCoursesResp.data.courses }
                 .map { course ->
+                    val coverImagePath = appDataDir / "moodle-${course.id}.img"
+                    course.courseImageBase64.decodeBase64ToFile(coverImagePath)
+
                     DBMoodleCourseEntity(
                         moodleId = course.id,
                         title = course.shortName,
                         description = course.summary,
-                        coverImagePath = "" // TODO: Save to FS
+                        coverImagePath = coverImagePath.toString()
                     )
                 })
+
+        return coursesResponse.toResult()
     }
 
     fun getAllCourses(): Flow<List<ProvidedMoodleCourseEntity>> {

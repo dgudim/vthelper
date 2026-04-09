@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.ui.components
+package noorg.kloud.vthelper.ui.components.common
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon

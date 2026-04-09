@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,12 +39,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import noorg.kloud.vthelper.LocalDb
-import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
-import noorg.kloud.vthelper.ui.components.ConfirmationDialog
-import noorg.kloud.vthelper.ui.components.ExpandableCard
-import noorg.kloud.vthelper.ui.components.InfoField
-import noorg.kloud.vthelper.ui.components.LoaderTextButton
+import noorg.kloud.vthelper.ui.components.common.ConfirmationDialog
+import noorg.kloud.vthelper.ui.components.common.ExpandableCard
+import noorg.kloud.vthelper.ui.components.common.InfoField
+import noorg.kloud.vthelper.ui.components.common.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
@@ -59,10 +58,11 @@ import vthelper.composeapp.generated.resources.vt_48px
 
 @Composable
 fun AccountScreen(
-    globalScope: CoroutineScope,
     loggedInUserViewModel: LoggedInUserViewModel,
     showSnack: (String) -> Unit = {}
 ) {
+    val localScope = rememberCoroutineScope()
+
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
 
     val localMfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
@@ -121,9 +121,7 @@ fun AccountScreen(
         Res.drawable.logout_24px,
         logoutDialogShown
     ) {
-        globalScope.launch {
-            loggedInUserViewModel.logout()
-        }
+        loggedInUserViewModel.logout()
     }
 
     Column(
@@ -209,18 +207,16 @@ fun AccountScreen(
                         if (isLoading) {
                             return@LoaderTextButton
                         }
-                        isLoading = true
-                        globalScope.launch {
-                            if (userState.isSessionValid) {
-                                logoutDialogShown.value = true;
-                            } else {
-                                loggedInUserViewModel.login(
-                                    localStudentId, localPassword, localMfaCode,
-                                    showSnack
-                                )
+                        if (userState.isSessionValid) {
+                            logoutDialogShown.value = true
+                        } else {
+                            isLoading = true
+                            loggedInUserViewModel.login(
+                                localStudentId, localPassword, localMfaCode,
+                                showSnack
+                            ).invokeOnCompletion {
+                                isLoading = false
                             }
-                        }.invokeOnCompletion {
-                            isLoading = false
                         }
                     },
                     shape = MaterialTheme.shapes.medium,
