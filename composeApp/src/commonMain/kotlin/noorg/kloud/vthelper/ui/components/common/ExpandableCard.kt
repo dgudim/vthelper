@@ -77,11 +77,9 @@ fun ExpandableCard(
     collapsedContent: @Composable ColumnScope.() -> Unit,
     expandedContent: @Composable ColumnScope.() -> Unit,
 ) {
-
     // Collapse or uncollapse until first user interaction
     val internalExpandedState = remember { mutableStateOf<Boolean?>(null) }
 
-    var internalExpandedValue by internalExpandedState
     val actualExpandedValue by remember(shouldBeExpandedParent) {
         derivedStateOf {
             internalExpandedState.value ?: shouldBeExpandedParent

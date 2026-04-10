@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +19,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,11 +41,13 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.common.ConfirmationDialog
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.InfoField
 import noorg.kloud.vthelper.ui.components.common.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import org.jetbrains.compose.resources.painterResource
@@ -59,10 +63,8 @@ import vthelper.composeapp.generated.resources.vt_48px
 @Composable
 fun AccountScreen(
     loggedInUserViewModel: LoggedInUserViewModel,
-    showSnack: (String) -> Unit = {}
+    showSnack: SnackbarFun
 ) {
-    val localScope = rememberCoroutineScope()
-
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
 
     val localMfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
@@ -121,7 +123,7 @@ fun AccountScreen(
         Res.drawable.logout_24px,
         logoutDialogShown
     ) {
-        loggedInUserViewModel.logout()
+        loggedInUserViewModel.logout(showSnack)
     }
 
     Column(
@@ -144,8 +146,7 @@ fun AccountScreen(
             Icon(
                 painter = painterResource(Res.drawable.account_circle_24px),
                 contentDescription = null,
-                modifier = Modifier.height(102.dp)
-
+                modifier = Modifier.size(102.dp)
             )
         }
         Text(

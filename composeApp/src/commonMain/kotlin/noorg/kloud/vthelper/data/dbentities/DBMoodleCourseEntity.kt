@@ -16,6 +16,9 @@ data class DBMoodleCourseEntity(
     @ColumnInfo(name = "description")
     val description: String,
 
+    @ColumnInfo(name = "view_url")
+    val viewUrl: String,
+
     @ColumnInfo(name = "cover_image_path")
     val coverImagePath: String
 )

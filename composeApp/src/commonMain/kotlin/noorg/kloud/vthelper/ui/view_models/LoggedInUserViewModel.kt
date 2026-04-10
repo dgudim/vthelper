@@ -1,5 +1,6 @@
 package noorg.kloud.vthelper.ui.view_models
 
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,8 +13,10 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Duration.Companion.seconds
 
 // https://developer.android.com/develop/ui/compose/quick-guides/content/validate-input
@@ -39,9 +42,10 @@ class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvid
     private var _password = MutableStateFlow("")
     val password = _password.asStateFlow()
 
-    fun logout(): Job {
+    fun logout(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
             loggedInUserProvider.logout()
+            showSnack("Logged out", SnackBarSeverityLevel.NEUTRAL, SnackbarDuration.Short)
         }
     }
 
@@ -49,13 +53,20 @@ class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvid
         studentId: String,
         password: String,
         mfaCode: String,
-        showSnack: (String) -> Unit
+        showSnack: SnackbarFun
     ): Job {
         return viewModelScope.launch {
-            val result = loggedInUserProvider.login(studentId, password, mfaCode)
-            if (result.isFailure) {
-                showSnack(result.exceptionOrNull()?.message ?: "")
-            }
+            loggedInUserProvider.login(studentId, password, mfaCode)
+                .onFailure {
+                    showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
+                }
+                .onSuccess {
+                    showSnack(
+                        "Logged in successfully",
+                        SnackBarSeverityLevel.SUCCESS,
+                        SnackbarDuration.Short
+                    )
+                }
         }
     }
 

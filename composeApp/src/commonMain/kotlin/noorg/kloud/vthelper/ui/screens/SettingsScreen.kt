@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import noorg.kloud.vthelper.SnackbarFun
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.components.settings.SettingsHeader
 import noorg.kloud.vthelper.ui.components.settings.SettingsIcon
 import noorg.kloud.vthelper.ui.components.settings.SettingsSwitch
@@ -22,7 +24,7 @@ import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.edit_24px
 
 @Composable
-fun SettingsScreen(showSnack: (String) -> Unit = {}) {
+fun SettingsScreen(showSnack: SnackbarFun) {
     Column(
         modifier = Modifier
             .fillMaxSize()

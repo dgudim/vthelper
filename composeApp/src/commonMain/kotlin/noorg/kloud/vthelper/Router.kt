@@ -39,6 +39,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
+import noorg.kloud.vthelper.ui.components.StatusSnackbar
 import noorg.kloud.vthelper.ui.screens.AccountScreen
 import noorg.kloud.vthelper.ui.screens.CalendarScreen
 import noorg.kloud.vthelper.ui.screens.CoursesScreen
@@ -116,7 +118,7 @@ fun DrawerItem(item: NavDrawerItem, selected: Boolean, onItemClick: (NavDrawerIt
 fun Navigation(
     navController: NavHostController,
     innerPadding: PaddingValues,
-    showSnack: (String) -> Unit = {},
+    showSnack: SnackbarFun,
 ) {
 
     val db = LocalDb.current!!
@@ -237,16 +239,19 @@ fun NavigationDrawer(
             // https://developer.android.com/develop/ui/compose/components/app-bars
             topBar = { TopBar(appScope, drawerState) },
             snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
+                SnackbarHost(hostState = snackbarHostState) {
+                    StatusSnackbar(it)
+                }
             }
         ) { innerPadding ->
             Navigation(
                 navController, innerPadding,
-                showSnack = { message ->
+                showSnack = { message, level, duration ->
                     appScope.launch {
                         snackbarHostState.showSnackbar(
                             message = message,
-                            duration = SnackbarDuration.Long
+                            actionLabel = level.name,
+                            duration = duration
                         )
                     }
                 })

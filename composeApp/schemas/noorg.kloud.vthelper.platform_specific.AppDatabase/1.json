@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "7312037a0da16366bc66b9b775cd123b",
+    "identityHash": "e9b541f7e27d4be35ae68f45f79bf53c",
     "entities": [
       {
         "tableName": "moodle_courses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`moodle_id` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `cover_image_path` TEXT NOT NULL, PRIMARY KEY(`moodle_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`moodle_id` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `view_url` TEXT NOT NULL, `cover_image_path` TEXT NOT NULL, PRIMARY KEY(`moodle_id`))",
         "fields": [
           {
             "fieldPath": "moodleId",
@@ -23,6 +23,12 @@
           {
             "fieldPath": "description",
             "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "viewUrl",
+            "columnName": "view_url",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -291,7 +297,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7312037a0da16366bc66b9b775cd123b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e9b541f7e27d4be35ae68f45f79bf53c')"
     ]
   }
 }

@@ -10,5 +10,7 @@ data class ProvidedMoodleCourseEntity (
 
     val color: Color,
 
+    val viewUrl: String,
+
     val coverImagePath: String
 )

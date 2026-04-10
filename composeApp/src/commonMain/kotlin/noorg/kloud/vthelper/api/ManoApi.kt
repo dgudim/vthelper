@@ -8,11 +8,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.runBlocking
-import kotlinx.io.Buffer
-import kotlinx.io.files.SystemFileSystem
-import noorg.kloud.vthelper.api.MoodleApi.getCoursesUnsafe
-import noorg.kloud.vthelper.api.MoodleApi.updateSessionUnsafe
 import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
@@ -27,8 +22,6 @@ import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
 import noorg.kloud.vthelper.findFirstGroup
-import noorg.kloud.vthelper.platform_specific.appDataDirectory
-import noorg.kloud.vthelper.platform_specific.div
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import kotlin.time.Duration
 

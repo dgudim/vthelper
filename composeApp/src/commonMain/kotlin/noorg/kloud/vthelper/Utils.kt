@@ -1,6 +1,7 @@
 package noorg.kloud.vthelper
 
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,7 +25,11 @@ import kotlinx.datetime.plus
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.io.encoding.Base64
+import kotlin.random.Random
+
+typealias SnackbarFun = (String, SnackBarSeverityLevel, SnackbarDuration) -> Unit
 
 val YearMonth.next: YearMonth get() = this.plus(1, DateTimeUnit.MONTH)
 val YearMonth.previous: YearMonth get() = this.minus(1, DateTimeUnit.MONTH)
@@ -70,6 +75,25 @@ fun Color.setAlpha(newAlpha: Float): Color {
     )
 }
 
+fun getHashedColor(num: Long): Color {
+    val randomGenerator = Random(num)
+    val resolution = 1024
+    return Color(
+        red = randomGenerator.nextInt(0, resolution * 255) / resolution,
+        green = randomGenerator.nextInt(0, resolution * 255) / resolution,
+        blue = randomGenerator.nextInt(0, resolution * 255) / resolution,
+        alpha = 1
+    )
+}
+
+fun Color.mixWith(other: Color, ratio: Float): Color {
+    return Color(
+        red = red * (1 - ratio) + other.red * ratio,
+        green = green * (1 - ratio) + other.green * ratio,
+        blue = blue * (1 - ratio) + other.blue * ratio,
+    )
+}
+
 fun Regex.findFirstGroup(str: String): String? {
     return find(str)?.groupValues?.get(1)?.trim()
 }
@@ -92,13 +116,13 @@ fun Throwable.fullMessage(): String {
 
 suspend fun String.decodeBase64ToFile(targetPath: Path) {
     try {
-        val sourceString = this
+        val rawdata = split(",").last() // Remove the data:<datatype>, prefix
         SystemFileSystem.sink(targetPath, false)
             .asByteWriteChannel()
             .use {
-                writeByteArray(Base64.decode(sourceString))
+                writeByteArray(Base64.decode(rawdata))
             }
     } catch (e: Exception) {
-        println(e)
+        println("Error decoding base64 to image: $e")
     }
 }

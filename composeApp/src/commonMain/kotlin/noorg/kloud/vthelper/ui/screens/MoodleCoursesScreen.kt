@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,9 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.CourseEntry
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.components.common.EmptyListPlaceholderText
-import noorg.kloud.vthelper.ui.components.common.ScreenHeaderText
+import noorg.kloud.vthelper.ui.components.common.ScreenHeaderTextWithLoader
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 
@@ -31,15 +32,19 @@ import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 fun CoursesScreen(
     loggedInUserViewModel: LoggedInUserViewModel,
     moodleCoursesViewModel: MoodleCoursesViewModel,
-    showSnack: (String) -> Unit = {}
+    showSnack: SnackbarFun
 ) {
 
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
     val courses by moodleCoursesViewModel.courses.collectAsStateWithLifecycle()
 
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(userState.isSessionValid) {
+        if (!userState.isSessionValid) {
+            return@LaunchedEffect
+        }
+        isLoading = true
         moodleCoursesViewModel
             .fetchLatestCourseListFromApi(showSnack)
             .invokeOnCompletion { isLoading = false }
@@ -51,21 +56,7 @@ fun CoursesScreen(
             .padding(start = 16.dp, end = 16.dp)
     ) {
 
-        ScreenHeaderText("Moodle courses")
-
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                CircularProgressIndicator(
-                    strokeWidth = 4.dp,
-                    modifier = Modifier.size(48.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            return
-        }
+        ScreenHeaderTextWithLoader("Moodle courses", isLoading)
 
         if (!userState.isSessionValid) {
             EmptyListPlaceholderText(
@@ -84,8 +75,8 @@ fun CoursesScreen(
                     CourseEntry(
                         course.title,
                         course.description,
-                        "<TODO: extract lecturer>",
                         course.color,
+                        course.viewUrl,
                         course.coverImagePath
                     )
                 }

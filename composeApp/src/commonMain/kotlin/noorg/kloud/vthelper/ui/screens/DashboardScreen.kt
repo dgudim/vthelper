@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,7 +32,9 @@ import com.patrykandpatrick.vico.compose.common.VicoTheme.CandlestickCartesianLa
 import com.patrykandpatrick.vico.compose.common.vicoTheme
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.DeadlineEntry
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -40,7 +43,7 @@ import kotlin.time.Instant
 // https://stackoverflow.com/questions/78323263/how-to-display-bars-in-different-colors-in-vico-bar-charts
 
 @Composable
-fun DashboardScreen(showSnack: (String) -> Unit = {}) {
+fun DashboardScreen(showSnack: SnackbarFun) {
 
     val modelProducer = remember { CartesianChartModelProducer() }
     LaunchedEffect(Unit) {

@@ -7,13 +7,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.Calendar
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.CalendarColorPalette
 import noorg.kloud.vthelper.ui.theme.ColorVariants
 import noorg.kloud.vthelper.ui.theme.LocalCalendarColorPalette
 
 @Composable
-fun CalendarScreen(showSnack: (String) -> Unit = {}) {
+fun CalendarScreen(showSnack: SnackbarFun) {
     Column(
         modifier = Modifier
             .fillMaxSize()

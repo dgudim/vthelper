@@ -15,12 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.Month
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.CourseResultEntry
+import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
 @Composable
-fun ResultsScreen(showSnack: (String) -> Unit = {}) {
+fun ResultsScreen(showSnack: SnackbarFun) {
     Column(
         modifier = Modifier
             .fillMaxSize()
