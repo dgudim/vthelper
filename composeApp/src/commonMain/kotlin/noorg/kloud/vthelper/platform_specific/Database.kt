@@ -12,12 +12,12 @@ import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.data.dbdaos.LecturerDao
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
 import noorg.kloud.vthelper.data.dbdaos.ManoCourseDao
-import noorg.kloud.vthelper.data.dbdaos.ManoCourseTimetableDao
+import noorg.kloud.vthelper.data.dbdaos.ManoSubjectTimetableDao
 import noorg.kloud.vthelper.data.dbdaos.MoodleCourseDao
 import noorg.kloud.vthelper.data.dbentities.DBLecturerEntity
 import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
 import noorg.kloud.vthelper.data.dbentities.DBManoCourseEntity
-import noorg.kloud.vthelper.data.dbentities.DBManoCourseTimetableEntity
+import noorg.kloud.vthelper.data.dbentities.DBManoSubjectTimetableEntity
 import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 
 // https://developer.android.com/kotlin/multiplatform/room
@@ -32,7 +32,7 @@ import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
     entities = [
         DBMoodleCourseEntity::class,
         DBManoCourseEntity::class,
-        DBManoCourseTimetableEntity::class,
+        DBManoSubjectTimetableEntity::class,
         DBLoggedInUserEntity::class,
         DBLecturerEntity::class
     ],
@@ -49,7 +49,7 @@ import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 abstract class AppDatabase : RoomDatabase() {
     abstract fun moodleCourseDao(): MoodleCourseDao
     abstract fun manoCourseDao(): ManoCourseDao
-    abstract fun manoCourseTimetableDao(): ManoCourseTimetableDao
+    abstract fun manoCourseTimetableDao(): ManoSubjectTimetableDao
     abstract fun loggedInUserDao(): LoggedInUserDao
     abstract fun lecturerDao(): LecturerDao
 }

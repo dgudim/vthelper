@@ -16,7 +16,8 @@ import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
-import noorg.kloud.vthelper.api.models.toApiResult
+import noorg.kloud.vthelper.api.models.toNetResult
+import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 
@@ -115,7 +116,7 @@ object VTBaseApi {
         println("Initial request to '$serviceBaseUrl' done")
 
         if (initialResponse.status == HttpStatusCode.OK) { // 200
-            return initialResponse.toApiResult(
+            return initialResponse.toNetResult(
                 context = "Already logged in",
                 isSuccess = true,
                 operation = "$rootOperation + initial request"
@@ -136,7 +137,7 @@ object VTBaseApi {
         // We can also test by the status code, looks like it's 303 for normal redirects
         // and 302 for auth redirects, but I am not sure that it's always the case
         if (redirectLocation.host == serviceBaseUrl.host) {
-            return initialResponse.toApiResult(
+            return initialResponse.toNetResult(
                 context = "Already logged in, same-site redirection",
                 isSuccess = true,
                 operation = "$rootOperation + initial redirect"
@@ -189,7 +190,7 @@ object VTBaseApi {
         // Same url, but different content, the page contains context key for MFA
         redirectLocation = Url(loginResponse.headers[HttpHeaders.Location] ?: "")
 
-        println("Loading next mage (mfa)")
+        println("Loading next mage (MFA)")
 
         // Load the redirected page to see what we got and extract mfa context
         // This doesn't set any cookies
@@ -198,15 +199,15 @@ object VTBaseApi {
         }
 
         initialMfaPageResponse.expect200<String>(
-            "$rootOperation + get mfa page after login"
+            "$rootOperation + get MFA page after login"
         )?.let { return it }
 
+        val initialMfaPageContent = initialMfaPageResponse.bodyAsText()
         var mfaContext =
-            mfaExtractionRegex.findFirstGroup(initialMfaPageResponse.bodyAsText())
-                ?: return initialMfaPageResponse.toApiResult(
-                    context = "Mfa context is null",
-                    isSuccess = false,
-                    operation = "extract initial mfa context from page"
+            mfaExtractionRegex.findFirstGroup(initialMfaPageContent)
+                ?: return initialMfaPageContent.toNetResultFail(
+                    context = "MFA context is null",
+                    operation = "$rootOperation + extract initial mfa context from page"
                 )
 
 
@@ -225,16 +226,16 @@ object VTBaseApi {
         }
 
         mfaContextPostResponse.expect200<String>(
-            "$rootOperation + post initial mfa context"
+            "$rootOperation + post initial MFA context"
         )?.let { return it }
 
         // Update mfa context
+        val mfaContextPostContent =  mfaContextPostResponse.bodyAsText()
         mfaContext =
-            mfaExtractionRegex.findFirstGroup(mfaContextPostResponse.bodyAsText())
-                ?: return mfaContextPostResponse.toApiResult(
+            mfaExtractionRegex.findFirstGroup(mfaContextPostContent)
+                ?: return mfaContextPostContent.toNetResultFail(
                     context = "Updated mfa context is null",
-                    isSuccess = false,
-                    operation = "extract updated mfa context from page"
+                    operation = "$rootOperation + extract updated MFA context from page"
                 )
 
 
@@ -361,15 +362,13 @@ object VTBaseApi {
             headers { appendAll(initialRequestHeaders + mapOf("Referer" to samlUrl)) }
         }
 
-        val finalOp = "final service request"
-
         // 303 is ok here as we may get a redirection to some other page on the same site (e.g: moodle's /my)
         finalServiceResponse.expectCode<String>(
             expectedCodes = listOf(HttpStatusCode.OK, HttpStatusCode.SeeOther),
-            operation = finalOp
+            operation = "$parentOperation + final service request"
         )?.let { return it }
 
-        return finalServiceResponse.toApiResult(
+        return finalServiceResponse.toNetResult(
             isSuccess = true,
             operation = parentOperation
         )

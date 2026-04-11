@@ -20,6 +20,7 @@ data class ApiMoodleListCoursesResponseData(
 
 @Serializable
 data class ApiMoodleListCoursesResponseCourse(
+    @SerialName("id")
     val id: Long,
     @SerialName("fullname")
     val fullName: String,
@@ -27,6 +28,7 @@ data class ApiMoodleListCoursesResponseCourse(
     val shortName: String,
     @SerialName("idnumber")
     val idNumber: String,
+    @SerialName("summary")
     val summary: String,
     @SerialName("summaryformat")
     val summaryFormat: Long,
@@ -48,6 +50,7 @@ data class ApiMoodleListCoursesResponseCourse(
     val viewUrl: String,
     @SerialName("courseimage")
     val courseImageBase64OrUrl: String,
+    @SerialName("progress")
     val progress: Long,
     @SerialName("hasprogress")
     val hasProgress: Boolean,

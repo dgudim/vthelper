@@ -25,7 +25,9 @@ import noorg.kloud.vthelper.api.models.expectCode
 import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesRequestArgs
 import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesRequestRootElem
 import noorg.kloud.vthelper.api.models.moodle.ApiMoodleListCoursesResponse
-import noorg.kloud.vthelper.api.models.toApiResult
+import noorg.kloud.vthelper.api.models.toNetResult
+import noorg.kloud.vthelper.api.models.toNetResultFail
+import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 
@@ -88,29 +90,25 @@ object MoodleApi {
             operation = "$rootOperationName + main request"
         )?.let { return it }
 
+        val pageContent = pageResponse.bodyAsText()
         val extractedSessionKey =
-            sessionKeyExtractionRegex.findFirstGroup(pageResponse.bodyAsText())
-                ?: return pageResponse.toApiResult(
+            sessionKeyExtractionRegex.findFirstGroup(pageContent)
+                ?: return pageContent.toNetResultFail(
                     context = "Session key not found",
-                    isSuccess = false,
                     operation = "$rootOperationName + session key extraction"
                 )
 
         val extractedUserId =
-            userIdExtractionRegex.findFirstGroup(pageResponse.bodyAsText())
-                ?: return pageResponse.toApiResult(
+            userIdExtractionRegex.findFirstGroup(pageContent)
+                ?: return pageContent.toNetResultFail(
                     context = "User ID not found",
-                    isSuccess = false,
                     operation = "$rootOperationName + user id extraction"
                 )
 
         sessionKey = extractedSessionKey
         userId = extractedUserId.toInt()
 
-        return pageResponse.toApiResult(
-            isSuccess = true,
-            operation = rootOperationName
-        )
+        return "Key: $extractedSessionKey; Uid: $extractedUserId".toNetResultOk(rootOperationName)
     }
 
     suspend fun getCalendarUrl(
@@ -145,21 +143,18 @@ object MoodleApi {
             operation = "$rootOperationName + main request"
         )?.let { return it }
 
+        val calendarUrlPageContent = calendarUrlPageResponse.bodyAsText()
         val extractedCalendarUrl =
             calendarExportUrlExtractionRegex
-                .findFirstGroup(calendarUrlPageResponse.bodyAsText())
-                ?: return calendarUrlPageResponse.toApiResult(
+                .findFirstGroup(calendarUrlPageContent)
+                ?: return calendarUrlPageContent.toNetResultFail(
                     context = "Calendar URL not found",
-                    isSuccess = false,
                     operation = "$rootOperationName + calender url extraction"
                 )
 
         calendarUrl = extractedCalendarUrl
 
-        return calendarUrlPageResponse.toApiResult(
-            isSuccess = true,
-            operation = rootOperationName
-        )
+        return extractedCalendarUrl.toNetResultOk(operation = rootOperationName)
     }
 
     suspend fun getCourses(): NetResult<ApiMoodleListCoursesResponse> {
@@ -212,7 +207,7 @@ object MoodleApi {
             operation = "$rootOperationName + main request"
         )?.let { return it }
 
-        return coursesResponse.toApiResult<ApiMoodleListCoursesResponse>(
+        return coursesResponse.toNetResult<ApiMoodleListCoursesResponse>(
             isSuccess = true,
             successUpdater = { resp -> resp?.get(0)?.error == false },
             operation = rootOperationName

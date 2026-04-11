@@ -58,7 +58,7 @@ data class NetResult<T>(
             ).logIt()
         }
 
-        fun <T> fromDeserializedModel(
+        fun <T> fromDeserializedModelOk(
             response: T,
             operation: String
         ): NetResult<T> {
@@ -68,6 +68,21 @@ data class NetResult<T>(
                 bodyTyped = response,
                 context = "OK",
                 isSuccess = true,
+                operation = operation
+            ).logIt()
+        }
+
+        fun <T> fromBodyRawFail(
+            bodyRaw: String,
+            context: String,
+            operation: String
+        ): NetResult<T> {
+            return NetResult<T>(
+                statusCode = HttpStatusCode.ServiceUnavailable,
+                bodyRaw = bodyRaw,
+                bodyTyped = null,
+                context = context,
+                isSuccess = false,
                 operation = operation
             ).logIt()
         }
@@ -136,7 +151,15 @@ suspend inline fun <reified T> HttpResponse.expect200(operation: String): NetRes
     return NetResult.expect200(this, operation)
 }
 
-suspend inline fun <reified T> HttpResponse.toApiResult(
+inline fun <reified T> String.toNetResultFail(context: String, operation: String): NetResult<T> {
+    return NetResult.fromBodyRawFail(this, context, operation)
+}
+
+fun String.toNetResultOk(operation: String): NetResult<String> {
+    return NetResult.fromDeserializedModelOk(this, operation)
+}
+
+suspend inline fun <reified T> HttpResponse.toNetResult(
     context: String? = null,
     isSuccess: Boolean,
     successUpdater: (T?) -> Boolean = { true },

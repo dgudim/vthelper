@@ -18,7 +18,6 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -28,7 +27,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -39,11 +37,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
-import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.components.StatusSnackbar
 import noorg.kloud.vthelper.ui.screens.AccountScreen
 import noorg.kloud.vthelper.ui.screens.CalendarScreen
-import noorg.kloud.vthelper.ui.screens.CoursesScreen
+import noorg.kloud.vthelper.ui.screens.MoodleCoursesScreen
 import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
@@ -147,7 +144,7 @@ fun Navigation(
             CalendarScreen(showSnack)
         }
         composable(NavDrawerItem.Courses.route) {
-            CoursesScreen(loggedInUserViewModel, moodleCoursesViewModel, showSnack)
+            MoodleCoursesScreen(loggedInUserViewModel, moodleCoursesViewModel, showSnack)
         }
         composable(NavDrawerItem.Settings.route) {
             SettingsScreen(showSnack)

@@ -69,6 +69,6 @@ suspend fun downloadImage(target: Path, sourceUrl: Url): NetResult<String> {
                     .asByteWriteChannel()
             )
 
-        NetResult.fromDeserializedModel("OK", it)
+        NetResult.fromDeserializedModelOk("OK", it)
     }
 }

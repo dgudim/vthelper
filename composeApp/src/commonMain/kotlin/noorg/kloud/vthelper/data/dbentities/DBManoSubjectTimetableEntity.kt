@@ -25,7 +25,7 @@ enum class DBManoTimetableEntityWeek(val w: Int) {
         )
     ]
 )
-data class DBManoCourseTimetableEntity(
+data class DBManoSubjectTimetableEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,

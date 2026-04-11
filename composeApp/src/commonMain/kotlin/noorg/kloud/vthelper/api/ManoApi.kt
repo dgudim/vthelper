@@ -1,11 +1,15 @@
 package noorg.kloud.vthelper.api
 
+import androidx.compose.ui.util.fastMap
+import androidx.compose.ui.util.fastZip
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
+import io.ktor.http.parameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
@@ -13,14 +17,22 @@ import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoCompletedSemesterResult
 import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
-import noorg.kloud.vthelper.api.models.mano.ApiManoCourseEntity
+import noorg.kloud.vthelper.api.models.mano.ApiManoSubjectEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectEvaluationVerdict
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectFinalResult
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSemesterMediateResults
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementGrade
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementOverview
+import noorg.kloud.vthelper.api.models.toNetResult
+import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import kotlin.time.Duration
@@ -76,38 +88,73 @@ object ManoApi {
     )
 
     /** [getEmployeeDetailsUnsafe] */
-    var employeeNameExtractionRegex = Regex(
+    val employeeNameExtractionRegex = Regex(
         """<div class="employee-name">(.*?)<\\/div>""",
         RegexOption.MULTILINE
     )
 
-    var employeePositionExtractionRegex = Regex(
+    val employeePositionExtractionRegex = Regex(
         """<div class="employee-position">(.*?)<\\/div>""",
         RegexOption.MULTILINE
     )
 
-    var employeeDepartmentDataExtractionRegex = Regex(
+    val employeeDepartmentDataExtractionRegex = Regex(
         """<div class="employee-department" department_id=(.*?)>.*?<a href="#">(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    var employeePhoneExtractionRegex = Regex(
+    val employeePhoneExtractionRegex = Regex(
         """<a href="tel:(.*?)"""",
         RegexOption.MULTILINE
     )
 
-    var employeeEmailExtractionRegex = Regex(
+    val employeeEmailExtractionRegex = Regex(
         """<a href="mailto:(.*?)"""",
         RegexOption.MULTILINE
     )
 
-    var employeeOfficeExtractionRegex = Regex(
+    val employeeOfficeExtractionRegex = Regex(
         """<strong>Office<\\/strong>(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    var employeeAddressExtractionRegex = Regex(
+    val employeeAddressExtractionRegex = Regex(
         """<strong>Address<\\/strong>(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    /** [getSemesterResultsUnsafe] */
+
+    val tableBodyExtractionRegex = Regex(
+        """<tbody(.*?)tbody>"""
+    )
+
+    val semesterResultsExtractionRegex = Regex(
+        """data-title="Name".*?<a href="(.*?)">(.*?)<.*?data-title="Teacher".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<.*?data-title="Hours".*?>(.*?)<.*?data-title="Grade".*?>(.*?)<.*?data-title="Tries".*?>(.*?)<.*?data-title="Date".*?>(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    val semestrerHeaderExtractionRegex = Regex(
+        """class="page-header">(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    val semesterFooterExtractionRegex = Regex(
+        """Total number of credits.*?><.*?>(.*?)<.*?The weighted grade point average.*?">(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    /** [getSubjectSettlementOverviewsUnsafe] */
+
+    val mediateResultsExtractionRegex = Regex(
+        """data-title="Settlement".*?data-years="(.*?)".*?data-sem="(.*?)".*?data-mod-id="(.*?)".*?data-kmd-id="(.*?)".*?data-dest-vart="(.*?)".*?data-type="(.*?)".*?data-name="(.*?)".*?href="#">.*?data-title="Lecturer".*?href="#">(.*?)<.*?title="Completed".*?href="#">(.*?)<.*?title="Percentage of final assessment grade.*?href="#">(.*?)<.*?title="Grade".*?href="#">(.*?)<.*?title="The cumulative score".*?href="#">(.*?)<.*?title="Date".*?href="#">(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    /** [getSettlementGradesUnsafe] */
+
+    val settlementGradesExtractionRegex = Regex(
+        """data-title="Settlement".*?>(.*?)<.*?data-title="Grade".*?>(.*?)<.*?data-title="Date".*?>(.*?)<.*?>(.*?)<""",
         RegexOption.MULTILINE
     )
 
@@ -128,10 +175,13 @@ object ManoApi {
         }
     }
 
-    private fun String.cleanHttpResponse(): String {
+    private fun String.unescape(): String {
         return replace("&amp;", "&")
             .replace("\\\"", "\"")
-            .replace("\\/", "/")
+            .replace("\\\"", "\"")
+            .replace("\\n", "\n")
+            .replace("\\r", "")
+            .replace("&nbsp;", "")
     }
 
     private fun String.singleLine(): String {
@@ -163,7 +213,7 @@ object ManoApi {
             prevCallBody
         )?.let { return it }
 
-        return NetResult.fromDeserializedModel("OK", rootOperationName)
+        return NetResult.fromDeserializedModelOk("OK", rootOperationName)
     }
 
     suspend fun getStudentInfo(): NetResult<ApiManoStudentInfo> {
@@ -191,7 +241,7 @@ object ManoApi {
         )?.let { return it }
 
         val basePageResponseContent = basePageResponse.bodyAsText().singleLine()
-        val contactsPageResponseContent = contactsPageResponse.bodyAsText().cleanHttpResponse()
+        val contactsPageResponseContent = contactsPageResponse.bodyAsText().unescape()
 
         val personalEmail = personalEmailExtractionRegex.findFirstGroup(contactsPageResponseContent)
         val universityEmail =
@@ -211,7 +261,7 @@ object ManoApi {
         val fullName = fullNameAndAvatarMatch?.get(1)?.trim()
         val avatarUrl = fullNameAndAvatarMatch?.get(2)?.trim()
 
-        return NetResult.fromDeserializedModel(
+        return NetResult.fromDeserializedModelOk(
             ApiManoStudentInfo(
                 fullName = fullName ?: "",
                 birthYear = birthYear ?: 0,
@@ -225,7 +275,7 @@ object ManoApi {
         )
     }
 
-    suspend fun getThisSemesterSubjects(): NetResult<List<ApiManoCourseEntity>> {
+    suspend fun getThisSemesterSubjects(): NetResult<List<ApiManoSubjectEntity>> {
         return safeRetryWithPrecall(
             "get subjects for current semester", "update session",
             mainBlock = {
@@ -236,32 +286,31 @@ object ManoApi {
             })
     }
 
-    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<List<ApiManoCourseEntity>> {
+    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<List<ApiManoSubjectEntity>> {
         val studySubjectsPageResponse = client.get("$baseUrl/thissemester/site/studysubject")
 
-        studySubjectsPageResponse.expect200<List<ApiManoCourseEntity>>(
+        studySubjectsPageResponse.expect200<List<ApiManoSubjectEntity>>(
             "$rootOperationName + main request"
         )?.let { return it }
 
         val matches = studySubjectExtractionRegex.findAll(
-            studySubjectsPageResponse.bodyAsText().cleanHttpResponse()
+            studySubjectsPageResponse.bodyAsText().unescape()
         )
 
         val subjects = matches.map { result ->
-            ApiManoCourseEntity(
-                subjectModId = Url(result.groupValues[1]).parameters["MOD_ID"]
-                    ?: "",
-                subjectModCode = Url(result.groupValues[1]).parameters["MOD_CODE"]
-                    ?: "",
-                subjectLink = result.groupValues[1],
-                subjectName = result.groupValues[2],
-                subjectLecturerFullName = result.groupValues[3],
-                subjectEvaluationCode = result.groupValues[4],
-                subjectCredits = result.groupValues[5].toInt(),
+            val url = Url(result.groupValues[1])
+            ApiManoSubjectEntity(
+                modId = url.parameters["MOD_ID"] ?: "",
+                modCode = url.parameters["MOD_CODE"] ?: "",
+                link = result.groupValues[1],
+                name = result.groupValues[2],
+                lecturerFullName = result.groupValues[3],
+                evaluationType = result.groupValues[4],
+                credits = result.groupValues[5].toInt(),
             )
         }.toList()
 
-        return NetResult.fromDeserializedModel(subjects, operation = rootOperationName)
+        return NetResult.fromDeserializedModelOk(subjects, operation = rootOperationName)
     }
 
     suspend fun getThisSemesterSubjects(courseModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
@@ -287,22 +336,23 @@ object ManoApi {
         )?.let { return it }
 
         val matches = courseTimetableExtractionRegex.findAll(
-            courseTimetablePageResponse.bodyAsText().cleanHttpResponse()
+            courseTimetablePageResponse.bodyAsText().unescape()
         )
 
         val subjects = matches.map { result ->
+            val times = result.groupValues[3].split("-")
             ApiManoCourseTimetableEntity(
                 weekDay = ManoTimetableWeekday.valueOf(result.groupValues[1]),
                 week = ApiManoTimetableEntityWeek.valueOf(result.groupValues[2]),
-                startTime = result.groupValues[3].split("-")[0].timeToDuration(),
-                endTime = result.groupValues[3].split("-")[1].timeToDuration(),
+                startTime = times[0].timeToDuration(),
+                endTime = times[1].timeToDuration(),
                 auditorium = result.groupValues[4].trim(),
                 type = result.groupValues[5].mapLectureType(),
                 lecturerFullName = result.groupValues[6].trim()
             )
         }.toList()
 
-        return NetResult.fromDeserializedModel(subjects, operation = rootOperationName)
+        return NetResult.fromDeserializedModelOk(subjects, operation = rootOperationName)
     }
 
     suspend fun getEmployees(): NetResult<List<ApiManoEmployeeBasicEntity>> {
@@ -327,7 +377,7 @@ object ManoApi {
         val contactsPageContent = contactsPageResponse.bodyAsText()
 
         val outerMatch = outerContactsExtractionRegex.findFirstGroup(
-            contactsPageContent.cleanHttpResponse()
+            contactsPageContent.unescape()
         )
 
         if (outerMatch == null) {
@@ -350,7 +400,7 @@ object ManoApi {
             )
         }.toList()
 
-        return NetResult.fromDeserializedModel(employees, operation = rootOperationName)
+        return NetResult.fromDeserializedModelOk(employees, operation = rootOperationName)
     }
 
     suspend fun getEmployeeDetails(employeeId: String): NetResult<ApiManoEmployeeDetails> {
@@ -393,20 +443,33 @@ object ManoApi {
                 )
             }.distinct().toList()
 
-        val offices = employeeOfficeExtractionRegex
+        val employeeOffices = employeeOfficeExtractionRegex
             .findAll(detailsPageContent)
-            .map { result ->
-                result.groupValues[1].trim()
-            }.zip(
-                employeeAddressExtractionRegex
-                    .findAll(detailsPageContent)
-                    .map { result -> result.groupValues[1].trim() })
-            .map { result ->
-                ApiManoBasicOfficeData(
-                    officeName = result.first,
-                    address = result.second,
+            .map { result -> result.groupValues[1].trim() }.toList()
+
+        val employeeAddresses = employeeAddressExtractionRegex
+            .findAll(detailsPageContent)
+            .map { result -> result.groupValues[1].trim() }.toList()
+
+        if (employeeOffices.size != employeeAddresses.size) {
+            return detailsPageContent
+                .toNetResultFail(
+                    "employeeOffices.size != employeeAddresses.size",
+                    "$rootOperationName + extract offices"
                 )
-            }.distinct().toList()
+        }
+
+        val offices =
+            employeeOffices
+                .fastZip(employeeAddresses)
+                { office, address ->
+                    ApiManoBasicOfficeData(
+                        officeName = office,
+                        address = address,
+                    )
+                }
+                .distinct()
+                .toList()
 
         val positions =
             employeePositionExtractionRegex.findAll(detailsPageContent).map { result ->
@@ -415,7 +478,7 @@ object ManoApi {
 
         val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
 
-        return NetResult.fromDeserializedModel(
+        return NetResult.fromDeserializedModelOk(
             ApiManoEmployeeDetails(
                 phones = phones,
                 emails = emails,
@@ -425,5 +488,267 @@ object ManoApi {
                 fullName = fullName ?: ""
             ), operation = rootOperationName
         )
+    }
+
+    suspend fun getSemesterResults(): NetResult<List<ApiManoCompletedSemesterResult>> {
+        return safeRetryWithPrecall(
+            "get completed semester results", "update session",
+            mainBlock = {
+                getSemesterResultsUnsafe(it)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
+    }
+
+    private suspend fun getSemesterResultsUnsafe(
+        rootOperationName: String
+    ): NetResult<List<ApiManoCompletedSemesterResult>> {
+        val resultsResponse =
+            client.get("$baseUrl/results/site/my-results")
+
+        resultsResponse.expect200<List<ApiManoCompletedSemesterResult>>(
+            "$rootOperationName + main request"
+        )?.let { return it }
+
+        val resultsContent = resultsResponse.bodyAsText().unescape().singleLine()
+
+        val semesterHeaders = semestrerHeaderExtractionRegex.findAll(resultsContent).toList()
+
+        val allTables = tableBodyExtractionRegex.findAll(resultsContent)
+        val mainContentTables = allTables.filterIndexed { index, _ -> index % 2 == 0 }.toList()
+        val footerContentTables = allTables.filterIndexed { index, _ -> index % 2 == 1 }.toList()
+
+        if (semesterHeaders.size != mainContentTables.size || mainContentTables.size != footerContentTables.size) {
+            return resultsContent.toNetResultFail(
+                "Section size mismatch (sem: ${semesterHeaders.size} main: ${mainContentTables.size} footer: ${footerContentTables.size})",
+                "$rootOperationName + extract results"
+            )
+        }
+
+        val semesterResults = semesterHeaders
+            .fastZip(footerContentTables) { semHeader, semFooter ->
+                // 2025-2026 academic year, winter session, 7 semester
+                val semHeaderParts = semHeader.groupValues[1].split(",").fastMap { it.trim() }
+
+                val semFooterParts = semesterFooterExtractionRegex.find(semFooter.groupValues[1])
+
+                ApiManoCompletedSemesterResult(
+                    semesterAbsoluteSequenceNum = semHeaderParts[3].replace("semester", "").trim()
+                        .toInt(),
+                    sessionName = semHeaderParts[2],
+                    yearTimeSpan = semHeaderParts[1].replace("academic year", "").trim(),
+                    finalTotalCredits = semFooterParts?.groupValues[1]?.toInt() ?: 0,
+                    finalWeightedGrade = semFooterParts?.groupValues[2]?.toFloat() ?: 0F,
+                    finalResults = mutableListOf()
+                )
+            }
+            .fastZip(mainContentTables) { result, mainContent ->
+                val semesterResults =
+                    semesterResultsExtractionRegex
+                        .findAll(mainContent.groupValues[1])
+                        .map { result ->
+                            val url = Url(result.groupValues[1])
+
+                            ApiManoSubjectFinalResult(
+                                modId = url.parameters["MOD_ID"] ?: "",
+                                modCode = url.parameters["MOD_CODE"] ?: "",
+                                link = result.groupValues[1],
+                                name = result.groupValues[2],
+                                lecturerFullName = result.groupValues[3],
+                                credits = result.groupValues[4].toInt(),
+                                hours = result.groupValues[5].toInt(),
+                                evaluationVerdict = ApiManoSubjectEvaluationVerdict.valueOf(result.groupValues[6]),
+                                tries = result.groupValues[7].toInt(),
+                                completionDate = result.groupValues[8]
+                            )
+                        }
+                result.finalResults.addAll(semesterResults)
+                return@fastZip result
+            }
+
+        return NetResult.fromDeserializedModelOk(semesterResults, rootOperationName)
+    }
+
+    suspend fun getSemesterMediateResults(
+        semesterAbsoluteSequenceNum: Int,
+        semesterYearRange: String
+    ): NetResult<ApiManoSemesterMediateResults> {
+        return safeRetryWithPrecall(
+            "get mediate results for semester '$semesterAbsoluteSequenceNum' in '$semesterYearRange'",
+            "update session",
+            mainBlock = {
+                getSemesterMediateResultsUnsafe(semesterAbsoluteSequenceNum, semesterYearRange, it)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
+    }
+
+    private suspend fun getSemesterMediateResultsUnsafe(
+        semesterAbsoluteSequenceNum: Int,
+        semesterYearRange: String,
+        rootOperationName: String
+    ): NetResult<ApiManoSemesterMediateResults> {
+
+        val semesterResultDetailsResponse = client.submitForm(
+            url = "${baseUrl}/results/site/get-result-part",
+            formParameters = parameters {
+                append("years", semesterYearRange)
+                append("sem", "${semesterAbsoluteSequenceNum % 2 + 1}") // 1 - N to 1 or 2
+            }
+        )
+
+        semesterResultDetailsResponse.expect200<ApiManoSemesterMediateResults>(
+            "$rootOperationName + main request"
+        )?.let { return it }
+
+        return semesterResultDetailsResponse.toNetResult(
+            isSuccess = true,
+            operation = rootOperationName
+        )
+    }
+
+    suspend fun getSubjectSettlementOverviews(
+        semesterAbsoluteSequenceNum: Int,
+        semesterYearRange: String,
+        subjectModId: String,
+    ): NetResult<List<ApiManoSubjectSettlementOverview>> {
+        return safeRetryWithPrecall(
+            "get settlement overviews for subject (mod id) '$subjectModId'",
+            "update session",
+            mainBlock = {
+                getSubjectSettlementOverviewsUnsafe(
+                    semesterAbsoluteSequenceNum,
+                    semesterYearRange,
+                    subjectModId,
+                    it
+                )
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
+    }
+
+    private suspend fun getSubjectSettlementOverviewsUnsafe(
+        semesterAbsoluteSequenceNum: Int,
+        semesterYearRange: String,
+        subjectModId: String,
+        rootOperationName: String
+    ): NetResult<List<ApiManoSubjectSettlementOverview>> {
+
+        val settlementOverviewsResponse = client.submitForm(
+            url = "${baseUrl}/results/site/get-mediate",
+            formParameters = parameters {
+                append("years", semesterYearRange)
+                append("sem", "${semesterAbsoluteSequenceNum % 2 + 1}") // 1 - N to 1 or 2
+                append("mod", subjectModId)
+            }
+        )
+
+        settlementOverviewsResponse.expect200<List<ApiManoSubjectSettlementOverview>>(
+            "$rootOperationName + main request"
+        )?.let { return it }
+
+        val settlementOverviewsContent =
+            settlementOverviewsResponse.bodyAsText().unescape().singleLine()
+
+        val overviews = mediateResultsExtractionRegex
+            .findAll(settlementOverviewsContent)
+            .map { result ->
+                val values = result.groupValues
+                ApiManoSubjectSettlementOverview(
+                    semesterYearRange = values[1],
+                    semesterRelativeSequenceNum = values[2].toInt(),
+                    subjectModId = values[3],
+                    subjectKmdId = values[4],
+                    subjectDestVart = values[5],
+                    settlementType = values[6],
+                    subjectName = values[7],
+                    lecturerName = values[8],
+                    completedRatio = values[9],
+                    percentageOfFinalAssessment = values[10].replace("%", "").toInt(),
+                    finalGrade = if (values[11] == "-") null else values[11].toFloat(),
+                    cumulativeScore = if (values[12] == "-") null else values[12].toFloat(),
+                    lastUpdatedDate = values[13]
+                )
+            }.toList()
+
+        return NetResult.fromDeserializedModelOk(overviews, rootOperationName)
+    }
+
+    suspend fun getSettlementGrades(
+        semesterRelativeSequenceNum: Int,
+        subjectModId: String,
+        subjectKmdId: String,
+        subjectName: String,
+        subjectDestVart: String,
+        semesterYearRange: String,
+        settlementType: String,
+    ): NetResult<List<ApiManoSubjectSettlementGrade>> {
+        return safeRetryWithPrecall(
+            "get grades for '$settlementType', '$subjectName'",
+            "update session",
+            mainBlock = {
+                getSettlementGradesUnsafe(
+                    semesterRelativeSequenceNum,
+                    subjectModId,
+                    subjectKmdId,
+                    subjectName,
+                    subjectDestVart,
+                    semesterYearRange,
+                    settlementType,
+                    it
+                )
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
+    }
+
+    private suspend fun getSettlementGradesUnsafe(
+        semesterRelativeSequenceNum: Int,
+        subjectModId: String,
+        subjectKmdId: String,
+        subjectName: String,
+        subjectDestVart: String,
+        semesterYearRange: String,
+        settlementType: String,
+        rootOperationName: String
+    ): NetResult<List<ApiManoSubjectSettlementGrade>> {
+
+        val settlementGradesResponse = client.submitForm(
+            url = "${baseUrl}/results/site/get-mediate-details",
+            formParameters = parameters {
+                append("result_data[sem_id]", "$semesterRelativeSequenceNum")
+                append("result_data[mod_id]", subjectModId)
+                append("result_data[kmd_id]", subjectKmdId)
+                append("result_data[mod_name]", subjectName)
+                append("result_data[dest-vart]", subjectDestVart)
+                append("result_data[years]", semesterYearRange)
+                append("result_data[type]", settlementType)
+            }
+        )
+
+        settlementGradesResponse.expect200<List<ApiManoSubjectSettlementGrade>>(
+            "$rootOperationName + main request"
+        )?.let { return it }
+
+        val settlementGradesContent = settlementGradesResponse.bodyAsText().unescape().singleLine()
+
+        val grades = settlementGradesExtractionRegex
+            .findAll(settlementGradesContent)
+            .map { result ->
+                with(result.groupValues) {
+                    ApiManoSubjectSettlementGrade(
+                        name = get(1),
+                        grade = get(2).toInt(),
+                        gradeDate = get(3),
+                        graderName = get(4)
+                    )
+                }
+            }.toList()
+
+        return NetResult.fromDeserializedModelOk(grades, rootOperationName)
     }
 }

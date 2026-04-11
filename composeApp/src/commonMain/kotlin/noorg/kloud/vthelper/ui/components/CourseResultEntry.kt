@@ -35,7 +35,7 @@ private fun resultToColor(result: Long): Color {
 }
 
 @Composable
-fun CourseResultEntry(
+fun SubjectResultEntry(
     subjectName: String,
     subjectColor: Color,
     workName: String,
