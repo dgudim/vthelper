@@ -21,7 +21,7 @@ fun App() {
 
     // Init cookies from background
     rememberCoroutineScope().launch {
-        val userData = dbInstance.loggedInUserDao().get()
+        val userData = dbInstance.loggedInUserDao().getAll().firstOrNull()
         println("Currently logged in as ${userData?.fullName}")
         VTBaseApi.cookieStorage.loadAllFromJson(userData?.cookiesJson)
     }

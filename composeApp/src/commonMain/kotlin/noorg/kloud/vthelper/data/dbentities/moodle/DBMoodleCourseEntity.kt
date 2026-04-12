@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.data.dbentities
+package noorg.kloud.vthelper.data.dbentities.moodle
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

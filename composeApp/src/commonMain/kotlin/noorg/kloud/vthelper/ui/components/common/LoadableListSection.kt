@@ -1,0 +1,67 @@
+package noorg.kloud.vthelper.ui.components.common
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Job
+import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+
+@Composable
+fun <T> LoadableListSection(
+    loggedInUserViewModel: LoggedInUserViewModel,
+    items: List<T>,
+    fetchFunction: () -> Job,
+    header: @Composable (Boolean) -> Unit,
+    item: @Composable (T) -> Unit
+) {
+    // TODO: Check network connectivity and don't fetch if not available
+    val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
+
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userState.isSessionValid) {
+        if (!userState.isSessionValid) {
+            return@LaunchedEffect
+        }
+        isLoading = true
+        fetchFunction().invokeOnCompletion { isLoading = false }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 16.dp, end = 16.dp)
+    ) {
+
+        header(isLoading)
+
+        if (!userState.isSessionValid) {
+            EmptyListPlaceholderText(
+                text = "Please log in",
+            )
+            return
+        }
+
+        if (items.isEmpty()) {
+            EmptyListPlaceholderText(
+                text = "",
+            )
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(items = items) { course -> item(course) }
+            }
+        }
+    }
+}

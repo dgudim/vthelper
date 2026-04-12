@@ -8,6 +8,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -15,7 +16,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
+import noorg.kloud.vthelper.data.data_providers.ManoSemesterProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Duration.Companion.seconds
 
@@ -23,7 +26,10 @@ import kotlin.time.Duration.Companion.seconds
 // https://www.reddit.com/r/androiddev/comments/1dkyzbg/confused_about_when_to_use_mutablestateflow_vs/
 
 @Stable
-class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvider) : ViewModel() {
+class LoggedInUserViewModel(
+    private val loggedInUserProvider: LoggedInUserProvider,
+    private val manoSemesterProvider: ManoSemesterProvider
+) : ViewModel() {
     val userState = loggedInUserProvider
         .getCurrentUserInfo()
         .onEach { initLocalValuesFromFlowIfNeeded(it) }
@@ -31,6 +37,14 @@ class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvid
             scope = viewModelScope,
             started = WhileSubscribed(5.seconds.inWholeMilliseconds),
             initialValue = ProvidedLoggedInUserEntity(),
+        )
+
+    val currentSemester = manoSemesterProvider
+        .getCurrentSemester()
+        .stateIn(
+            scope = viewModelScope,
+            started = WhileSubscribed(5.seconds.inWholeMilliseconds),
+            initialValue = null,
         )
 
     private var _mfaCode = MutableStateFlow("")
@@ -49,6 +63,16 @@ class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvid
         }
     }
 
+    fun fetchSemesterData(showSnack: SnackbarFun): Job {
+        return viewModelScope.launch {
+            manoSemesterProvider
+                .fetchSemestersFromApi(true)
+                .onFailure {
+                    showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
+                }
+        }
+    }
+
     fun login(
         studentId: String,
         password: String,
@@ -61,6 +85,7 @@ class LoggedInUserViewModel(private val loggedInUserProvider: LoggedInUserProvid
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
                 .onSuccess {
+                    fetchSemesterData(showSnack)
                     showSnack(
                         "Logged in successfully",
                         SnackBarSeverityLevel.SUCCESS,

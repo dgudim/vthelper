@@ -10,7 +10,7 @@ import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
 @Dao
 interface LoggedInUserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: DBLoggedInUserEntity)
+    suspend fun replace(item: DBLoggedInUserEntity)
 
     @Query("DELETE FROM logged_in_user")
     suspend fun deleteAll()
@@ -18,6 +18,6 @@ interface LoggedInUserDao {
     @Query("SELECT * FROM logged_in_user")
     fun getAllAsFlow(): Flow<List<DBLoggedInUserEntity>>
 
-    @Query("SELECT * FROM logged_in_user LIMIT 1")
-    suspend fun get(): DBLoggedInUserEntity?
+    @Query("SELECT * FROM logged_in_user")
+    suspend fun getAll(): List<DBLoggedInUserEntity>
 }

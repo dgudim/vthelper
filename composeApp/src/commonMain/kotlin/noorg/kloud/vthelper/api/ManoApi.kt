@@ -19,10 +19,11 @@ import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoCompletedSemesterResult
 import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
-import noorg.kloud.vthelper.api.models.mano.ApiManoSubjectEntity
+import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterSubjectEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
+import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterInfo
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectEvaluationVerdict
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectFinalResult
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
@@ -31,10 +32,13 @@ import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSemesterMediateResults
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementGrade
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementOverview
+import noorg.kloud.vthelper.api.models.mano.grades.EvaluationVerdictLookup
 import noorg.kloud.vthelper.api.models.toNetResult
 import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
+import noorg.kloud.vthelper.toFloatDashAsNull
+import noorg.kloud.vthelper.toIntNotNull
 import kotlin.time.Duration
 
 object ManoApi {
@@ -64,6 +68,12 @@ object ManoApi {
         Regex("""id="user_img_id".*?alt="(.*?)".*?src="(.*?)"""", RegexOption.MULTILINE)
 
     /** [getThisSemesterSubjectsUnsafe] */
+
+    val currentSemesterInfoExtractionRegex = Regex(
+        """<title>(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
     val studySubjectExtractionRegex =
         Regex(
             """<a class="profile-link" href="(.*?)">(.*?)<.*?data-title="Lecturer".*?>(.*?)<.*?data-title="Evaluation".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<""",
@@ -134,8 +144,8 @@ object ManoApi {
         RegexOption.MULTILINE
     )
 
-    val semestrerHeaderExtractionRegex = Regex(
-        """class="page-header">(.*?)<""",
+    val semesterHeaderExtractionRegex = Regex(
+        """class="page-header">(.*?)<br>(.*?)group""",
         RegexOption.MULTILINE
     )
 
@@ -177,7 +187,6 @@ object ManoApi {
 
     private fun String.unescape(): String {
         return replace("&amp;", "&")
-            .replace("\\\"", "\"")
             .replace("\\\"", "\"")
             .replace("\\n", "\n")
             .replace("\\r", "")
@@ -275,9 +284,9 @@ object ManoApi {
         )
     }
 
-    suspend fun getThisSemesterSubjects(): NetResult<List<ApiManoSubjectEntity>> {
+    suspend fun getThisSemesterInfo(): NetResult<ApiManoThisSemesterInfo> {
         return safeRetryWithPrecall(
-            "get subjects for current semester", "update session",
+            "get current semester info", "update session",
             mainBlock = {
                 getThisSemesterSubjectsUnsafe(it)
             },
@@ -286,38 +295,64 @@ object ManoApi {
             })
     }
 
-    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<List<ApiManoSubjectEntity>> {
-        val studySubjectsPageResponse = client.get("$baseUrl/thissemester/site/studysubject")
+    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<ApiManoThisSemesterInfo> {
+        val studySubjectsResponse = client.get("$baseUrl/thissemester/site/studysubject")
 
-        studySubjectsPageResponse.expect200<List<ApiManoSubjectEntity>>(
-            "$rootOperationName + main request"
+        studySubjectsResponse.expect200<ApiManoThisSemesterInfo>(
+            "$rootOperationName + studysubject req"
         )?.let { return it }
 
-        val matches = studySubjectExtractionRegex.findAll(
-            studySubjectsPageResponse.bodyAsText().unescape()
+        val studySubjectsPageIndexResponse = client.get("$baseUrl/thissemester/site/loadindex")
+
+        studySubjectsPageIndexResponse.expect200<ApiManoThisSemesterInfo>(
+            "$rootOperationName + loadindex req"
+        )?.let { return it }
+
+        val currentSemesterInfo = currentSemesterInfoExtractionRegex.findFirstGroup(
+            studySubjectsPageIndexResponse.bodyAsText().unescape()
         )
+            ?.split("&lt;br&gt;") // Study programme: Information Technologies&lt;br&gt;8 Semester - 4th year (Group: ITVfu-22)
 
-        val subjects = matches.map { result ->
-            val url = Url(result.groupValues[1])
-            ApiManoSubjectEntity(
-                modId = url.parameters["MOD_ID"] ?: "",
-                modCode = url.parameters["MOD_CODE"] ?: "",
-                link = result.groupValues[1],
-                name = result.groupValues[2],
-                lecturerFullName = result.groupValues[3],
-                evaluationType = result.groupValues[4],
-                credits = result.groupValues[5].toInt(),
-            )
-        }.toList()
+        val studyProgram = currentSemesterInfo?.get(0)?.replace("Study programme:", "")?.trim()
+        val semesterAndGroup = currentSemesterInfo?.get(1)?.split("-", limit = 2)
 
-        return NetResult.fromDeserializedModelOk(subjects, operation = rootOperationName)
+        val semesterAbsoluteSequenceNum =
+            semesterAndGroup?.get(0)
+                ?.replace("Semester", "")?.trim()?.toInt()
+        val group =
+            semesterAndGroup?.get(1)?.trim()?.split(" ")?.last()?.trimEnd { it == ' ' || it == ')' }
+
+        val subjects = studySubjectExtractionRegex
+            .findAll(
+                studySubjectsResponse.bodyAsText().unescape().singleLine()
+            ).map { result ->
+                val url = Url(result.groupValues[1])
+                ApiManoThisSemesterSubjectEntity(
+                    modId = url.parameters["MOD_ID"] ?: "",
+                    modCode = url.parameters["MOD_CODE"] ?: "",
+                    link = result.groupValues[1],
+                    name = result.groupValues[2],
+                    lecturerFullName = result.groupValues[3],
+                    evaluationType = result.groupValues[4],
+                    credits = result.groupValues[5].toInt(),
+                )
+            }.toList()
+
+        return NetResult.fromDeserializedModelOk(
+            ApiManoThisSemesterInfo(
+                studyProgram = studyProgram ?: "",
+                absoluteSequenceNum = semesterAbsoluteSequenceNum ?: 0,
+                group = group ?: "",
+                subjects = subjects
+            ), operation = rootOperationName
+        )
     }
 
-    suspend fun getThisSemesterSubjects(courseModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
+    suspend fun getSubjectTimetable(subjectModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
         return safeRetryWithPrecall(
-            "get subject timetable for '$courseModId'", "update session",
+            "get subject timetable for '$subjectModId'", "update session",
             mainBlock = {
-                getSubjectTimetableUnsafe(it, courseModId)
+                getSubjectTimetableUnsafe(it, subjectModId)
             },
             beforeRetryBlock = { op, mainCallResult ->
                 updateSessionIfNeeded(op, mainCallResult.bodyRaw)
@@ -326,10 +361,10 @@ object ManoApi {
 
     private suspend fun getSubjectTimetableUnsafe(
         rootOperationName: String,
-        courseModId: String
+        subjectModId: String
     ): NetResult<List<ApiManoCourseTimetableEntity>> {
         val courseTimetablePageResponse =
-            client.get("$baseUrl/thissemester/site/tab-timetable?MOD_ID=$courseModId")
+            client.get("$baseUrl/thissemester/site/tab-timetable?MOD_ID=$subjectModId")
 
         courseTimetablePageResponse.expect200<List<ApiManoCourseTimetableEntity>>(
             "$rootOperationName + main request"
@@ -490,7 +525,7 @@ object ManoApi {
         )
     }
 
-    suspend fun getSemesterResults(): NetResult<List<ApiManoCompletedSemesterResult>> {
+    suspend fun getCompletedSemesterResults(): NetResult<List<ApiManoCompletedSemesterResult>> {
         return safeRetryWithPrecall(
             "get completed semester results", "update session",
             mainBlock = {
@@ -513,7 +548,7 @@ object ManoApi {
 
         val resultsContent = resultsResponse.bodyAsText().unescape().singleLine()
 
-        val semesterHeaders = semestrerHeaderExtractionRegex.findAll(resultsContent).toList()
+        val semesterHeaders = semesterHeaderExtractionRegex.findAll(resultsContent).toList()
 
         val allTables = tableBodyExtractionRegex.findAll(resultsContent)
         val mainContentTables = allTables.filterIndexed { index, _ -> index % 2 == 0 }.toList()
@@ -529,17 +564,19 @@ object ManoApi {
         val semesterResults = semesterHeaders
             .fastZip(footerContentTables) { semHeader, semFooter ->
                 // 2025-2026 academic year, winter session, 7 semester
+                // ITVfu-22 group
                 val semHeaderParts = semHeader.groupValues[1].split(",").fastMap { it.trim() }
 
                 val semFooterParts = semesterFooterExtractionRegex.find(semFooter.groupValues[1])
 
                 ApiManoCompletedSemesterResult(
-                    semesterAbsoluteSequenceNum = semHeaderParts[3].replace("semester", "").trim()
+                    absoluteSequenceNum = semHeaderParts[2].replace("semester", "").trim()
                         .toInt(),
-                    sessionName = semHeaderParts[2],
-                    yearTimeSpan = semHeaderParts[1].replace("academic year", "").trim(),
+                    sessionSeason = semHeaderParts[1],
+                    group = semHeader.groupValues[2],
+                    yearTimeSpan = semHeaderParts[0].replace("academic year", "").trim(),
                     finalTotalCredits = semFooterParts?.groupValues[1]?.toInt() ?: 0,
-                    finalWeightedGrade = semFooterParts?.groupValues[2]?.toFloat() ?: 0F,
+                    finalWeightedGrade = semFooterParts?.groupValues[2]?.toFloatDashAsNull() ?: 0F,
                     finalResults = mutableListOf()
                 )
             }
@@ -550,16 +587,36 @@ object ManoApi {
                         .map { result ->
                             val url = Url(result.groupValues[1])
 
+                            // The grade column may contain either a grade or a general verdict, try to parse both ways
+                            val verdictOrGrade = result.groupValues[6]
+                            var grade = 10
+                            var verdict = ApiManoSubjectEvaluationVerdict.PASS
+
+                            try {
+                                grade = verdictOrGrade.toInt()
+                                if (grade <= 5) {
+                                    verdict = ApiManoSubjectEvaluationVerdict.FAIL
+                                }
+                            } catch (_: NumberFormatException) {
+                                verdict = EvaluationVerdictLookup[verdictOrGrade] ?: verdict
+                                grade =
+                                    if (verdict == ApiManoSubjectEvaluationVerdict.PASS)
+                                        10
+                                    else
+                                        0
+                            }
+
                             ApiManoSubjectFinalResult(
                                 modId = url.parameters["MOD_ID"] ?: "",
                                 modCode = url.parameters["MOD_CODE"] ?: "",
                                 link = result.groupValues[1],
                                 name = result.groupValues[2],
                                 lecturerFullName = result.groupValues[3],
-                                credits = result.groupValues[4].toInt(),
-                                hours = result.groupValues[5].toInt(),
-                                evaluationVerdict = ApiManoSubjectEvaluationVerdict.valueOf(result.groupValues[6]),
-                                tries = result.groupValues[7].toInt(),
+                                credits = result.groupValues[4].toIntNotNull(),
+                                hours = result.groupValues[5].toIntNotNull(),
+                                evaluationVerdict = verdict,
+                                grade = grade,
+                                tries = result.groupValues[7].toIntNotNull(),
                                 completionDate = result.groupValues[8]
                             )
                         }
@@ -668,8 +725,8 @@ object ManoApi {
                     lecturerName = values[8],
                     completedRatio = values[9],
                     percentageOfFinalAssessment = values[10].replace("%", "").toInt(),
-                    finalGrade = if (values[11] == "-") null else values[11].toFloat(),
-                    cumulativeScore = if (values[12] == "-") null else values[12].toFloat(),
+                    finalGrade = values[11].toFloatDashAsNull(),
+                    cumulativeScore = values[12].toFloatDashAsNull(),
                     lastUpdatedDate = values[13]
                 )
             }.toList()

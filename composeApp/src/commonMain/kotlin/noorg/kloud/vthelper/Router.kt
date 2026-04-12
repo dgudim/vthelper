@@ -36,6 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
+import noorg.kloud.vthelper.data.data_providers.ManoSemesterProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
 import noorg.kloud.vthelper.ui.components.StatusSnackbar
 import noorg.kloud.vthelper.ui.screens.AccountScreen
@@ -45,6 +46,7 @@ import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -120,9 +122,16 @@ fun Navigation(
 
     val db = LocalDb.current!!
     val loggedInUserViewModel =
-        remember { LoggedInUserViewModel(LoggedInUserProvider(db.loggedInUserDao())) }
+        remember {
+            LoggedInUserViewModel(
+                LoggedInUserProvider(db.loggedInUserDao()),
+                ManoSemesterProvider(db.manoSemesterDao())
+            )
+        }
     val moodleCoursesViewModel =
         remember { MoodleCoursesViewModel(MoodleCoursesProvider(db.moodleCourseDao())) }
+    val manoSemesterViewModel =
+        remember { ManoSemesterViewModel(ManoSemesterProvider(db.manoSemesterDao())) }
 
     NavHost(
         navController = navController,
@@ -138,7 +147,7 @@ fun Navigation(
             AccountScreen(loggedInUserViewModel, showSnack)
         }
         composable(NavDrawerItem.Results.route) {
-            ResultsScreen(showSnack)
+            ResultsScreen(loggedInUserViewModel, manoSemesterViewModel, showSnack)
         }
         composable(NavDrawerItem.Calendar.route) {
             CalendarScreen(showSnack)

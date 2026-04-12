@@ -16,31 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import noorg.kloud.vthelper.getColorFromGrade
 import noorg.kloud.vthelper.platform_specific.formatLocalDate
 import noorg.kloud.vthelper.ui.theme.customColors
 import kotlin.time.Instant
 
 @Composable
-@Stable
-private fun resultToColor(result: Long): Color {
-    if (result < 6) {
-        return MaterialTheme.customColors.badResult
-    }
-
-    if (result < 8) {
-        return MaterialTheme.customColors.okResult
-    }
-
-    return MaterialTheme.customColors.goodResult
-}
-
-@Composable
-fun SubjectResultEntry(
+fun SettlementResultEntry(
     subjectName: String,
     subjectColor: Color,
     workName: String,
     completedOn: Instant,
-    result: Long // TODO: Include course points
+    grade: Float // TODO: Include course points
 ) {
     val formattedDate = remember {
         completedOn.formatLocalDate()
@@ -69,10 +56,10 @@ fun SubjectResultEntry(
             Row(modifier = Modifier.align(Alignment.CenterEnd)) {
                 VerticalDivider(thickness = 6.dp, color = subjectColor)
                 Text(
-                    text = "$result",
+                    text = "$grade",
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.displaySmall,
-                    color = resultToColor(result)
+                    color = MaterialTheme.customColors.getColorFromGrade(grade)
                 )
             }
         }

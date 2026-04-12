@@ -1,6 +1,5 @@
 package noorg.kloud.vthelper
 
-import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
-import com.kizitonwose.calendar.compose.CalendarItemInfo
 import com.kizitonwose.calendar.compose.CalendarLayoutInfo
 import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.core.CalendarMonth
@@ -22,10 +20,10 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import kotlinx.io.bytestring.ByteString
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
+import noorg.kloud.vthelper.ui.theme.CustomColorPalette
 import kotlin.io.encoding.Base64
 import kotlin.random.Random
 
@@ -86,7 +84,8 @@ fun getHashedColor(num: Long): Color {
     )
 }
 
-fun Color.mixWith(other: Color, ratio: Float): Color {
+fun Color.mixWith(other: Color, ratioRaw: Float): Color {
+    val ratio = ratioRaw.coerceIn(0F, 1F)
     return Color(
         red = red * (1 - ratio) + other.red * ratio,
         green = green * (1 - ratio) + other.green * ratio,
@@ -94,8 +93,44 @@ fun Color.mixWith(other: Color, ratio: Float): Color {
     )
 }
 
+fun CustomColorPalette.getColorFromGrade(grade: Float?): Color {
+    return badResult.mixWith(goodResult, ((grade ?: 0F) - 5F) / 5F)
+}
+
 fun Regex.findFirstGroup(str: String): String? {
     return find(str)?.groupValues?.get(1)?.trim()
+}
+
+fun String.toIntNotNull(): Int {
+    return toIntDashAsNull() ?: 0
+}
+
+fun String.toIntDashAsNull(): Int? {
+    if (trim() == "-") {
+        return null
+    }
+    try {
+        return toInt()
+    } catch (_: NumberFormatException) {
+        println("Error converting $this to int")
+    }
+    return 0
+}
+
+fun String.toFloatNotNull(): Float {
+    return toFloatDashAsNull() ?: 0F
+}
+
+fun String.toFloatDashAsNull(): Float? {
+    if (trim() == "-") {
+        return null
+    }
+    try {
+        return replace(",", ".").toFloat()
+    } catch (_: NumberFormatException) {
+        println("Error converting $this to float")
+    }
+    return 0F
 }
 
 fun Throwable.fullMessage(): String {

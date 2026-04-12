@@ -34,7 +34,9 @@ data class NetResult<T>(
 
     fun logIt(): NetResult<T> {
         println(getFullStatus())
-        println(" == Truncated body: ${bodyRaw?.take(50)}\n")
+        if (isFailure) {
+            println(" == Body: ${bodyRaw}\n")
+        }
         return this
     }
 

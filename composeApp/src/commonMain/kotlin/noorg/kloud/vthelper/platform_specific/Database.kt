@@ -9,16 +9,20 @@ import androidx.room.TypeConverters
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import noorg.kloud.vthelper.data.dbdaos.LecturerDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
-import noorg.kloud.vthelper.data.dbdaos.ManoCourseDao
-import noorg.kloud.vthelper.data.dbdaos.ManoSubjectTimetableDao
-import noorg.kloud.vthelper.data.dbdaos.MoodleCourseDao
-import noorg.kloud.vthelper.data.dbentities.DBLecturerEntity
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectTimetableDao
+import noorg.kloud.vthelper.data.dbdaos.moodle.MoodleCourseDao
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
-import noorg.kloud.vthelper.data.dbentities.DBManoCourseEntity
-import noorg.kloud.vthelper.data.dbentities.DBManoSubjectTimetableEntity
-import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectTimetableEntity
+import noorg.kloud.vthelper.data.dbentities.moodle.DBMoodleCourseEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
 
 // https://developer.android.com/kotlin/multiplatform/room
 // https://medium.com/@hidayatasep43/implementing-room-database-in-kotlin-multiplatform-a-step-by-step-guide-2bc3e1b3aa16
@@ -26,15 +30,16 @@ import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 // https://piashcse.medium.com/room-database-in-jetpack-compose-a-step-by-step-guide-for-android-development-6c7ae419105a
 
 // https://medium.com/@majidshahbaz75/kotlin-flows-with-room-database-2d8b4b18790a
-// https://medium.com/@kemal_codes/kotlin-flow-map-operator-3a2ad08bd953
-
 @Database(
     entities = [
         DBMoodleCourseEntity::class,
-        DBManoCourseEntity::class,
+        DBManoSubjectEntity::class,
+        DBManoSemesterEntity::class,
+        DBManoSettlementGroup::class,
+        DbManoSettlementGrade::class,
         DBManoSubjectTimetableEntity::class,
+        DBManoEmployeeEntity::class,
         DBLoggedInUserEntity::class,
-        DBLecturerEntity::class
     ],
     version = 1,
 )
@@ -48,11 +53,14 @@ import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun moodleCourseDao(): MoodleCourseDao
-    abstract fun manoCourseDao(): ManoCourseDao
+    abstract fun manoCourseDao(): ManoSubjectDao
+    abstract fun manoSemesterDao(): ManoSemesterDao
+    abstract fun manoEmployeeDao(): ManoEmployeeDao
     abstract fun manoCourseTimetableDao(): ManoSubjectTimetableDao
     abstract fun loggedInUserDao(): LoggedInUserDao
-    abstract fun lecturerDao(): LecturerDao
 }
+
+// https://medium.com/@kemal_codes/kotlin-flow-map-operator-3a2ad08bd953
 
 // The Room compiler generates the `actual` implementations.
 @Suppress("KotlinNoActualForExpect", "EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")

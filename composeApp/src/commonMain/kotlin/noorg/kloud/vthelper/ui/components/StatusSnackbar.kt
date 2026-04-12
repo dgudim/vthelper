@@ -40,13 +40,13 @@ fun StatusSnackbar(snackbarData: SnackbarData) {
         SnackBarSeverityLevel.WARNING -> MaterialTheme.customColors.okResult
     }
 
-    val corners = RoundedCornerShape(25)
+    val corners = RoundedCornerShape(16)
 
     Box(
         modifier = Modifier
             .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
             .background(MaterialTheme.colorScheme.primary, shape = corners)
-            .border(width = 2.dp, color = borderColor, shape = corners),
+            .border(width = 1.dp, color = borderColor, shape = corners),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(

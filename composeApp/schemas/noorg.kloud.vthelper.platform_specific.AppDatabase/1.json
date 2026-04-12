@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "e9b541f7e27d4be35ae68f45f79bf53c",
+    "identityHash": "b019930098f75d077b7f91b64d1e66bc",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -47,24 +47,36 @@
         }
       },
       {
-        "tableName": "mano_courses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `mano_id` INTEGER NOT NULL, `subject` TEXT NOT NULL, `lecturer_id` INTEGER NOT NULL, `cover_image_path` TEXT NOT NULL, FOREIGN KEY(`lecturer_id`) REFERENCES `lecturers`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "tableName": "mano_subjects",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mod_id` TEXT NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `lecturer_id` INTEGER NOT NULL, `credits` INTEGER NOT NULL, `hours` INTEGER NOT NULL, `ta_ga_split_percentage` TEXT NOT NULL, `tries` INTEGER, `final_completion_date` TEXT, `final_completion_grade` TEXT, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, `final_evaluation_verdict` TEXT, PRIMARY KEY(`mod_id`), FOREIGN KEY(`semester_id`) REFERENCES `mano_semesters`(`seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
-            "fieldPath": "id",
-            "columnName": "id",
+            "fieldPath": "modId",
+            "columnName": "mod_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modCode",
+            "columnName": "mod_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "link",
+            "columnName": "link",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semesterId",
+            "columnName": "semester_id",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "manoId",
-            "columnName": "mano_id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "subject",
-            "columnName": "subject",
+            "fieldPath": "name",
+            "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -75,21 +87,74 @@
             "notNull": true
           },
           {
-            "fieldPath": "coverImagePath",
-            "columnName": "cover_image_path",
+            "fieldPath": "credits",
+            "columnName": "credits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hours",
+            "columnName": "hours",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taGaSplitPercentage",
+            "columnName": "ta_ga_split_percentage",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "tries",
+            "columnName": "tries",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "finalCompletionDate",
+            "columnName": "final_completion_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "finalCompletionGrade",
+            "columnName": "final_completion_grade",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "finalCompletionCumulativeScore",
+            "columnName": "final_completion_cumulative_score",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "finalCompletionCreditScore",
+            "columnName": "final_completion_credit_score",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "finalEvaluationVerdict",
+            "columnName": "final_evaluation_verdict",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "mod_id"
           ]
         },
         "foreignKeys": [
           {
-            "table": "lecturers",
+            "table": "mano_semesters",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "semester_id"
+            ],
+            "referencedColumns": [
+              "seq"
+            ]
+          },
+          {
+            "table": "mano_employees",
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
@@ -102,8 +167,205 @@
         ]
       },
       {
+        "tableName": "mano_semesters",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seq` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `group` TEXT NOT NULL, `study_program` TEXT, `season` TEXT, `year_range` TEXT, `final_total_credits` INTEGER, `final_weighted_grade` REAL, PRIMARY KEY(`seq`))",
+        "fields": [
+          {
+            "fieldPath": "absoluteSequenceNum",
+            "columnName": "seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCurrent",
+            "columnName": "is_current",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "group",
+            "columnName": "group",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "studyProgram",
+            "columnName": "study_program",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "season",
+            "columnName": "season",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "yearRange",
+            "columnName": "year_range",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "finalTotalCredits",
+            "columnName": "final_total_credits",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "finalWeightedGrade",
+            "columnName": "final_weighted_grade",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "seq"
+          ]
+        }
+      },
+      {
+        "tableName": "mano_settlement_groups",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `settlement_type` TEXT NOT NULL, `subject_mod_id` INTEGER NOT NULL, `completed_ratio` TEXT NOT NULL, `final_assessment_percentage` INTEGER NOT NULL, `final_grade` REAL, `final_cumulative_score` REAL, `last_updated` TEXT, FOREIGN KEY(`subject_mod_id`) REFERENCES `mano_subjects`(`mod_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "syntheticId",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "settlementType",
+            "columnName": "settlement_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectModId",
+            "columnName": "subject_mod_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedRatio",
+            "columnName": "completed_ratio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "percentageOfFinalAssessment",
+            "columnName": "final_assessment_percentage",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finalGrade",
+            "columnName": "final_grade",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "finalCumulativeScore",
+            "columnName": "final_cumulative_score",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lastUpdatedDate",
+            "columnName": "last_updated",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "mano_subjects",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "subject_mod_id"
+            ],
+            "referencedColumns": [
+              "mod_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "mano_settlement_grades",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `settlement_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `value` INTEGER NOT NULL, `date` TEXT NOT NULL, `grader_id` INTEGER NOT NULL, FOREIGN KEY(`settlement_id`) REFERENCES `mano_settlement_groups`(`id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`grader_id`) REFERENCES `mano_employees`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "syntheticId",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "settlementId",
+            "columnName": "settlement_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "graderId",
+            "columnName": "grader_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "mano_settlement_groups",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "settlement_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "mano_employees",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "grader_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
         "tableName": "mano_timetable",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `course_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `student_group` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`course_id`) REFERENCES `mano_courses`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject_mod_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `student_group` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`subject_mod_id`) REFERENCES `mano_subjects`(`mod_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -112,8 +374,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "courseId",
-            "columnName": "course_id",
+            "fieldPath": "subjectModId",
+            "columnName": "subject_mod_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -156,17 +418,83 @@
         },
         "foreignKeys": [
           {
-            "table": "mano_courses",
+            "table": "mano_subjects",
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "course_id"
+              "subject_mod_id"
             ],
             "referencedColumns": [
-              "id"
+              "mod_id"
             ]
           }
         ]
+      },
+      {
+        "tableName": "mano_employees",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `fullname` TEXT NOT NULL, `shortname` TEXT NOT NULL, `positions` TEXT NOT NULL, `departments` TEXT NOT NULL, `phones` TEXT NOT NULL, `emails` TEXT NOT NULL, `offices` TEXT NOT NULL, `link` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "manoId",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullname",
+            "columnName": "fullname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shortname",
+            "columnName": "shortname",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "positions",
+            "columnName": "positions",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "departments",
+            "columnName": "departments",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phones",
+            "columnName": "phones",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emails",
+            "columnName": "emails",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offices",
+            "columnName": "offices",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "link",
+            "columnName": "link",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
       },
       {
         "tableName": "logged_in_user",
@@ -251,53 +579,11 @@
             "student_id"
           ]
         }
-      },
-      {
-        "tableName": "lecturers",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fullname` TEXT NOT NULL, `mano_id` TEXT NOT NULL, `mano_link` TEXT NOT NULL, `moodle_link` TEXT NOT NULL)",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "fullname",
-            "columnName": "fullname",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "manoId",
-            "columnName": "mano_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "manoLink",
-            "columnName": "mano_link",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "moodleLink",
-            "columnName": "moodle_link",
-            "affinity": "TEXT",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "id"
-          ]
-        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e9b541f7e27d4be35ae68f45f79bf53c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b019930098f75d077b7f91b64d1e66bc')"
     ]
   }
 }

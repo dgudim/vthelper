@@ -1,15 +1,15 @@
-package noorg.kloud.vthelper.data.dbdaos
+package noorg.kloud.vthelper.data.dbdaos.moodle
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
+import noorg.kloud.vthelper.data.dbentities.moodle.DBMoodleCourseEntity
 
 @Dao
 interface MoodleCourseDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.Companion.IGNORE)
     suspend fun insertMany(items: List<DBMoodleCourseEntity>)
 
     @Query("SELECT count(*) FROM moodle_courses")

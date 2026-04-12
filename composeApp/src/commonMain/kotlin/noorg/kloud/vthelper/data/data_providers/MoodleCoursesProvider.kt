@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.downloadImage
-import noorg.kloud.vthelper.data.dbdaos.MoodleCourseDao
-import noorg.kloud.vthelper.data.dbentities.DBMoodleCourseEntity
+import noorg.kloud.vthelper.data.dbdaos.moodle.MoodleCourseDao
+import noorg.kloud.vthelper.data.dbentities.moodle.DBMoodleCourseEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedMoodleCourseEntity
 import noorg.kloud.vthelper.decodeBase64ToFile
 import noorg.kloud.vthelper.getHashedColor
@@ -48,7 +48,7 @@ class MoodleCoursesProvider(private val moodleCourseDao: MoodleCourseDao) {
                     )
                 })
 
-        return coursesResponse.toResult()
+        return Result.success("OK")
     }
 
     fun getAllCourses(): Flow<List<ProvidedMoodleCourseEntity>> {

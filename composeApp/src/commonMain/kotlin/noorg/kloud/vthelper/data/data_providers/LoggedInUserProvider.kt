@@ -59,7 +59,7 @@ class LoggedInUserProvider(
 
         downloadImage(avatarPath, Url(studentInfo.avatarUrl))
 
-        loggedInUserDao.insert(
+        loggedInUserDao.replace(
             DBLoggedInUserEntity(
                 studentId = studentId,
                 password = password,
@@ -81,28 +81,25 @@ class LoggedInUserProvider(
 
     fun getCurrentUserInfo(): Flow<ProvidedLoggedInUserEntity> {
         return loggedInUserDao.getAllAsFlow().map {
-            try {
-                with(it.first()) {
-                    ProvidedLoggedInUserEntity(
-                        phone = phone,
-                        address = address,
-                        personalEmail = personalEmail,
-                        universityEmail = universityEmail,
+            val el = it.firstOrNull() ?: return@map ProvidedLoggedInUserEntity()
+            with(el) {
+                ProvidedLoggedInUserEntity(
+                    phone = phone,
+                    address = address,
+                    personalEmail = personalEmail,
+                    universityEmail = universityEmail,
 
-                        moodleId = moodleId,
+                    moodleId = moodleId,
 
-                        studentId = studentId,
-                        password = password,
-                        fullName = fullName,
-                        birthDate = birthDate,
-                        avatarPath = avatarPath,
+                    studentId = studentId,
+                    password = password,
+                    fullName = fullName,
+                    birthDate = birthDate,
+                    avatarPath = avatarPath,
 
-                        cookiesJson = cookiesJson,
-                        isSessionValid = isSessionValid
-                    )
-                }
-            } catch (_: NoSuchElementException) {
-                ProvidedLoggedInUserEntity()
+                    cookiesJson = cookiesJson,
+                    isSessionValid = isSessionValid
+                )
             }
         }
     }

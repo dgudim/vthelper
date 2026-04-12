@@ -19,13 +19,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,21 +37,20 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.common.ConfirmationDialog
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.InfoField
 import noorg.kloud.vthelper.ui.components.common.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
-import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.account_circle_24px
 import vthelper.composeapp.generated.resources.alternate_email_24px
+import vthelper.composeapp.generated.resources.book_24px
+import vthelper.composeapp.generated.resources.calendar_month_24px
 import vthelper.composeapp.generated.resources.id_card_24px
 import vthelper.composeapp.generated.resources.logout_24px
 import vthelper.composeapp.generated.resources.moodle
@@ -66,6 +63,7 @@ fun AccountScreen(
     showSnack: SnackbarFun
 ) {
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
+    val currentSemester by loggedInUserViewModel.currentSemester.collectAsStateWithLifecycle()
 
     val localMfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
     val localStudentId by loggedInUserViewModel.studentId.collectAsStateWithLifecycle()
@@ -80,7 +78,7 @@ fun AccountScreen(
     val loggedInCardHeaderText =
         if (userState.isSessionValid) "Logged in" else "Not logged in"
     val loggedInExpandedCardHeaderText =
-        if (userState.isSessionValid) loggedInCardHeaderText else "Please enter your credentials"
+        if (userState.isSessionValid) "Viewing credentials" else "Please enter your credentials"
     val loggedInTopHeaderText =
         if (userState.isSessionValid) "${userState.fullName} (${userState.studentId})" else "Login into your Vilniustech account"
 
@@ -156,7 +154,7 @@ fun AccountScreen(
         )
         ExpandableCard(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
             ),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 6.dp
@@ -166,11 +164,12 @@ fun AccountScreen(
                 .padding(16.dp), // Distance to the screen border
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
             internalPadding = 8.dp,  // Distance to the card border
-            shouldBeExpandedParent = !userState.isSessionValid,
+            shouldBeExpanded = !userState.isSessionValid,
             collapsedContent = {
                 Text(
                     color = loggedInColor,
-                    text = loggedInCardHeaderText
+                    text = loggedInCardHeaderText,
+                    modifier = Modifier.weight(1F)
                 )
             }
         ) {
@@ -252,7 +251,21 @@ fun AccountScreen(
                 "Student id",
                 userState.studentId ?: "-"
             )
-            InfoField(Res.drawable.school_24px, "Group", "TODO: Extract group")
+            InfoField(
+                Res.drawable.school_24px,
+                "Group",
+                currentSemester?.group ?: "-"
+            )
+            InfoField(
+                Res.drawable.book_24px,
+                "Study program",
+                currentSemester?.studyProgram ?: "-"
+            )
+            InfoField(
+                Res.drawable.calendar_month_24px,
+                "Current semester",
+                if (currentSemester != null) "${currentSemester?.absoluteSequenceNum}" else "-"
+            )
             HorizontalDivider(modifier = Modifier.padding(16.dp))
             InfoField(Res.drawable.vt_48px, "Open mano", "mano.vilniustech.lt", {
                 uriHandler.openUri("https://mano.vilniustech.lt")

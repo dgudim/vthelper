@@ -1,10 +1,10 @@
-package noorg.kloud.vthelper.data.dbdaos
+package noorg.kloud.vthelper.data.dbdaos.mano
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import noorg.kloud.vthelper.data.dbentities.DBManoSubjectTimetableEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectTimetableEntity
 
 @Dao
 interface ManoSubjectTimetableDao {
@@ -15,5 +15,5 @@ interface ManoSubjectTimetableDao {
     suspend fun count(): Int
 
     @Query("SELECT * FROM mano_timetable")
-    fun getAllAsFlow(): Flow<DBManoSubjectTimetableEntity>
+    fun getAllAsFlow(): Flow<List<DBManoSubjectTimetableEntity>>
 }

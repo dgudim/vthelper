@@ -1,4 +1,4 @@
-package noorg.kloud.vthelper.data.dbentities
+package noorg.kloud.vthelper.data.dbentities.mano
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -17,9 +17,9 @@ enum class DBManoTimetableEntityWeek(val w: Int) {
     tableName = "mano_timetable",
     foreignKeys = [
         ForeignKey(
-            entity = DBManoCourseEntity::class,
-            parentColumns = arrayOf("id"),
-            childColumns = arrayOf("course_id"),
+            entity = DBManoSubjectEntity::class,
+            parentColumns = arrayOf("mod_id"),
+            childColumns = arrayOf("subject_mod_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
@@ -29,8 +29,8 @@ data class DBManoSubjectTimetableEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    @ColumnInfo(name = "course_id")
-    val courseId: Long = 0,
+    @ColumnInfo(name = "subject_mod_id")
+    val subjectModId: Long = 0,
 
     @ColumnInfo(name = "time_from_ms_utc")
     val timeFromMsUTC: Long,
