@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b019930098f75d077b7f91b64d1e66bc",
+    "identityHash": "7e12d5868f412de1f2870e2bb96c19ce",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -48,7 +48,7 @@
       },
       {
         "tableName": "mano_subjects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mod_id` TEXT NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `lecturer_id` INTEGER NOT NULL, `credits` INTEGER NOT NULL, `hours` INTEGER NOT NULL, `ta_ga_split_percentage` TEXT NOT NULL, `tries` INTEGER, `final_completion_date` TEXT, `final_completion_grade` TEXT, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, `final_evaluation_verdict` TEXT, PRIMARY KEY(`mod_id`), FOREIGN KEY(`semester_id`) REFERENCES `mano_semesters`(`seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mod_id` TEXT NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `ta_ga_split_percentage` TEXT, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, `final_evaluation_verdict` TEXT, PRIMARY KEY(`mod_id`), FOREIGN KEY(`semester_seq`) REFERENCES `mano_semesters`(`seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "modId",
@@ -69,8 +69,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "semesterId",
-            "columnName": "semester_id",
+            "fieldPath": "semesterSequence",
+            "columnName": "semester_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lecturerId",
+            "columnName": "lecturer_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -81,32 +87,23 @@
             "notNull": true
           },
           {
-            "fieldPath": "lecturerId",
-            "columnName": "lecturer_id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "credits",
-            "columnName": "credits",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "hours",
-            "columnName": "hours",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
             "fieldPath": "taGaSplitPercentage",
             "columnName": "ta_ga_split_percentage",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "tries",
             "columnName": "tries",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "hours",
+            "columnName": "hours",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "credits",
+            "columnName": "credits",
             "affinity": "INTEGER"
           },
           {
@@ -117,7 +114,7 @@
           {
             "fieldPath": "finalCompletionGrade",
             "columnName": "final_completion_grade",
-            "affinity": "TEXT"
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "finalCompletionCumulativeScore",
@@ -147,7 +144,7 @@
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "semester_id"
+              "semester_seq"
             ],
             "referencedColumns": [
               "seq"
@@ -161,7 +158,7 @@
               "lecturer_id"
             ],
             "referencedColumns": [
-              "id"
+              "mano_id"
             ]
           }
         ]
@@ -293,7 +290,7 @@
       },
       {
         "tableName": "mano_settlement_grades",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `settlement_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `value` INTEGER NOT NULL, `date` TEXT NOT NULL, `grader_id` INTEGER NOT NULL, FOREIGN KEY(`settlement_id`) REFERENCES `mano_settlement_groups`(`id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`grader_id`) REFERENCES `mano_employees`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `settlement_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `value` INTEGER NOT NULL, `date` TEXT NOT NULL, `grader_id` INTEGER NOT NULL, FOREIGN KEY(`settlement_id`) REFERENCES `mano_settlement_groups`(`id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`grader_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "syntheticId",
@@ -358,7 +355,7 @@
               "grader_id"
             ],
             "referencedColumns": [
-              "id"
+              "mano_id"
             ]
           }
         ]
@@ -432,22 +429,21 @@
       },
       {
         "tableName": "mano_employees",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `fullname` TEXT NOT NULL, `shortname` TEXT NOT NULL, `positions` TEXT NOT NULL, `departments` TEXT NOT NULL, `phones` TEXT NOT NULL, `emails` TEXT NOT NULL, `offices` TEXT NOT NULL, `link` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mano_id` INTEGER NOT NULL, `fullname` TEXT, `shortname` TEXT NOT NULL, `positions` TEXT, `departments` TEXT, `phones` TEXT, `emails` TEXT, `offices` TEXT, PRIMARY KEY(`mano_id`))",
         "fields": [
           {
             "fieldPath": "manoId",
-            "columnName": "id",
+            "columnName": "mano_id",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "fullname",
+            "fieldPath": "fullName",
             "columnName": "fullname",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
-            "fieldPath": "shortname",
+            "fieldPath": "shortName",
             "columnName": "shortname",
             "affinity": "TEXT",
             "notNull": true
@@ -455,44 +451,33 @@
           {
             "fieldPath": "positions",
             "columnName": "positions",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "departments",
             "columnName": "departments",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "phones",
             "columnName": "phones",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "emails",
             "columnName": "emails",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "offices",
             "columnName": "offices",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "link",
-            "columnName": "link",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "id"
+            "mano_id"
           ]
         }
       },
@@ -583,7 +568,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b019930098f75d077b7f91b64d1e66bc')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7e12d5868f412de1f2870e2bb96c19ce')"
     ]
   }
 }

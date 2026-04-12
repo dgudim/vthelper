@@ -53,7 +53,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun moodleCourseDao(): MoodleCourseDao
-    abstract fun manoCourseDao(): ManoSubjectDao
+    abstract fun manoSubjectDao(): ManoSubjectDao
     abstract fun manoSemesterDao(): ManoSemesterDao
     abstract fun manoEmployeeDao(): ManoEmployeeDao
     abstract fun manoCourseTimetableDao(): ManoSubjectTimetableDao

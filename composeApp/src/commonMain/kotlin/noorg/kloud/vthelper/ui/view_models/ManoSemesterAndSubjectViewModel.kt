@@ -10,19 +10,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
-import noorg.kloud.vthelper.data.data_providers.ManoSemesterProvider
+import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
-import noorg.kloud.vthelper.data.provider_models.ProvidedMoodleCourseEntity
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Duration.Companion.seconds
 
 @Stable
-class ManoSemesterViewModel(
-    private val manoSemesterProvider: ManoSemesterProvider
+class ManoSemesterAndSubjectViewModel(
+    private val manoSemesterAndSubjectProvider: ManoSemesterAndSubjectProvider
 ) : ViewModel() {
 
     val semesters: StateFlow<List<ProvidedManoSemesterEntity>> =
-        manoSemesterProvider
+        manoSemesterAndSubjectProvider
             .getAllSemesters()
             .stateIn(
                 scope = viewModelScope,
@@ -30,12 +30,22 @@ class ManoSemesterViewModel(
                 initialValue = emptyList(),
             )
 
-    fun fetchSemestersFromApi(showSnack: SnackbarFun): Job {
+    fun fetchSemestersAndSubjectsFromApi(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
-            manoSemesterProvider.fetchSemestersFromApi()
+            manoSemesterAndSubjectProvider.fetchAllSemestersAndSubjectsFromApi()
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
         }
+    }
+
+    fun getSubjectsForSemesterAsStateFlow(semesterAbsoluteSequence: Int): StateFlow<List<ProvidedManoSubjectEntity>> {
+        return manoSemesterAndSubjectProvider
+            .getSubjectsForSemester(semesterAbsoluteSequence)
+            .stateIn(
+                scope = viewModelScope,
+                started = WhileSubscribed(5.seconds.inWholeMilliseconds),
+                initialValue = emptyList(),
+            )
     }
 }

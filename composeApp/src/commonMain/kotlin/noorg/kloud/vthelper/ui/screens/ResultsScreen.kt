@@ -8,27 +8,28 @@ import noorg.kloud.vthelper.ui.components.SemesterCard
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.components.common.ScreenHeaderTextWithLoader
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
-import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
 
 @Composable
 fun ResultsScreen(
     loggedInUserViewModel: LoggedInUserViewModel,
-    manoSemesterViewModel: ManoSemesterViewModel,
+    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
     showSnack: SnackbarFun
 ) {
 
-    val semesters by manoSemesterViewModel.semesters.collectAsStateWithLifecycle()
+    val semesters by manoSemesterAndSubjectViewModel.semesters.collectAsStateWithLifecycle()
 
     LoadableListSection(
         loggedInUserViewModel = loggedInUserViewModel,
         items = semesters,
         fetchFunction = {
-            manoSemesterViewModel.fetchSemestersFromApi(showSnack)
+            manoSemesterAndSubjectViewModel.fetchSemestersAndSubjectsFromApi(showSnack)
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Results per semester", isLoading)
-        }
+        },
+        displayDirectly = true,
     ) { semesterData ->
-        SemesterCard(semesterData)
+        SemesterCard(manoSemesterAndSubjectViewModel, semesterData)
     }
 }

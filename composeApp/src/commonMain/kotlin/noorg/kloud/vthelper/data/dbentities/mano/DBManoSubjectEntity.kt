@@ -1,9 +1,11 @@
 package noorg.kloud.vthelper.data.dbentities.mano
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 enum class DBManoSubjectEvaluationVerdict(v: String) {
     PASS("T"),
@@ -19,13 +21,13 @@ enum class DBManoSubjectEvaluationVerdict(v: String) {
         ForeignKey(
             entity = DBManoSemesterEntity::class,
             parentColumns = arrayOf("seq"),
-            childColumns = arrayOf("semester_id"),
+            childColumns = arrayOf("semester_seq"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
             entity = DBManoEmployeeEntity::class,
-            parentColumns = arrayOf("id"),
+            parentColumns = arrayOf("mano_id"),
             childColumns = arrayOf("lecturer_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
@@ -42,32 +44,52 @@ data class DBManoSubjectEntity(
     val link: String,
 
     // FK to mano_semesters
-    @ColumnInfo(name = "semester_id")
-    val semesterId: Long,
+    @ColumnInfo(name = "semester_seq")
+    val semesterSequence: Int,
 
-    @ColumnInfo(name = "name")
-    val name: String,
+    // FK to mano_employees
     @ColumnInfo(name = "lecturer_id")
     val lecturerId: Long,
 
-    @ColumnInfo(name = "credits")
-    val credits: Int,
-    @ColumnInfo(name = "hours")
-    val hours: Int,
+    @ColumnInfo(name = "name")
+    val name: String,
+
+    // Available only after fetching mediate results
     @ColumnInfo(name = "ta_ga_split_percentage")
-    val taGaSplitPercentage: String,
+    val taGaSplitPercentage: String? = null,
 
     // After completing this subject
     @ColumnInfo(name = "tries")
-    val tries: Int?,
+    val tries: Int? = null,
+    @ColumnInfo(name = "hours")
+    val hours: Int? = null,
+    // Fetchable from some other section, but right now only after completing the subject
+    // TODO: Fetch this and make not null
+    @ColumnInfo(name = "credits")
+    val credits: Int? = null,
+
     @ColumnInfo(name = "final_completion_date")
-    val finalCompletionDate: String?,
+    val finalCompletionDate: String? = null,
     @ColumnInfo(name = "final_completion_grade")
-    val finalCompletionGrade: String?,
+    val finalCompletionGrade: Int? = null,
     @ColumnInfo(name = "final_completion_cumulative_score")
-    val finalCompletionCumulativeScore: String?,
+    val finalCompletionCumulativeScore: String? = null,
     @ColumnInfo(name = "final_completion_credit_score")
-    val finalCompletionCreditScore: String?,
+    val finalCompletionCreditScore: String? = null,
     @ColumnInfo(name = "final_evaluation_verdict")
-    val finalEvaluationVerdict: DBManoSubjectEvaluationVerdict?,
+    val finalEvaluationVerdict: DBManoSubjectEvaluationVerdict? = null,
+)
+
+// https://developer.android.com/training/data-storage/room/relationships/one-to-one
+// https://medium.com/androiddevelopers/7-pro-tips-for-room-fbadea4bfbd1
+// https://proandroiddev.com/room-database-lessons-learnt-from-working-with-multiple-tables-d499c9be94ce
+
+data class DBManoSubjectEntityWithEmployee(
+    @Embedded
+    val subject: DBManoSubjectEntity,
+    @Relation(
+        parentColumn = "lecturer_id",
+        entityColumn = "mano_id"
+    )
+    val employee: DBManoEmployeeEntity
 )

@@ -22,12 +22,15 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.CustomColorPalette
 import kotlin.io.encoding.Base64
 import kotlin.random.Random
 
 typealias SnackbarFun = (String, SnackBarSeverityLevel, SnackbarDuration) -> Unit
+
+// ============================= CALENDAR
 
 val YearMonth.next: YearMonth get() = this.plus(1, DateTimeUnit.MONTH)
 val YearMonth.previous: YearMonth get() = this.minus(1, DateTimeUnit.MONTH)
@@ -67,6 +70,8 @@ private fun CalendarLayoutInfo.firstMostVisibleMonth(viewportPercent: Float): Ca
     }
 }
 
+
+// ============================= COLORS
 fun Color.setAlpha(newAlpha: Float): Color {
     return copy(
         alpha = newAlpha
@@ -96,6 +101,8 @@ fun Color.mixWith(other: Color, ratioRaw: Float): Color {
 fun CustomColorPalette.getColorFromGrade(grade: Float?): Color {
     return badResult.mixWith(goodResult, ((grade ?: 0F) - 5F) / 5F)
 }
+
+// ============================= GENERAL STR
 
 fun Regex.findFirstGroup(str: String): String? {
     return find(str)?.groupValues?.get(1)?.trim()
@@ -149,6 +156,8 @@ fun Throwable.fullMessage(): String {
     return message.replace("(Kotlin reflection is not available)", "")
 }
 
+// ============================= IO
+
 suspend fun String.decodeBase64ToFile(targetPath: Path) {
     try {
         val rawdata = split(",").last() // Remove the data:<datatype>, prefix
@@ -160,4 +169,32 @@ suspend fun String.decodeBase64ToFile(targetPath: Path) {
     } catch (e: Exception) {
         println("Error decoding base64 to image: $e")
     }
+}
+
+// ============================= DB HELPERS
+
+fun List<DBManoEmployeeEntity>.fuzzyFindEmployeeNullIfDash(lecturerName: String): DBManoEmployeeEntity? {
+    if (lecturerName == "-") {
+        return null
+    }
+
+    val cleanedLecturerName = lecturerName
+        .lowercase()
+        .replace("doc.", "")
+        .replace("dr.", "")
+        .trim()
+
+    val matcher = Regex(
+        cleanedLecturerName.replace(".", ".*?")
+    )
+    for (employee in this) {
+        val employeeNameLowercase = employee.shortName.lowercase()
+        if (cleanedLecturerName == employeeNameLowercase || matcher.containsMatchIn(
+                employeeNameLowercase
+            )
+        ) {
+            return employee
+        }
+    }
+    return null
 }

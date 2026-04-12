@@ -14,12 +14,18 @@ interface ManoEmployeeDao {
     @Upsert
     suspend fun upsertMany(items: List<DBManoEmployeeEntity>)
 
-    @Query("SELECT * from mano_employees where id = :id")
-    suspend fun getById(id: String): DBManoEmployeeEntity?
+    @Query("SELECT * from mano_employees where mano_id = :id")
+    fun getByIdAsFlow(id: Long): Flow<DBManoEmployeeEntity?>
+
+    @Query("SELECT * from mano_employees where mano_id = :id")
+    suspend fun getById(id: Long): DBManoEmployeeEntity?
 
     @Query("SELECT count(*) FROM mano_employees")
     suspend fun count(): Int
 
     @Query("SELECT * FROM mano_employees")
     fun getAllAsFlow(): Flow<List<DBManoEmployeeEntity>>
+
+    @Query("SELECT * FROM mano_employees")
+    suspend fun getAll(): List<DBManoEmployeeEntity>
 }

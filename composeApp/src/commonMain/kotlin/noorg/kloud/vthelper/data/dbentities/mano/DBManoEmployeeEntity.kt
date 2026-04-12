@@ -9,25 +9,22 @@ import androidx.room.PrimaryKey
 )
 data class DBManoEmployeeEntity(
     @PrimaryKey(autoGenerate = false)
-    @ColumnInfo(name = "id")
-    val manoId: Long = 0,
+    @ColumnInfo(name = "mano_id")
+    val manoId: Long,
 
     @ColumnInfo(name = "fullname")
-    val fullname: String,
+    val fullName: String? = null,
     @ColumnInfo(name = "shortname")
-    val shortname: String,
+    val shortName: String,
 
     @ColumnInfo(name = "positions")
-    val positions: String,
+    val positions: String? = null,
     @ColumnInfo(name = "departments")
-    val departments: String,
+    val departments: String? = null,
     @ColumnInfo(name = "phones")
-    val phones: String,
+    val phones: String? = null,
     @ColumnInfo(name = "emails")
-    val emails: String,
+    val emails: String? = null,
     @ColumnInfo(name = "offices")
-    val offices: String,
-
-    @ColumnInfo(name = "link")
-    val link: String
+    val offices: String? = null
 )

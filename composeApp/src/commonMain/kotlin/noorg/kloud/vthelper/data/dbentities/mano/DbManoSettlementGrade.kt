@@ -17,7 +17,7 @@ import androidx.room.PrimaryKey
         ),
         ForeignKey(
             entity = DBManoEmployeeEntity::class,
-            parentColumns = arrayOf("id"),
+            parentColumns = arrayOf("mano_id"),
             childColumns = arrayOf("grader_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE

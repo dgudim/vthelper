@@ -8,17 +8,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
-import noorg.kloud.vthelper.data.data_providers.ManoSemesterProvider
+import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
-import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Duration.Companion.seconds
 
@@ -28,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
 @Stable
 class LoggedInUserViewModel(
     private val loggedInUserProvider: LoggedInUserProvider,
-    private val manoSemesterProvider: ManoSemesterProvider
+    private val manoSemesterAndSubjectProvider: ManoSemesterAndSubjectProvider
 ) : ViewModel() {
     val userState = loggedInUserProvider
         .getCurrentUserInfo()
@@ -39,7 +36,7 @@ class LoggedInUserViewModel(
             initialValue = ProvidedLoggedInUserEntity(),
         )
 
-    val currentSemester = manoSemesterProvider
+    val currentSemester = manoSemesterAndSubjectProvider
         .getCurrentSemester()
         .stateIn(
             scope = viewModelScope,
@@ -65,8 +62,8 @@ class LoggedInUserViewModel(
 
     fun fetchSemesterData(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
-            manoSemesterProvider
-                .fetchSemestersFromApi(true)
+            manoSemesterAndSubjectProvider
+                .fetchCurrentSemesterAndSubjectsFromApi()
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }

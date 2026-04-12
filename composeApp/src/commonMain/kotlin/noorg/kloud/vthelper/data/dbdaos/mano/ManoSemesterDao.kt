@@ -1,8 +1,6 @@
 package noorg.kloud.vthelper.data.dbdaos.mano
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -21,4 +19,7 @@ interface ManoSemesterDao {
 
     @Query("SELECT * FROM mano_semesters order by seq desc")
     fun getAllAsFlow(): Flow<List<DBManoSemesterEntity>>
+
+    @Query("SELECT * FROM mano_semesters where is_current")
+    fun getCurrentAsFlow(): Flow<List<DBManoSemesterEntity>>
 }

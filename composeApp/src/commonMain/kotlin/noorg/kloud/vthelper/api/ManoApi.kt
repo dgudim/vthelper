@@ -7,29 +7,38 @@ import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import io.ktor.http.parameters
+import io.ktor.utils.io.charsets.Charsets
+import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import noorg.kloud.vthelper.api.ManoApi.getCompletedSemesterResultsUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getEmployeeDetailsUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getEmployeesUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getSettlementGradesUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getStudentInfoUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getSubjectSettlementOverviewsUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getSubjectTimetableUnsafe
+import noorg.kloud.vthelper.api.ManoApi.getThisSemesterInfoUnsafe
 import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
-import noorg.kloud.vthelper.api.models.mano.grades.ApiManoCompletedSemesterResult
-import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
-import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterSubjectEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
+import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
 import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterInfo
-import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectEvaluationVerdict
-import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectFinalResult
+import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterSubjectEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityWeek
 import noorg.kloud.vthelper.api.models.mano.ManoTimetableWeekday
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoCompletedSemesterResult
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSemesterMediateResults
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectEvaluationVerdict
+import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectFinalResult
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementGrade
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementOverview
 import noorg.kloud.vthelper.api.models.mano.grades.EvaluationVerdictLookup
@@ -44,6 +53,8 @@ import kotlin.time.Duration
 object ManoApi {
 
     val baseUrl = Url("https://mano.vilniustech.lt/")
+
+    val unicodeUnescapeRegex = Regex("""\\u([0-9a-fA-F]{4})""")
 
     /** [getStudentInfoUnsafe] */
     val personalEmailExtractionRegex =
@@ -67,7 +78,7 @@ object ManoApi {
     val fullNameAndAvatarExtractionRegex =
         Regex("""id="user_img_id".*?alt="(.*?)".*?src="(.*?)"""", RegexOption.MULTILINE)
 
-    /** [getThisSemesterSubjectsUnsafe] */
+    /** [getThisSemesterInfoUnsafe] */
 
     val currentSemesterInfoExtractionRegex = Regex(
         """<title>(.*?)<""",
@@ -89,7 +100,7 @@ object ManoApi {
 
     /** [getEmployeesUnsafe] */
     val outerContactsExtractionRegex = Regex(
-        """<div class=".*?loading-contacts-workers".*?<select.*?\n(?:<option.*option>\n)+""",
+        """(<select.*?name="Contacts\[workers]".*?(?:<option.*option>)+)""",
         RegexOption.MULTILINE
     )
     val innerContactsExtractionRegex = Regex(
@@ -133,7 +144,7 @@ object ManoApi {
         RegexOption.MULTILINE
     )
 
-    /** [getSemesterResultsUnsafe] */
+    /** [getCompletedSemesterResultsUnsafe] */
 
     val tableBodyExtractionRegex = Regex(
         """<tbody(.*?)tbody>"""
@@ -186,11 +197,17 @@ object ManoApi {
     }
 
     private fun String.unescape(): String {
-        return replace("&amp;", "&")
+        // https://stackoverflow.com/questions/66264361/unescape-and-get-unicode-string-in-kotlin
+        val preCleaned = replace("&amp;", "&")
             .replace("\\\"", "\"")
             .replace("\\n", "\n")
             .replace("\\r", "")
             .replace("&nbsp;", "")
+        // Unescape \u0160 and similar
+        return unicodeUnescapeRegex.replace(preCleaned) { matchResult ->
+            // Get the hex value (e.g., "0160"), convert to Int with base 16, then to Char
+            matchResult.groupValues[1].toInt(16).toChar().toString()
+        }
     }
 
     private fun String.singleLine(): String {
@@ -288,14 +305,14 @@ object ManoApi {
         return safeRetryWithPrecall(
             "get current semester info", "update session",
             mainBlock = {
-                getThisSemesterSubjectsUnsafe(it)
+                getThisSemesterInfoUnsafe(it)
             },
             beforeRetryBlock = { op, mainCallResult ->
                 updateSessionIfNeeded(op, mainCallResult.bodyRaw)
             })
     }
 
-    private suspend fun getThisSemesterSubjectsUnsafe(rootOperationName: String): NetResult<ApiManoThisSemesterInfo> {
+    private suspend fun getThisSemesterInfoUnsafe(rootOperationName: String): NetResult<ApiManoThisSemesterInfo> {
         val studySubjectsResponse = client.get("$baseUrl/thissemester/site/studysubject")
 
         studySubjectsResponse.expect200<ApiManoThisSemesterInfo>(
@@ -309,7 +326,7 @@ object ManoApi {
         )?.let { return it }
 
         val currentSemesterInfo = currentSemesterInfoExtractionRegex.findFirstGroup(
-            studySubjectsPageIndexResponse.bodyAsText().unescape()
+            studySubjectsPageIndexResponse.bodyAsText()
         )
             ?.split("&lt;br&gt;") // Study programme: Information Technologies&lt;br&gt;8 Semester - 4th year (Group: ITVfu-22)
 
@@ -327,11 +344,12 @@ object ManoApi {
                 studySubjectsResponse.bodyAsText().unescape().singleLine()
             ).map { result ->
                 val url = Url(result.groupValues[1])
+                val modCode = url.parameters["MOD_CODE"] ?: ""
                 ApiManoThisSemesterSubjectEntity(
                     modId = url.parameters["MOD_ID"] ?: "",
-                    modCode = url.parameters["MOD_CODE"] ?: "",
+                    modCode = modCode,
                     link = result.groupValues[1],
-                    name = result.groupValues[2],
+                    name = result.groupValues[2].replace(modCode, "").trim(),
                     lecturerFullName = result.groupValues[3],
                     evaluationType = result.groupValues[4],
                     credits = result.groupValues[5].toInt(),
@@ -371,7 +389,7 @@ object ManoApi {
         )?.let { return it }
 
         val matches = courseTimetableExtractionRegex.findAll(
-            courseTimetablePageResponse.bodyAsText().unescape()
+            courseTimetablePageResponse.bodyAsText().singleLine()
         )
 
         val subjects = matches.map { result ->
@@ -412,33 +430,30 @@ object ManoApi {
         val contactsPageContent = contactsPageResponse.bodyAsText()
 
         val outerMatch = outerContactsExtractionRegex.findFirstGroup(
-            contactsPageContent.unescape()
+            contactsPageContent.singleLine()
         )
 
         if (outerMatch == null) {
-            return NetResult<List<ApiManoEmployeeBasicEntity>>(
-                statusCode = HttpStatusCode.OK,
-                bodyRaw = contactsPageContent,
-                bodyTyped = null,
-                context = "Extraction failed",
-                isSuccess = false,
+            return contactsPageContent.toNetResultFail(
+                context = "outerMatch == null",
                 operation = "$rootOperationName + outer contacts extraction"
-            ).logIt()
+            )
         }
 
         val matches = innerContactsExtractionRegex.findAll(outerMatch)
 
-        val employees = matches.map { result ->
-            ApiManoEmployeeBasicEntity(
-                id = result.groupValues[1].trim(),
-                fullName = result.groupValues[2].trim()
+        val employees = matches.mapNotNull { result ->
+            val id = result.groupValues[1].trim().toLongOrNull() ?: return@mapNotNull null
+            return@mapNotNull ApiManoEmployeeBasicEntity(
+                id = id,
+                shortName = result.groupValues[2].trim()
             )
         }.toList()
 
         return NetResult.fromDeserializedModelOk(employees, operation = rootOperationName)
     }
 
-    suspend fun getEmployeeDetails(employeeId: String): NetResult<ApiManoEmployeeDetails> {
+    suspend fun getEmployeeDetails(employeeId: Long): NetResult<ApiManoEmployeeDetails> {
         return safeRetryWithPrecall(
             "get employee details for '$employeeId'", "update session",
             mainBlock = {
@@ -451,7 +466,7 @@ object ManoApi {
 
     private suspend fun getEmployeeDetailsUnsafe(
         rootOperationName: String,
-        employeeId: String
+        employeeId: Long
     ): NetResult<ApiManoEmployeeDetails> {
         val detailsPageResponse =
             client.get("$baseUrl/contacts/contacts/employee-data?id=$employeeId")
@@ -462,29 +477,42 @@ object ManoApi {
 
         val detailsPageContent = detailsPageResponse.bodyAsText().singleLine()
 
-        val phones = employeePhoneExtractionRegex.findAll(detailsPageContent).map { result ->
-            result.groupValues[1].trim()
-        }.distinct().toList()
+        val phones = employeePhoneExtractionRegex
+            .findAll(detailsPageContent)
+            .map { result ->
+                result.groupValues[1].trim()
+            }
+            .distinct()
+            .toList()
 
-        val emails = employeeEmailExtractionRegex.findAll(detailsPageContent).map { result ->
-            result.groupValues[1].trim()
-        }.distinct().toList()
+        val emails = employeeEmailExtractionRegex
+            .findAll(detailsPageContent)
+            .map { result ->
+                result.groupValues[1].trim()
+            }
+            .distinct()
+            .toList()
 
-        val departments =
-            employeeDepartmentDataExtractionRegex.findAll(detailsPageContent).map { result ->
+        val departments = employeeDepartmentDataExtractionRegex
+            .findAll(detailsPageContent)
+            .map { result ->
                 ApiManoBasicDepartmentData(
                     id = result.groupValues[1].trim(),
                     name = result.groupValues[2].trim()
                 )
-            }.distinct().toList()
+            }
+            .distinct()
+            .toList()
 
         val employeeOffices = employeeOfficeExtractionRegex
             .findAll(detailsPageContent)
-            .map { result -> result.groupValues[1].trim() }.toList()
+            .map { result -> result.groupValues[1].trim() }
+            .toList()
 
         val employeeAddresses = employeeAddressExtractionRegex
             .findAll(detailsPageContent)
-            .map { result -> result.groupValues[1].trim() }.toList()
+            .map { result -> result.groupValues[1].trim() }
+            .toList()
 
         if (employeeOffices.size != employeeAddresses.size) {
             return detailsPageContent
@@ -506,10 +534,13 @@ object ManoApi {
                 .distinct()
                 .toList()
 
-        val positions =
-            employeePositionExtractionRegex.findAll(detailsPageContent).map { result ->
+        val positions = employeePositionExtractionRegex
+            .findAll(detailsPageContent)
+            .map { result ->
                 result.groupValues[1].trim()
-            }.distinct().toList()
+            }
+            .distinct()
+            .toList()
 
         val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
 
@@ -520,7 +551,7 @@ object ManoApi {
                 departments = departments,
                 offices = offices,
                 positions = positions,
-                fullName = fullName ?: ""
+                fullNameWithPrefix = fullName ?: ""
             ), operation = rootOperationName
         )
     }
@@ -529,14 +560,14 @@ object ManoApi {
         return safeRetryWithPrecall(
             "get completed semester results", "update session",
             mainBlock = {
-                getSemesterResultsUnsafe(it)
+                getCompletedSemesterResultsUnsafe(it)
             },
             beforeRetryBlock = { op, mainCallResult ->
                 updateSessionIfNeeded(op, mainCallResult.bodyRaw)
             })
     }
 
-    private suspend fun getSemesterResultsUnsafe(
+    private suspend fun getCompletedSemesterResultsUnsafe(
         rootOperationName: String
     ): NetResult<List<ApiManoCompletedSemesterResult>> {
         val resultsResponse =
@@ -606,12 +637,16 @@ object ManoApi {
                                         0
                             }
 
+                            val modCode = url.parameters["MOD_CODE"] ?: ""
+
                             ApiManoSubjectFinalResult(
                                 modId = url.parameters["MOD_ID"] ?: "",
-                                modCode = url.parameters["MOD_CODE"] ?: "",
+                                modCode = modCode,
                                 link = result.groupValues[1],
-                                name = result.groupValues[2],
-                                lecturerFullName = result.groupValues[3],
+                                name = result.groupValues[2]
+                                    .replace(modCode, "")
+                                    .trim { it == ' ' || it == '(' || it == ')' },
+                                lecturerShortName = result.groupValues[3],
                                 credits = result.groupValues[4].toIntNotNull(),
                                 hours = result.groupValues[5].toIntNotNull(),
                                 evaluationVerdict = verdict,

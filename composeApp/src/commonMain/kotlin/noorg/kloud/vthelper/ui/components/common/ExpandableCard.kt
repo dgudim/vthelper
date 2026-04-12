@@ -41,7 +41,7 @@ import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.keyboard_arrow_left_24px
 
 @Composable
-fun RowScope.ExpandIcon(
+fun ExpandIcon(
     internalExpandedState: MutableState<Boolean?>,
     actualExpandedValue: Boolean
 ) {

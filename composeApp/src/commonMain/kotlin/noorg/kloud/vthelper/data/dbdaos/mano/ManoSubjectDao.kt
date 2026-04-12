@@ -2,9 +2,11 @@ package noorg.kloud.vthelper.data.dbdaos.mano
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntityWithEmployee
 
 @Dao
 interface ManoSubjectDao {
@@ -17,6 +19,11 @@ interface ManoSubjectDao {
     @Query("SELECT count(*) FROM mano_subjects")
     suspend fun count(): Int
 
+    @Transaction
     @Query("SELECT * FROM mano_subjects")
     fun getAllAsFlow(): Flow<List<DBManoSubjectEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM mano_subjects where semester_seq = :semesterAbsoluteSequence")
+    fun getForSemesterWithEmployee(semesterAbsoluteSequence: Int): Flow<List<DBManoSubjectEntityWithEmployee>>
 }

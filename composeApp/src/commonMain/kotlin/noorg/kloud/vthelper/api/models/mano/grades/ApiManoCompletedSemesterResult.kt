@@ -24,7 +24,7 @@ data class ApiManoSubjectFinalResult(
     val link: String,
 
     val name: String,
-    val lecturerFullName: String,
+    val lecturerShortName: String,
 
     val credits: Int,
     val hours: Int,
