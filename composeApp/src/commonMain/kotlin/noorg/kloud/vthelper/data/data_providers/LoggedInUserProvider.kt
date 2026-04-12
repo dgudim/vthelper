@@ -56,7 +56,6 @@ class LoggedInUserProvider(
         val moodleUserId = MoodleApi.userId
 
         val avatarPath = appDataDirectory() / "$studentId.img"
-
         downloadImage(avatarPath, Url(studentInfo.avatarUrl))
 
         loggedInUserDao.replace(

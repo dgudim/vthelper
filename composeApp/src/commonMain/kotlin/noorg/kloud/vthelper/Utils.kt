@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import androidx.compose.ui.graphics.compositeOver
 import com.kizitonwose.calendar.compose.CalendarLayoutInfo
 import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.core.CalendarMonth
@@ -91,11 +93,11 @@ fun getHashedColor(num: Long): Color {
 
 fun Color.mixWith(other: Color, ratioRaw: Float): Color {
     val ratio = ratioRaw.coerceIn(0F, 1F)
-    return Color(
-        red = red * (1 - ratio) + other.red * ratio,
-        green = green * (1 - ratio) + other.green * ratio,
-        blue = blue * (1 - ratio) + other.blue * ratio,
-    )
+
+    val other = other.convert(ColorSpaces.Bt2020).setAlpha(ratio)
+    val thisCol = convert(ColorSpaces.Bt2020)
+
+    return other.compositeOver(thisCol)
 }
 
 fun CustomColorPalette.getColorFromGrade(grade: Float?): Color {

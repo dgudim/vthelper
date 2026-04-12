@@ -9,8 +9,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Url
 import io.ktor.http.parameters
-import io.ktor.utils.io.charsets.Charsets
-import io.ktor.utils.io.core.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.api.ManoApi.getCompletedSemesterResultsUnsafe
@@ -141,6 +139,11 @@ object ManoApi {
 
     val employeeAddressExtractionRegex = Regex(
         """<strong>Address<\\/strong>(.*?)<""",
+        RegexOption.MULTILINE
+    )
+
+    val employeePhotoExtractionRegex = Regex(
+        """src="(.*?)" alt="photo"""",
         RegexOption.MULTILINE
     )
 
@@ -514,6 +517,14 @@ object ManoApi {
             .map { result -> result.groupValues[1].trim() }
             .toList()
 
+        var employeePhotoUrl = employeePhotoExtractionRegex
+            .findFirstGroup(detailsPageContent) ?: ""
+
+        // Relative to absolute url
+        if (!employeePhotoUrl.startsWith("http")) {
+            employeePhotoUrl = "$baseUrl$employeePhotoUrl"
+        }
+
         if (employeeOffices.size != employeeAddresses.size) {
             return detailsPageContent
                 .toNetResultFail(
@@ -551,7 +562,8 @@ object ManoApi {
                 departments = departments,
                 offices = offices,
                 positions = positions,
-                fullNameWithPrefix = fullName ?: ""
+                fullNameWithPrefix = fullName ?: "",
+                avatarUrl = employeePhotoUrl
             ), operation = rootOperationName
         )
     }

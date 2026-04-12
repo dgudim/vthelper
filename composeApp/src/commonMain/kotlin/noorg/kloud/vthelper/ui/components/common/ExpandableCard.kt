@@ -59,7 +59,7 @@ fun ExpandIcon(
             .clickable {
                 internalExpandedState.value = !actualExpandedValue
             }.size(32.dp),
-        contentDescription = "expand"
+        contentDescription = null
     )
 }
 

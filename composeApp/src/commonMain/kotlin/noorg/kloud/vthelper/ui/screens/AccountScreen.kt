@@ -169,7 +169,9 @@ fun AccountScreen(
                 Text(
                     color = loggedInColor,
                     text = loggedInCardHeaderText,
-                    modifier = Modifier.weight(1F)
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .weight(1F)
                 )
             }
         ) {

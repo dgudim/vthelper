@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "7e12d5868f412de1f2870e2bb96c19ce",
+    "identityHash": "073fe1c4c14bd30b22b6fc82d185a7ca",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -429,13 +429,18 @@
       },
       {
         "tableName": "mano_employees",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mano_id` INTEGER NOT NULL, `fullname` TEXT, `shortname` TEXT NOT NULL, `positions` TEXT, `departments` TEXT, `phones` TEXT, `emails` TEXT, `offices` TEXT, PRIMARY KEY(`mano_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mano_id` INTEGER NOT NULL, `avatar_path` TEXT, `fullname` TEXT, `shortname` TEXT NOT NULL, `positions` TEXT, `departments` TEXT, `phones` TEXT, `emails` TEXT, `offices` TEXT, PRIMARY KEY(`mano_id`))",
         "fields": [
           {
             "fieldPath": "manoId",
             "columnName": "mano_id",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "avatarPath",
+            "columnName": "avatar_path",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "fullName",
@@ -568,7 +573,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7e12d5868f412de1f2870e2bb96c19ce')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '073fe1c4c14bd30b22b6fc82d185a7ca')"
     ]
   }
 }

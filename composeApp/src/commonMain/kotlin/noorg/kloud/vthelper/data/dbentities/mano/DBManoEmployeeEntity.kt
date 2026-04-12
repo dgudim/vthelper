@@ -12,6 +12,9 @@ data class DBManoEmployeeEntity(
     @ColumnInfo(name = "mano_id")
     val manoId: Long,
 
+    @ColumnInfo("avatar_path")
+    val avatarPath: String? = null,
+
     @ColumnInfo(name = "fullname")
     val fullName: String? = null,
     @ColumnInfo(name = "shortname")

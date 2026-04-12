@@ -8,16 +8,19 @@ import noorg.kloud.vthelper.ui.components.SemesterCard
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.components.common.ScreenHeaderTextWithLoader
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
 
 @Composable
 fun ResultsScreen(
     loggedInUserViewModel: LoggedInUserViewModel,
+    manoEmployeeViewModel: ManoEmployeeViewModel,
     manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
     showSnack: SnackbarFun
 ) {
 
     val semesters by manoSemesterAndSubjectViewModel.semesters.collectAsStateWithLifecycle()
+    val selectedEmployee by manoEmployeeViewModel.selectedEmployee.collectAsStateWithLifecycle()
 
     LoadableListSection(
         loggedInUserViewModel = loggedInUserViewModel,

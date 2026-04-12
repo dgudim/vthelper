@@ -1,13 +1,16 @@
 package noorg.kloud.vthelper.data.data_providers
 
+import io.ktor.http.Url
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import noorg.kloud.vthelper.api.ManoApi
+import noorg.kloud.vthelper.api.downloadImage
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
+import noorg.kloud.vthelper.platform_specific.appDataDirectory
+import noorg.kloud.vthelper.platform_specific.div
 import kotlin.Long
 
 class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
@@ -49,8 +52,11 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
                 Exception("Could not find employee with id: $employeeId")
             )
 
-        manoEmployeeDao.upsert(
-            with(employeeDetailsResponse.bodyTyped!!) {
+        with(employeeDetailsResponse.bodyTyped!!) {
+            val avatarPath = appDataDirectory() / "employee-$employeeId.img"
+            downloadImage(avatarPath, Url(avatarUrl))
+
+            manoEmployeeDao.upsert(
                 DBManoEmployeeEntity(
                     manoId = employeeId,
                     shortName = existingEmployee.shortName,
@@ -60,10 +66,10 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
                     positions = positions.joinToString(", "),
                     offices = offices.joinToString(", ") { "${it.officeName} (${it.address})" },
                     departments = departments.joinToString(", ") { it.name },
+                    avatarPath = avatarPath.toString()
                 )
-            }
-
-        )
+            )
+        }
 
         return Result.success("OK")
     }
