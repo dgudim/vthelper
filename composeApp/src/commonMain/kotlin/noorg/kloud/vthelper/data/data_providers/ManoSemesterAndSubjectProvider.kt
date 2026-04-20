@@ -6,21 +6,29 @@ import kotlinx.coroutines.flow.map
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroupWithGrades
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntityWithEmployee
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEvaluationVerdict
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGrade
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEvaluationVerdict
 import noorg.kloud.vthelper.fuzzyFindEmployeeNullIfDash
+import kotlin.String
 
 class ManoSemesterAndSubjectProvider(
     private val manoSemesterDao: ManoSemesterDao,
     private val manoEmployeeDao: ManoEmployeeDao,
     private val manoSubjectDao: ManoSubjectDao,
+    private val manoSettlementGradeDao: ManoSettlementGradeDao,
+    private val manoSettlementGroupDao: ManoSettlementGroupDao,
     private val manoEmployeeProvider: ManoEmployeeProvider
 ) {
 
@@ -133,7 +141,8 @@ class ManoSemesterAndSubjectProvider(
         for (semesterResponse in completedSemestersResponse.bodyTyped) {
             for (subject in semesterResponse.finalResults) {
 
-                val subjectLecturer = employeeList.fuzzyFindEmployeeNullIfDash(subject.lecturerShortName)
+                val subjectLecturer =
+                    employeeList.fuzzyFindEmployeeNullIfDash(subject.lecturerShortName)
 
                 subjectsToAdd.add(
                     DBManoSubjectEntity(
@@ -158,9 +167,17 @@ class ManoSemesterAndSubjectProvider(
         return Result.success("OK")
     }
 
+    suspend fun fetchSettlementGroupsForSubjectId(
+        semesterAbsoluteSequenceNum: Int,
+        semesterYearRange: String,
+        subjectModId: String,
+    ) {
+        val settlementOverviewsResponse = ManoApi.getSubjectSettlementOverviews()
+    }
+
     // ================ Semesters
 
-    fun mapEmployee(model: DBManoSemesterEntity): ProvidedManoSemesterEntity {
+    fun mapSemester(model: DBManoSemesterEntity): ProvidedManoSemesterEntity {
         println("Mapped mano course: ${model.absoluteSequenceNum}")
         with(model) {
             return ProvidedManoSemesterEntity(
@@ -180,7 +197,7 @@ class ManoSemesterAndSubjectProvider(
         return manoSemesterDao
             .getAllAsFlow()
             .map { dbEntities ->
-                dbEntities.map { mapEmployee(it) }
+                dbEntities.map { mapSemester(it) }
             }
     }
 
@@ -189,7 +206,7 @@ class ManoSemesterAndSubjectProvider(
             .getCurrentAsFlow()
             .distinctUntilChanged()
             .map { dbEntities ->
-                dbEntities.map { mapEmployee(it) }.firstOrNull()
+                dbEntities.map { mapSemester(it) }.firstOrNull()
             }
     }
 
@@ -227,6 +244,39 @@ class ManoSemesterAndSubjectProvider(
             .distinctUntilChanged()
             .map { dbEntities ->
                 dbEntities.map { mapSubject(it) }
+            }
+    }
+
+    // ================ Settlements
+
+    fun mapSettlementWithGrades(model: DBManoSettlementGroupWithGrades): ProvidedManoSettlementGroup {
+        println("Mapped settlement: [subject mod id: ${model.group.subjectModId}, type: ${model.group.settlementType}, nGrades: ${model.grades.size}]")
+        return ProvidedManoSettlementGroup(
+            internalId = model.group.syntheticId,
+            settlementType = model.group.settlementType,
+            completedRatio = model.group.completedRatio,
+            percentageOfFinalAssessment = model.group.percentageOfFinalAssessment,
+            finalGrade = model.group.finalGrade,
+            finalCumulativeScore = model.group.finalCumulativeScore,
+            lastUpdatedDate = model.group.lastUpdatedDate,
+            grades = model.grades.map {
+                ProvidedManoSettlementGrade(
+                    name = it.grade.name,
+                    value = it.grade.value,
+                    date = it.grade.date,
+                    graderShortName = it.employee.shortName,
+                    graderId = it.grade.graderId,
+                )
+            }.toList()
+        )
+    }
+
+    fun getSettlementGroupsForSubject(subjectModId: Int): Flow<List<ProvidedManoSettlementGroup>> {
+        return manoSettlementGroupDao
+            .getForSubjectWithGrades(subjectModId)
+            .distinctUntilChanged()
+            .map { dbEntities ->
+                dbEntities.map { mapSettlementWithGrades(it) }
             }
     }
 

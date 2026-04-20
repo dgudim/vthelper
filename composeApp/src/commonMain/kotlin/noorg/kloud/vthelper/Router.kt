@@ -48,6 +48,7 @@ import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 import org.jetbrains.compose.resources.DrawableResource
@@ -126,6 +127,8 @@ fun Navigation(
     val manoSemesterDao = remember { db.manoSemesterDao() }
     val moodleCourseDao = remember { db.moodleCourseDao() }
     val manoSubjectDao = remember { db.manoSubjectDao() }
+    val manoSettlementGroupDao = remember { db.manoSettlementGroupDao() }
+    val manoSettlementGradeDao = remember { db.manoSettlementGradeDao() }
     val manoEmployeeDao = remember { db.manoEmployeeDao() }
     val loggedInUserDao = remember { db.loggedInUserDao() }
 
@@ -136,6 +139,8 @@ fun Navigation(
             manoSemesterDao,
             manoEmployeeDao,
             manoSubjectDao,
+            manoSettlementGradeDao,
+            manoSettlementGroupDao,
             manoEmployeeProvider
         )
     }
@@ -151,6 +156,8 @@ fun Navigation(
         remember { MoodleCoursesViewModel(MoodleCoursesProvider(moodleCourseDao)) }
     val manoSemesterAndSubjectViewModel =
         remember { ManoSemesterAndSubjectViewModel(manoSemesterAndSubjectProvider) }
+    val manoEmployeeViewModel =
+        remember { ManoEmployeeViewModel(manoEmployeeProvider) }
 
     NavHost(
         navController = navController,
@@ -166,7 +173,12 @@ fun Navigation(
             AccountScreen(loggedInUserViewModel, showSnack)
         }
         composable(NavDrawerItem.Results.route) {
-            ResultsScreen(loggedInUserViewModel, manoSemesterAndSubjectViewModel, showSnack)
+            ResultsScreen(
+                loggedInUserViewModel,
+                manoEmployeeViewModel,
+                manoSemesterAndSubjectViewModel,
+                showSnack
+            )
         }
         composable(NavDrawerItem.Calendar.route) {
             CalendarScreen(showSnack)

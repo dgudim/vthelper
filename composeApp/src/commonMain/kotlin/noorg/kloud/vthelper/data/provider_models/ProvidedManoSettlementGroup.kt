@@ -6,7 +6,7 @@ data class ProvidedManoSettlementGrade (
     val date: String,
 
     // Inlined from the db so the ui doesn't have to join lists
-    val graderShortName: Long,
+    val graderShortName: String,
     // For the 'employee details' dialog
     val graderId: Long
 )

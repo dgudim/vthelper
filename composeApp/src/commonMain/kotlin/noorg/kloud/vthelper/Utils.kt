@@ -107,7 +107,11 @@ fun CustomColorPalette.getColorFromGrade(grade: Float?): Color {
 // ============================= GENERAL STR
 
 fun Regex.findFirstGroup(str: String): String? {
-    return find(str)?.groupValues?.get(1)?.trim()
+    return try {
+        find(str)?.groupValues?.get(1)?.trim()
+    } catch(_: Exception) {
+        null
+    }
 }
 
 fun String.toIntNotNull(): Int {

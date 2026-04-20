@@ -1,9 +1,11 @@
 package noorg.kloud.vthelper.data.dbentities.mano
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(
     tableName = "mano_settlement_groups",
@@ -40,4 +42,17 @@ class DBManoSettlementGroup (
 
     @ColumnInfo(name = "last_updated")
     val lastUpdatedDate: String?
+)
+
+data class DBManoSettlementGroupWithGrades(
+    @Embedded
+    val group: DBManoSettlementGroup,
+    @Relation(
+        // https://developer.android.com/training/data-storage/room/relationships/nested
+        // Important. Used by room to determine the underlying entity for DbManoSettlementGradeWithEmployee
+        entity = DbManoSettlementGrade::class,
+        parentColumn = "id",
+        entityColumn = "settlement_id"
+    )
+    val grades: List<DbManoSettlementGradeWithEmployee>
 )

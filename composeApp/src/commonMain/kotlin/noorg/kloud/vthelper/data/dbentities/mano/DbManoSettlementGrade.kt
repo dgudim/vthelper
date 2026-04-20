@@ -1,9 +1,11 @@
 package noorg.kloud.vthelper.data.dbentities.mano
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(
     tableName = "mano_settlement_grades",
@@ -41,5 +43,15 @@ data class DbManoSettlementGrade(
 
     @ColumnInfo(name = "grader_id")
     val graderId: Long
+)
+
+data class DbManoSettlementGradeWithEmployee(
+    @Embedded
+    val grade: DbManoSettlementGrade,
+    @Relation(
+        parentColumn = "grader_id",
+        entityColumn = "mano_id"
+    )
+    val employee: DBManoEmployeeEntity
 )
 

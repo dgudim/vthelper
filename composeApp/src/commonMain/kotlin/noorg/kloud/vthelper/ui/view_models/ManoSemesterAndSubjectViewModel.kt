@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Duration.Companion.seconds
@@ -42,6 +43,16 @@ class ManoSemesterAndSubjectViewModel(
     fun getSubjectsForSemesterAsStateFlow(semesterAbsoluteSequence: Int): StateFlow<List<ProvidedManoSubjectEntity>> {
         return manoSemesterAndSubjectProvider
             .getSubjectsForSemester(semesterAbsoluteSequence)
+            .stateIn(
+                scope = viewModelScope,
+                started = WhileSubscribed(5.seconds.inWholeMilliseconds),
+                initialValue = emptyList(),
+            )
+    }
+
+    fun getSettlementGroupsForSubjectAsStateFlow(subjectModId: Int): StateFlow<List<ProvidedManoSettlementGroup>> {
+        return manoSemesterAndSubjectProvider
+            .getSettlementGroupsForSubject(subjectModId)
             .stateIn(
                 scope = viewModelScope,
                 started = WhileSubscribed(5.seconds.inWholeMilliseconds),
