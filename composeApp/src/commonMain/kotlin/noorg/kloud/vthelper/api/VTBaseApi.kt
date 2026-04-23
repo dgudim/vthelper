@@ -13,6 +13,7 @@ import io.ktor.http.parameters
 import io.ktor.util.appendAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
@@ -89,10 +90,6 @@ object VTBaseApi {
         return safeRetry(operation, 3) { operation, _ ->
             loginIfNeededUnsafe(operation, serviceBaseUrl, studentId, password, mfaCode)
         }
-    }
-
-    fun String.isSamlIntermediateForm(): Boolean {
-        return contains("Working...")
     }
 
     private suspend fun loginIfNeededUnsafe(
@@ -230,7 +227,7 @@ object VTBaseApi {
         )?.let { return it }
 
         // Update mfa context
-        val mfaContextPostContent =  mfaContextPostResponse.bodyAsText()
+        val mfaContextPostContent = mfaContextPostResponse.bodyAsText()
         mfaContext =
             mfaExtractionRegex.findFirstGroup(mfaContextPostContent)
                 ?: return mfaContextPostContent.toNetResultFail(
@@ -297,7 +294,7 @@ object VTBaseApi {
         baseUrl: Url,
         bodyText: String?
     ): NetResult<String>? {
-        if (bodyText?.isSamlIntermediateForm() == true) {
+        if (bodyText?.contains("Working...") == true) {
             val result = refreshSamlUnsafe(
                 parentOperation,
                 baseUrl,

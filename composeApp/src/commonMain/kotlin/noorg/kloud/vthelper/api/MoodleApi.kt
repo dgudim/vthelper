@@ -16,8 +16,9 @@ import io.ktor.http.parameters
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
-import noorg.kloud.vthelper.api.VTBaseApi.isSamlIntermediateForm
 import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
@@ -30,17 +31,23 @@ import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
+import kotlin.concurrent.Volatile
 
 object MoodleApi {
 
-    val baseUrl = Url("https://moodle.vilniustech.lt/")
+    val baseUrl = Url("https://moodle.vilniustech.lt")
     val sessionKeyExtractionRegex = Regex("""sesskey=(.*?)"""", RegexOption.MULTILINE)
     val userIdExtractionRegex = Regex("""data-userid="(.*?)"""", RegexOption.MULTILINE)
     val calendarExportUrlExtractionRegex =
         Regex("""id="calendarexporturl".*value="(.*?)"""", RegexOption.MULTILINE)
 
+    @Volatile
     private var sessionKey = ""
+
+    @Volatile
     private var calendarUrl = ""
+
+    @Volatile
     var userId: Int? = null
         private set
 
@@ -73,42 +80,47 @@ object MoodleApi {
         }
     }
 
+    // Don't allow refreshing the same session multiple times at the same time
+    private val sessionRefreshMutex = Mutex()
     private suspend fun updateSessionUnsafe(
         prevCallBody: String?,
         rootOperationName: String
     ): NetResult<String> {
+        sessionRefreshMutex.withLock {
+            refreshSamlForPageIfNeededUnsafe(
+                "$rootOperationName + refresh saml",
+                baseUrl,
+                prevCallBody
+            )?.let { return it }
 
-        refreshSamlForPageIfNeededUnsafe(
-            "$rootOperationName + refresh saml",
-            baseUrl,
-            prevCallBody
-        )?.let { return it }
+            val pageResponse = client.get(baseUrl)
 
-        val pageResponse = client.get(baseUrl)
+            pageResponse.expect200<String>(
+                operation = "$rootOperationName + main request"
+            )?.let { return it }
 
-        pageResponse.expect200<String>(
-            operation = "$rootOperationName + main request"
-        )?.let { return it }
+            val pageContent = pageResponse.bodyAsText()
+            val extractedSessionKey =
+                sessionKeyExtractionRegex.findFirstGroup(pageContent)
+                    ?: return pageContent.toNetResultFail(
+                        context = "Session key not found",
+                        operation = "$rootOperationName + session key extraction"
+                    )
 
-        val pageContent = pageResponse.bodyAsText()
-        val extractedSessionKey =
-            sessionKeyExtractionRegex.findFirstGroup(pageContent)
-                ?: return pageContent.toNetResultFail(
-                    context = "Session key not found",
-                    operation = "$rootOperationName + session key extraction"
-                )
+            val extractedUserId =
+                userIdExtractionRegex.findFirstGroup(pageContent)
+                    ?: return pageContent.toNetResultFail(
+                        context = "User ID not found",
+                        operation = "$rootOperationName + user id extraction"
+                    )
 
-        val extractedUserId =
-            userIdExtractionRegex.findFirstGroup(pageContent)
-                ?: return pageContent.toNetResultFail(
-                    context = "User ID not found",
-                    operation = "$rootOperationName + user id extraction"
-                )
+            sessionKey = extractedSessionKey
+            userId = extractedUserId.toInt()
 
-        sessionKey = extractedSessionKey
-        userId = extractedUserId.toInt()
-
-        return "Key: $extractedSessionKey; Uid: $extractedUserId".toNetResultOk(rootOperationName)
+            return "Key: $extractedSessionKey; Uid: $extractedUserId".toNetResultOk(
+                rootOperationName
+            )
+        }
     }
 
     suspend fun getCalendarUrl(

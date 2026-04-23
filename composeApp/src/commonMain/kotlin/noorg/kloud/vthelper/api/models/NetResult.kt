@@ -5,6 +5,9 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import noorg.kloud.vthelper.fullMessage
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 data class NetResult<T>(
     val statusCode: HttpStatusCode,
@@ -24,18 +27,39 @@ data class NetResult<T>(
         return "Failed at '$operation' with status code '$statusCode'. Why: '$context'"
     }
 
-    fun toResult(): Result<String> {
-        return if (isSuccess) {
-            Result.success(getFullStatus())
-        } else {
-            Result.failure(Exception(getFullStatus()))
+    fun <R> toResultFail(): Result<R> {
+        if (isSuccess) {
+            println("Mapping successful net result to failed result, do you want this? ")
         }
+        return getFullStatus().toResultFail()
     }
 
     fun logIt(): NetResult<T> {
         println(getFullStatus())
         if (isFailure) {
             println(" == Body: ${bodyRaw}\n")
+        }
+        return this
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    inline fun onFailure(action: NetResult<T>.() -> Unit): NetResult<T> {
+        contract {
+            callsInPlace(action, InvocationKind.AT_MOST_ONCE)
+        }
+        if (isFailure) {
+            action()
+        }
+        return this
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    inline fun onSuccess(action: (bodyTyped: T) -> Unit): NetResult<T> {
+        contract {
+            callsInPlace(action, InvocationKind.AT_MOST_ONCE)
+        }
+        if (isSuccess) {
+            action(bodyTyped!!)
         }
         return this
     }
@@ -153,12 +177,24 @@ suspend inline fun <reified T> HttpResponse.expect200(operation: String): NetRes
     return NetResult.expect200(this, operation)
 }
 
-inline fun <reified T> String.toNetResultFail(context: String, operation: String): NetResult<T> {
+fun <T> String.toNetResultFail(context: String, operation: String): NetResult<T> {
     return NetResult.fromBodyRawFail(this, context, operation)
 }
 
-fun String.toNetResultOk(operation: String): NetResult<String> {
+fun <T> T.toNetResultOk(operation: String): NetResult<T> {
     return NetResult.fromDeserializedModelOk(this, operation)
+}
+
+fun <T> T.toResultOk(): Result<T> {
+    return Result.success(this)
+}
+
+fun <R> String.toResultFail(): Result<R> {
+    return Exception(this).toResultFail()
+}
+
+fun <R> Throwable.toResultFail(): Result<R> {
+    return Result.failure(this)
 }
 
 suspend inline fun <reified T> HttpResponse.toNetResult(

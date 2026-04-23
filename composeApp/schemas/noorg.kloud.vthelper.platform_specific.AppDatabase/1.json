@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "073fe1c4c14bd30b22b6fc82d185a7ca",
+    "identityHash": "db1855917487577448f12b25ca886101",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -48,12 +48,18 @@
       },
       {
         "tableName": "mano_subjects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mod_id` TEXT NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `ta_ga_split_percentage` TEXT, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, `final_evaluation_verdict` TEXT, PRIMARY KEY(`mod_id`), FOREIGN KEY(`semester_seq`) REFERENCES `mano_semesters`(`seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `mod_id` INTEGER NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_absolute_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, `final_evaluation_verdict` TEXT, `ta_ga_split_percentage` TEXT, `mediate_results_available` INTEGER NOT NULL, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`semester_absolute_seq`) REFERENCES `mano_semesters`(`absolute_seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
+          {
+            "fieldPath": "compositePrimaryId",
+            "columnName": "composite_pk_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
           {
             "fieldPath": "modId",
             "columnName": "mod_id",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -69,8 +75,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "semesterSequence",
-            "columnName": "semester_seq",
+            "fieldPath": "semesterAbsoluteSeq",
+            "columnName": "semester_absolute_seq",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -85,11 +91,6 @@
             "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
-          },
-          {
-            "fieldPath": "taGaSplitPercentage",
-            "columnName": "ta_ga_split_percentage",
-            "affinity": "TEXT"
           },
           {
             "fieldPath": "tries",
@@ -130,12 +131,23 @@
             "fieldPath": "finalEvaluationVerdict",
             "columnName": "final_evaluation_verdict",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mediateData.taGaSplitPercentage",
+            "columnName": "ta_ga_split_percentage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mediateData.mediateResultsAvailable",
+            "columnName": "mediate_results_available",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "mod_id"
+            "composite_pk_id"
           ]
         },
         "foreignKeys": [
@@ -144,10 +156,10 @@
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "semester_seq"
+              "semester_absolute_seq"
             ],
             "referencedColumns": [
-              "seq"
+              "absolute_seq"
             ]
           },
           {
@@ -165,11 +177,11 @@
       },
       {
         "tableName": "mano_semesters",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`seq` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `group` TEXT NOT NULL, `study_program` TEXT, `season` TEXT, `year_range` TEXT, `final_total_credits` INTEGER, `final_weighted_grade` REAL, PRIMARY KEY(`seq`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`absolute_seq` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `group` TEXT NOT NULL, `study_program` TEXT, `final_total_credits` INTEGER, `final_weighted_grade` REAL, PRIMARY KEY(`absolute_seq`))",
         "fields": [
           {
             "fieldPath": "absoluteSequenceNum",
-            "columnName": "seq",
+            "columnName": "absolute_seq",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -191,16 +203,6 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "season",
-            "columnName": "season",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "yearRange",
-            "columnName": "year_range",
-            "affinity": "TEXT"
-          },
-          {
             "fieldPath": "finalTotalCredits",
             "columnName": "final_total_credits",
             "affinity": "INTEGER"
@@ -214,18 +216,24 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "seq"
+            "absolute_seq"
           ]
         }
       },
       {
         "tableName": "mano_settlement_groups",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `settlement_type` TEXT NOT NULL, `subject_mod_id` INTEGER NOT NULL, `completed_ratio` TEXT NOT NULL, `final_assessment_percentage` INTEGER NOT NULL, `final_grade` REAL, `final_cumulative_score` REAL, `last_updated` TEXT, FOREIGN KEY(`subject_mod_id`) REFERENCES `mano_subjects`(`mod_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `composite_subject_pk_id` TEXT NOT NULL, `settlement_type` TEXT NOT NULL, `subject_mod_id` INTEGER NOT NULL, `sem_absolute_seq` INTEGER NOT NULL, `completed_ratio` TEXT NOT NULL, `final_assessment_percentage` INTEGER NOT NULL, `final_grade` REAL, `final_cumulative_score` REAL, `last_updated` TEXT, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`composite_subject_pk_id`) REFERENCES `mano_subjects`(`composite_pk_id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`sem_absolute_seq`) REFERENCES `mano_semesters`(`absolute_seq`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
-            "fieldPath": "syntheticId",
-            "columnName": "id",
-            "affinity": "INTEGER",
+            "fieldPath": "compositePrimaryId",
+            "columnName": "composite_pk_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "compositeSubjectId",
+            "columnName": "composite_subject_pk_id",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -237,6 +245,12 @@
           {
             "fieldPath": "subjectModId",
             "columnName": "subject_mod_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "semesterAbsoluteSequenceNum",
+            "columnName": "sem_absolute_seq",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -269,9 +283,9 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "composite_pk_id"
           ]
         },
         "foreignKeys": [
@@ -280,28 +294,39 @@
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "subject_mod_id"
+              "composite_subject_pk_id"
             ],
             "referencedColumns": [
-              "mod_id"
+              "composite_pk_id"
+            ]
+          },
+          {
+            "table": "mano_semesters",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "sem_absolute_seq"
+            ],
+            "referencedColumns": [
+              "absolute_seq"
             ]
           }
         ]
       },
       {
         "tableName": "mano_settlement_grades",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `settlement_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `value` INTEGER NOT NULL, `date` TEXT NOT NULL, `grader_id` INTEGER NOT NULL, FOREIGN KEY(`settlement_id`) REFERENCES `mano_settlement_groups`(`id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`grader_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `composite_settlement_pk_id` TEXT NOT NULL, `name` TEXT NOT NULL, `value` INTEGER, `date` TEXT, `grader_id` INTEGER NOT NULL, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`composite_settlement_pk_id`) REFERENCES `mano_settlement_groups`(`composite_pk_id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`grader_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
-            "fieldPath": "syntheticId",
-            "columnName": "id",
-            "affinity": "INTEGER",
+            "fieldPath": "compositePrimaryId",
+            "columnName": "composite_pk_id",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "settlementId",
-            "columnName": "settlement_id",
-            "affinity": "INTEGER",
+            "fieldPath": "compositeSettlementId",
+            "columnName": "composite_settlement_pk_id",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -313,14 +338,12 @@
           {
             "fieldPath": "value",
             "columnName": "value",
-            "affinity": "INTEGER",
-            "notNull": true
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "date",
             "columnName": "date",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "graderId",
@@ -330,9 +353,9 @@
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "composite_pk_id"
           ]
         },
         "foreignKeys": [
@@ -341,10 +364,10 @@
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "settlement_id"
+              "composite_settlement_pk_id"
             ],
             "referencedColumns": [
-              "id"
+              "composite_pk_id"
             ]
           },
           {
@@ -362,11 +385,17 @@
       },
       {
         "tableName": "mano_timetable",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject_mod_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `student_group` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`subject_mod_id`) REFERENCES `mano_subjects`(`mod_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject_composite_pk_id` INTEGER NOT NULL, `subject_mod_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `student_group` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`subject_composite_pk_id`) REFERENCES `mano_subjects`(`composite_pk_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "compositeSubjectId",
+            "columnName": "subject_composite_pk_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -419,10 +448,10 @@
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "subject_mod_id"
+              "subject_composite_pk_id"
             ],
             "referencedColumns": [
-              "mod_id"
+              "composite_pk_id"
             ]
           }
         ]
@@ -573,7 +602,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '073fe1c4c14bd30b22b6fc82d185a7ca')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'db1855917487577448f12b25ca886101')"
     ]
   }
 }

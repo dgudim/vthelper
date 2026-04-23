@@ -31,9 +31,40 @@ class ManoSemesterAndSubjectViewModel(
                 initialValue = emptyList(),
             )
 
-    fun fetchSemestersAndSubjectsFromApi(showSnack: SnackbarFun): Job {
+    val currentSemester = manoSemesterAndSubjectProvider
+        .getCurrentSemester()
+        .stateIn(
+            scope = viewModelScope,
+            started = WhileSubscribed(5.seconds.inWholeMilliseconds),
+            initialValue = null,
+        )
+
+    fun fetchAllSemestersFromApi(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
             manoSemesterAndSubjectProvider.fetchAllSemestersAndSubjectsFromApi()
+                .onFailure {
+                    showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
+                }
+        }
+    }
+
+    fun fetchCurrentSemesterFromApi(showSnack: SnackbarFun): Job {
+        return viewModelScope.launch {
+            manoSemesterAndSubjectProvider
+                .fetchCurrentSemesterAndSubjectsFromApi()
+                .onFailure {
+                    showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
+                }
+        }
+    }
+
+    fun fetchSettlementGroupsFromApi(
+        semesterAbsoluteSequenceNum: Int,
+        subjectModId: Int,
+        showSnack: SnackbarFun
+    ): Job {
+        return viewModelScope.launch {
+            manoSemesterAndSubjectProvider.fetchSettlementGroupsForSubjectInSemester(semesterAbsoluteSequenceNum, subjectModId)
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
@@ -50,9 +81,12 @@ class ManoSemesterAndSubjectViewModel(
             )
     }
 
-    fun getSettlementGroupsForSubjectAsStateFlow(subjectModId: Int): StateFlow<List<ProvidedManoSettlementGroup>> {
+    fun getSettlementGroupsForSubjectAsStateFlow(
+        semAbsoluteSequenceNum: Int,
+        subjectModId: Int
+    ): StateFlow<List<ProvidedManoSettlementGroup>> {
         return manoSemesterAndSubjectProvider
-            .getSettlementGroupsForSubject(subjectModId)
+            .getSettlementGroupsForSubjectInSemester(semAbsoluteSequenceNum, subjectModId)
             .stateIn(
                 scope = viewModelScope,
                 started = WhileSubscribed(5.seconds.inWholeMilliseconds),

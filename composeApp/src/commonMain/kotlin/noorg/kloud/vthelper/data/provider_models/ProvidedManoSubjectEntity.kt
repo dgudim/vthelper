@@ -9,7 +9,7 @@ enum class ProvidedManoSubjectEvaluationVerdict(v: String) {
 }
 
 data class ProvidedManoSubjectEntity(
-    val modId: String,
+    val modId: Int,
     val modCode: String,
     val link: String,
 
@@ -21,6 +21,7 @@ data class ProvidedManoSubjectEntity(
 
     // Available only after fetching mediate results
     val taGaSplitPercentage: String? = null,
+    val mediateResultsAvailable: Boolean = false,
 
     // After completing this subject
     val tries: Int? = null,

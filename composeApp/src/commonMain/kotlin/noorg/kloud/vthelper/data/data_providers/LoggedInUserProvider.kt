@@ -2,11 +2,14 @@ package noorg.kloud.vthelper.data.data_providers
 
 import io.ktor.http.Url
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.VTBaseApi
 import noorg.kloud.vthelper.api.downloadImage
+import noorg.kloud.vthelper.api.models.toResultFail
+import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
 import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
@@ -27,30 +30,24 @@ class LoggedInUserProvider(
         password: String,
         mfaCode: String
     ): Result<String> {
-        val manoResult = ManoApi.loginIfNeeded(studentId, password, mfaCode)
-        if (manoResult.isFailure) {
-            return manoResult.toResult()
-        }
-        val moodleResult = MoodleApi.loginIfNeeded(studentId, password, mfaCode)
-        if (moodleResult.isFailure) {
-            return moodleResult.toResult()
-        }
-        val userdataResult = fetchUserDataFromApi(studentId, password)
-        return userdataResult
+
+        ManoApi.loginIfNeeded(studentId, password, mfaCode)
+            .onFailure { return toResultFail() }
+
+        MoodleApi.loginIfNeeded(studentId, password, mfaCode)
+            .onFailure { return toResultFail() }
+
+        return fetchUserDataFromApi(studentId, password)
     }
 
     private suspend fun fetchUserDataFromApi(
         studentId: String, password: String
     ): Result<String> {
         val studentInfoResult = ManoApi.getStudentInfo()
-        if (studentInfoResult.isFailure) {
-            return studentInfoResult.toResult()
-        }
+            .onFailure { return toResultFail() }
 
-        val moodleUserIdResult = MoodleApi.updateSessionInfo()
-        if (moodleUserIdResult.isFailure) {
-            return studentInfoResult.toResult()
-        }
+        MoodleApi.updateSessionInfo()
+            .onFailure { return toResultFail() }
 
         val studentInfo = studentInfoResult.bodyTyped!!
         val moodleUserId = MoodleApi.userId
@@ -58,6 +55,7 @@ class LoggedInUserProvider(
         val avatarPath = appDataDirectory() / "$studentId.img"
         downloadImage(avatarPath, Url(studentInfo.avatarUrl))
 
+        // TODO: Save new cookies into the db after session refresh as well
         loggedInUserDao.replace(
             DBLoggedInUserEntity(
                 studentId = studentId,
@@ -75,32 +73,35 @@ class LoggedInUserProvider(
             )
         )
 
-        return Result.success("OK")
+        return "OK".toResultOk()
     }
 
     fun getCurrentUserInfo(): Flow<ProvidedLoggedInUserEntity> {
-        return loggedInUserDao.getAllAsFlow().map {
-            val el = it.firstOrNull() ?: return@map ProvidedLoggedInUserEntity()
-            with(el) {
-                ProvidedLoggedInUserEntity(
-                    phone = phone,
-                    address = address,
-                    personalEmail = personalEmail,
-                    universityEmail = universityEmail,
+        return loggedInUserDao
+            .getAllAsFlow()
+            .distinctUntilChanged()
+            .map {
+                val el = it.firstOrNull() ?: return@map ProvidedLoggedInUserEntity()
+                with(el) {
+                    ProvidedLoggedInUserEntity(
+                        phone = phone,
+                        address = address,
+                        personalEmail = personalEmail,
+                        universityEmail = universityEmail,
 
-                    moodleId = moodleId,
+                        moodleId = moodleId,
 
-                    studentId = studentId,
-                    password = password,
-                    fullName = fullName,
-                    birthDate = birthDate,
-                    avatarPath = avatarPath,
+                        studentId = studentId,
+                        password = password,
+                        fullName = fullName,
+                        birthDate = birthDate,
+                        avatarPath = avatarPath,
 
-                    cookiesJson = cookiesJson,
-                    isSessionValid = isSessionValid
-                )
+                        cookiesJson = cookiesJson,
+                        isSessionValid = isSessionValid
+                    )
+                }
             }
-        }
     }
 
 }

@@ -10,8 +10,6 @@ data class ProvidedManoSemesterEntity(
 
     val group: String,
     val studyProgram: String,
-    val season: String,
-    val yearRange: String,
 
     // After completing the semester
     val finalTotalCredits: Int?,

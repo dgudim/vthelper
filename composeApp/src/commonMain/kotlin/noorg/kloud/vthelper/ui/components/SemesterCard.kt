@@ -2,31 +2,42 @@ package noorg.kloud.vthelper.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.Month
+import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.getColorFromGrade
+import noorg.kloud.vthelper.getSemesterSessionSeason
+import noorg.kloud.vthelper.getSemesterYearRange
 import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
@@ -95,7 +106,71 @@ fun RowScope.CollapsedTitle(
 }
 
 @Composable
-fun SubjectCard(subjectData: ProvidedManoSubjectEntity) {
+fun SettlementGroupCard(settlementGroup: ProvidedManoSettlementGroup) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 4.dp)
+    ) {
+        VerticalDivider(color = Color.Red)
+        Column(modifier = Modifier.weight(1F)) {
+            Row {
+                Text(
+                    color = MaterialTheme.colorScheme.outline,
+                    text = settlementGroup.completedRatio,
+                    textAlign = TextAlign.Left,
+                    modifier = Modifier.width(50.dp).padding(end = 4.dp)
+                )
+                Text(
+                    fontWeight = FontWeight.Bold,
+                    text = settlementGroup.settlementType
+                )
+            }
+            Row {
+                Text(
+                    text = "Individual: ",
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                )
+                for (grade in settlementGroup.grades) {
+                    Text(
+                        modifier = Modifier.padding(4.dp),
+                        text = "${grade.value ?: "-"}",
+                        color =
+                            if (grade.value != null)
+                                MaterialTheme.customColors.getColorFromGrade(
+                                    grade.value.toFloat()
+                                )
+                            else
+                                Color.Unspecified
+                    )
+                }
+            }
+        }
+
+        if (settlementGroup.finalGrade != null) {
+            GradeColumn(settlementGroup.finalGrade)
+        }
+    }
+}
+
+@Composable
+fun SubjectCard(
+    showSnack: SnackbarFun,
+    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    semAbsoluteSequenceNum: Int,
+    subjectData: ProvidedManoSubjectEntity
+) {
+
+    val settlementGroupsWithGrades = remember {
+        manoSemesterAndSubjectViewModel.getSettlementGroupsForSubjectAsStateFlow(
+            semAbsoluteSequenceNum,
+            subjectData.modId
+        )
+    }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var settlementsFetched by remember { mutableStateOf(false) }
+
     ExpandableCard(
         border = BorderStroke(0.dp, color = Color.Transparent),
         modifier = Modifier.fillMaxWidth(),
@@ -103,6 +178,7 @@ fun SubjectCard(subjectData: ProvidedManoSubjectEntity) {
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
         ),
+        expansionAvailable = subjectData.mediateResultsAvailable,
         collapsedContent = {
             Column(modifier = Modifier.weight(1F)) {
                 Text(
@@ -123,21 +199,80 @@ fun SubjectCard(subjectData: ProvidedManoSubjectEntity) {
             }
         },
         expandedContent = {
+            // Collect only when rendered
+            val settlementGroupsWithGradesCollected by settlementGroupsWithGrades.collectAsStateWithLifecycle()
 
+            LaunchedEffect(Unit) {
+                if (settlementsFetched) {
+                    // Don't fetch every time the card is expanded
+                    return@LaunchedEffect
+                }
+                isLoading = true
+                manoSemesterAndSubjectViewModel.fetchSettlementGroupsFromApi(
+                    semAbsoluteSequenceNum,
+                    subjectData.modId,
+                    showSnack
+                ).invokeOnCompletion {
+                    isLoading = false
+                    settlementsFetched = true
+                }
+            }
+
+            Row {
+                Column(
+                    modifier = Modifier.padding(start = 12.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier
+                                .size(20.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F),
+                        modifier = Modifier.padding(
+                            start = 12.dp,
+                            top = 10.dp,
+                            bottom = 4.dp,
+                            end = 12.dp
+                        )
+                    )
+                    for (group in settlementGroupsWithGradesCollected) {
+                        SettlementGroupCard(group)
+                    }
+                }
+            }
         }
     )
 }
 
 @Composable
 fun SemesterCard(
+    showSnack: SnackbarFun,
     manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
-    semesterData: ProvidedManoSemesterEntity
+    currentSemesterData: ProvidedManoSemesterEntity,
+    semesterData: ProvidedManoSemesterEntity,
 ) {
 
     val borderColor =
         if (semesterData.isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.setAlpha(
             0.5F
         )
+
+    val semesterYearRange = remember {
+        getSemesterYearRange(
+            currentSemesterData.absoluteSequenceNum,
+            semesterData.absoluteSequenceNum
+        )
+    }
+
+    val semesterSessionSeason = remember {
+        getSemesterSessionSeason(
+            semesterData.absoluteSequenceNum
+        )
+    }
 
     val subjectsForSemester = remember {
         manoSemesterAndSubjectViewModel.getSubjectsForSemesterAsStateFlow(semesterData.absoluteSequenceNum)
@@ -161,7 +296,7 @@ fun SemesterCard(
                 )
             } else {
                 CollapsedTitle(
-                    topText = "${semesterData.yearRange}, ${semesterData.season}",
+                    topText = "$semesterYearRange, $semesterSessionSeason",
                     bottomText = semesterData.group,
                     finalGrade = semesterData.finalWeightedGrade,
                     leftSectionText = "${semesterData.absoluteSequenceNum}"
@@ -170,6 +305,7 @@ fun SemesterCard(
         }, expandedContent = {
             // Collect only when rendered
             val subjectsForSemesterCollected by subjectsForSemester.collectAsStateWithLifecycle()
+
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
                 HorizontalDivider()
@@ -181,7 +317,12 @@ fun SemesterCard(
                             color = DividerDefaults.color.setAlpha(0.5F)
                         )
                     }
-                    SubjectCard(subject)
+                    SubjectCard(
+                        showSnack,
+                        manoSemesterAndSubjectViewModel,
+                        semesterData.absoluteSequenceNum,
+                        subject
+                    )
                 }
             }
         })

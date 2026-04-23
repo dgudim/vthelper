@@ -7,16 +7,19 @@ import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpMessageBuilder
 import io.ktor.http.Url
 import io.ktor.http.parameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
 import noorg.kloud.vthelper.api.ManoApi.getCompletedSemesterResultsUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getEmployeeDetailsUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getEmployeesUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getSettlementGradesUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getStudentInfoUnsafe
-import noorg.kloud.vthelper.api.ManoApi.getSubjectSettlementOverviewsUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getSubjectTimetableUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getThisSemesterInfoUnsafe
 import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
@@ -40,19 +43,27 @@ import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectFinalResult
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementGrade
 import noorg.kloud.vthelper.api.models.mano.grades.ApiManoSubjectSettlementOverview
 import noorg.kloud.vthelper.api.models.mano.grades.EvaluationVerdictLookup
-import noorg.kloud.vthelper.api.models.toNetResult
 import noorg.kloud.vthelper.api.models.toNetResultFail
+import noorg.kloud.vthelper.api.models.toNetResultOk
+import noorg.kloud.vthelper.nullIfDash
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import noorg.kloud.vthelper.toFloatDashAsNull
+import noorg.kloud.vthelper.toIntDashAsNull
 import noorg.kloud.vthelper.toIntNotNull
+import noorg.kloud.vthelper.toRelativeSemester
+import kotlin.concurrent.Volatile
 import kotlin.time.Duration
+
 
 object ManoApi {
 
-    val baseUrl = Url("https://mano.vilniustech.lt/")
+    private val baseUrl = Url("https://mano.vilniustech.lt")
+    private val jsonSerializer = Json { ignoreUnknownKeys = true }
 
     val unicodeUnescapeRegex = Regex("""\\u([0-9a-fA-F]{4})""")
+
+    val csrfTokenExtractionRegex = Regex("""<meta name="csrf-token" content="(.*?)">""")
 
     /** [getStudentInfoUnsafe] */
     val personalEmailExtractionRegex =
@@ -168,7 +179,7 @@ object ManoApi {
         RegexOption.MULTILINE
     )
 
-    /** [getSubjectSettlementOverviewsUnsafe] */
+    /** [getSubjectSettlementGroupsUnsafe] */
 
     val mediateResultsExtractionRegex = Regex(
         """data-title="Settlement".*?data-years="(.*?)".*?data-sem="(.*?)".*?data-mod-id="(.*?)".*?data-kmd-id="(.*?)".*?data-dest-vart="(.*?)".*?data-type="(.*?)".*?data-name="(.*?)".*?href="#">.*?data-title="Lecturer".*?href="#">(.*?)<.*?title="Completed".*?href="#">(.*?)<.*?title="Percentage of final assessment grade.*?href="#">(.*?)<.*?title="Grade".*?href="#">(.*?)<.*?title="The cumulative score".*?href="#">(.*?)<.*?title="Date".*?href="#">(.*?)<""",
@@ -181,6 +192,14 @@ object ManoApi {
         """data-title="Settlement".*?>(.*?)<.*?data-title="Grade".*?>(.*?)<.*?data-title="Date".*?>(.*?)<.*?>(.*?)<""",
         RegexOption.MULTILINE
     )
+
+    @Volatile
+    private var csrfToken = ""
+
+    fun HttpMessageBuilder.addCsrfHeaders() {
+        headers.append("X-CSRF-Token", csrfToken)
+        headers.append("X-Requested-With", "XMLHttpRequest")
+    }
 
     suspend fun loginIfNeeded(
         studentId: String,
@@ -232,17 +251,38 @@ object ManoApi {
         return ApiManoTimetableEntityType.PRACTICE
     }
 
+    // Don't allow refreshing the same session multiple times at the same time
+    private val sessionRefreshMutex = Mutex()
     suspend fun updateSessionIfNeeded(
         rootOperationName: String,
         prevCallBody: String?
     ): NetResult<String> {
-        refreshSamlForPageIfNeededUnsafe(
-            "$rootOperationName + refresh saml",
-            MoodleApi.baseUrl,
-            prevCallBody
-        )?.let { return it }
+        sessionRefreshMutex.withLock {
+            refreshSamlForPageIfNeededUnsafe(
+                "$rootOperationName + refresh saml",
+                MoodleApi.baseUrl,
+                prevCallBody
+            )?.let { return it }
 
-        return NetResult.fromDeserializedModelOk("OK", rootOperationName)
+            // Refresh csrf token and cookie
+            VTBaseApi.cookieStorage.removeCookiesByName("_csrf")
+            val basePageResponse = client.get(baseUrl)
+            basePageResponse
+                .expect200<String>("$rootOperationName + refresh csrf")
+                ?.let { return it }
+
+            val pageContent = basePageResponse.bodyAsText()
+
+            val extractedCsrfToken = csrfTokenExtractionRegex.findFirstGroup(pageContent)
+                ?: return pageContent.toNetResultFail(
+                    context = "CSRF token not found",
+                    operation = "$rootOperationName + csrf extraction"
+                )
+
+            csrfToken = extractedCsrfToken
+
+            return "CSRF token: $extractedCsrfToken".toNetResultOk(rootOperationName)
+        }
     }
 
     suspend fun getStudentInfo(): NetResult<ApiManoStudentInfo> {
@@ -290,21 +330,20 @@ object ManoApi {
         val fullName = fullNameAndAvatarMatch?.get(1)?.trim()
         val avatarUrl = fullNameAndAvatarMatch?.get(2)?.trim()
 
-        return NetResult.fromDeserializedModelOk(
-            ApiManoStudentInfo(
-                fullName = fullName ?: "",
-                birthYear = birthYear ?: 0,
-                birthDate = birthDate ?: "",
-                address = address ?: "",
-                phone = phone ?: "",
-                personalEmail = personalEmail ?: "",
-                universityEmail = universityEmail ?: "",
-                avatarUrl = "$baseUrl$avatarUrl"
-            ), operation = rootOperationName
-        )
+        return ApiManoStudentInfo(
+            fullName = fullName ?: "",
+            birthYear = birthYear ?: 0,
+            birthDate = birthDate ?: "",
+            address = address ?: "",
+            phone = phone ?: "",
+            personalEmail = personalEmail ?: "",
+            universityEmail = universityEmail ?: "",
+            avatarUrl = "$baseUrl$avatarUrl"
+        ).toNetResultOk(rootOperationName)
     }
 
-    suspend fun getThisSemesterInfo(): NetResult<ApiManoThisSemesterInfo> {
+    suspend fun getThisSemesterInfo(source: String): NetResult<ApiManoThisSemesterInfo> {
+        println("${::getThisSemesterInfo.name} called from $source")
         return safeRetryWithPrecall(
             "get current semester info", "update session",
             mainBlock = {
@@ -349,24 +388,22 @@ object ManoApi {
                 val url = Url(result.groupValues[1])
                 val modCode = url.parameters["MOD_CODE"] ?: ""
                 ApiManoThisSemesterSubjectEntity(
-                    modId = url.parameters["MOD_ID"] ?: "",
+                    modId = url.parameters["MOD_ID"]?.toInt() ?: 0,
                     modCode = modCode,
                     link = result.groupValues[1],
                     name = result.groupValues[2].replace(modCode, "").trim(),
-                    lecturerFullName = result.groupValues[3],
+                    lecturerFullName = result.groupValues[3].nullIfDash(),
                     evaluationType = result.groupValues[4],
                     credits = result.groupValues[5].toInt(),
                 )
             }.toList()
 
-        return NetResult.fromDeserializedModelOk(
-            ApiManoThisSemesterInfo(
-                studyProgram = studyProgram ?: "",
-                absoluteSequenceNum = semesterAbsoluteSequenceNum ?: 0,
-                group = group ?: "",
-                subjects = subjects
-            ), operation = rootOperationName
-        )
+        return ApiManoThisSemesterInfo(
+            studyProgram = studyProgram ?: "",
+            absoluteSequenceNum = semesterAbsoluteSequenceNum ?: 0,
+            group = group ?: "",
+            subjects = subjects
+        ).toNetResultOk(rootOperationName)
     }
 
     suspend fun getSubjectTimetable(subjectModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
@@ -408,7 +445,7 @@ object ManoApi {
             )
         }.toList()
 
-        return NetResult.fromDeserializedModelOk(subjects, operation = rootOperationName)
+        return subjects.toNetResultOk(rootOperationName)
     }
 
     suspend fun getEmployees(): NetResult<List<ApiManoEmployeeBasicEntity>> {
@@ -453,7 +490,7 @@ object ManoApi {
             )
         }.toList()
 
-        return NetResult.fromDeserializedModelOk(employees, operation = rootOperationName)
+        return employees.toNetResultOk(rootOperationName)
     }
 
     suspend fun getEmployeeDetails(employeeId: Long): NetResult<ApiManoEmployeeDetails> {
@@ -555,17 +592,15 @@ object ManoApi {
 
         val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
 
-        return NetResult.fromDeserializedModelOk(
-            ApiManoEmployeeDetails(
-                phones = phones,
-                emails = emails,
-                departments = departments,
-                offices = offices,
-                positions = positions,
-                fullNameWithPrefix = fullName ?: "",
-                avatarUrl = employeePhotoUrl
-            ), operation = rootOperationName
-        )
+        return ApiManoEmployeeDetails(
+            phones = phones,
+            emails = emails,
+            departments = departments,
+            offices = offices,
+            positions = positions,
+            fullNameWithPrefix = fullName ?: "",
+            avatarUrl = employeePhotoUrl
+        ).toNetResultOk(rootOperationName)
     }
 
     suspend fun getCompletedSemesterResults(): NetResult<List<ApiManoCompletedSemesterResult>> {
@@ -652,13 +687,13 @@ object ManoApi {
                             val modCode = url.parameters["MOD_CODE"] ?: ""
 
                             ApiManoSubjectFinalResult(
-                                modId = url.parameters["MOD_ID"] ?: "",
+                                modId = url.parameters["MOD_ID"]?.toInt() ?: 0,
                                 modCode = modCode,
                                 link = result.groupValues[1],
                                 name = result.groupValues[2]
                                     .replace(modCode, "")
                                     .trim { it == ' ' || it == '(' || it == ')' },
-                                lecturerShortName = result.groupValues[3],
+                                lecturerShortName = result.groupValues[3].nullIfDash(),
                                 credits = result.groupValues[4].toIntNotNull(),
                                 hours = result.groupValues[5].toIntNotNull(),
                                 evaluationVerdict = verdict,
@@ -671,7 +706,7 @@ object ManoApi {
                 return@fastZip result
             }
 
-        return NetResult.fromDeserializedModelOk(semesterResults, rootOperationName)
+        return semesterResults.toNetResultOk(rootOperationName)
     }
 
     suspend fun getSemesterMediateResults(
@@ -699,30 +734,33 @@ object ManoApi {
             url = "${baseUrl}/results/site/get-result-part",
             formParameters = parameters {
                 append("years", semesterYearRange)
-                append("sem", "${semesterAbsoluteSequenceNum % 2 + 1}") // 1 - N to 1 or 2
+                append(
+                    "sem",
+                    "${semesterAbsoluteSequenceNum.toRelativeSemester()}"
+                ) // 1 - N to 1 or 2
             }
-        )
+        ) { addCsrfHeaders() }
 
         semesterResultDetailsResponse.expect200<ApiManoSemesterMediateResults>(
             "$rootOperationName + main request"
         )?.let { return it }
 
-        return semesterResultDetailsResponse.toNetResult(
-            isSuccess = true,
-            operation = rootOperationName
+        return jsonSerializer.decodeFromString<ApiManoSemesterMediateResults>(
+            semesterResultDetailsResponse.bodyAsText()
         )
+            .toNetResultOk(rootOperationName)
     }
 
-    suspend fun getSubjectSettlementOverviews(
+    suspend fun getSubjectSettlementGroups(
         semesterAbsoluteSequenceNum: Int,
         semesterYearRange: String,
-        subjectModId: String,
+        subjectModId: Int,
     ): NetResult<List<ApiManoSubjectSettlementOverview>> {
         return safeRetryWithPrecall(
-            "get settlement overviews for subject (mod id) '$subjectModId'",
+            "get settlement groups for subject (mod id) '$subjectModId'",
             "update session",
             mainBlock = {
-                getSubjectSettlementOverviewsUnsafe(
+                getSubjectSettlementGroupsUnsafe(
                     semesterAbsoluteSequenceNum,
                     semesterYearRange,
                     subjectModId,
@@ -734,31 +772,35 @@ object ManoApi {
             })
     }
 
-    private suspend fun getSubjectSettlementOverviewsUnsafe(
+
+    private suspend fun getSubjectSettlementGroupsUnsafe(
         semesterAbsoluteSequenceNum: Int,
         semesterYearRange: String,
-        subjectModId: String,
+        subjectModId: Int,
         rootOperationName: String
     ): NetResult<List<ApiManoSubjectSettlementOverview>> {
 
-        val settlementOverviewsResponse = client.submitForm(
+        val settlementGroupsResponse = client.submitForm(
             url = "${baseUrl}/results/site/get-mediate",
             formParameters = parameters {
                 append("years", semesterYearRange)
-                append("sem", "${semesterAbsoluteSequenceNum % 2 + 1}") // 1 - N to 1 or 2
-                append("mod", subjectModId)
+                append(
+                    "sem",
+                    "${semesterAbsoluteSequenceNum.toRelativeSemester()}"
+                ) // 1 - N to 1 or 2
+                append("mod", "$subjectModId")
             }
-        )
+        ) { addCsrfHeaders() }
 
-        settlementOverviewsResponse.expect200<List<ApiManoSubjectSettlementOverview>>(
+        settlementGroupsResponse.expect200<List<ApiManoSubjectSettlementOverview>>(
             "$rootOperationName + main request"
         )?.let { return it }
 
-        val settlementOverviewsContent =
-            settlementOverviewsResponse.bodyAsText().unescape().singleLine()
+        val settlementGroupsContent =
+            settlementGroupsResponse.bodyAsText().unescape().singleLine()
 
-        val overviews = mediateResultsExtractionRegex
-            .findAll(settlementOverviewsContent)
+        val groups = mediateResultsExtractionRegex
+            .findAll(settlementGroupsContent)
             .map { result ->
                 val values = result.groupValues
                 ApiManoSubjectSettlementOverview(
@@ -771,19 +813,19 @@ object ManoApi {
                     subjectName = values[7],
                     lecturerName = values[8],
                     completedRatio = values[9],
-                    percentageOfFinalAssessment = values[10].replace("%", "").toInt(),
+                    percentageOfFinalAssessment = values[10].replace("%", "").toIntNotNull(),
                     finalGrade = values[11].toFloatDashAsNull(),
-                    cumulativeScore = values[12].toFloatDashAsNull(),
+                    finalCumulativeScore = values[12].toFloatDashAsNull(),
                     lastUpdatedDate = values[13]
                 )
             }.toList()
 
-        return NetResult.fromDeserializedModelOk(overviews, rootOperationName)
+        return groups.toNetResultOk(rootOperationName)
     }
 
     suspend fun getSettlementGrades(
         semesterRelativeSequenceNum: Int,
-        subjectModId: String,
+        subjectModId: Int,
         subjectKmdId: String,
         subjectName: String,
         subjectDestVart: String,
@@ -812,7 +854,7 @@ object ManoApi {
 
     private suspend fun getSettlementGradesUnsafe(
         semesterRelativeSequenceNum: Int,
-        subjectModId: String,
+        subjectModId: Int,
         subjectKmdId: String,
         subjectName: String,
         subjectDestVart: String,
@@ -825,14 +867,14 @@ object ManoApi {
             url = "${baseUrl}/results/site/get-mediate-details",
             formParameters = parameters {
                 append("result_data[sem_id]", "$semesterRelativeSequenceNum")
-                append("result_data[mod_id]", subjectModId)
+                append("result_data[mod_id]", "$subjectModId")
                 append("result_data[kmd_id]", subjectKmdId)
                 append("result_data[mod_name]", subjectName)
                 append("result_data[dest-vart]", subjectDestVart)
                 append("result_data[years]", semesterYearRange)
                 append("result_data[type]", settlementType)
             }
-        )
+        ) { addCsrfHeaders() }
 
         settlementGradesResponse.expect200<List<ApiManoSubjectSettlementGrade>>(
             "$rootOperationName + main request"
@@ -846,13 +888,13 @@ object ManoApi {
                 with(result.groupValues) {
                     ApiManoSubjectSettlementGrade(
                         name = get(1),
-                        grade = get(2).toInt(),
-                        gradeDate = get(3),
-                        graderName = get(4)
+                        grade = get(2).toIntDashAsNull(),
+                        gradeDate = get(3).nullIfDash(),
+                        graderName = get(4).nullIfDash()
                     )
                 }
             }.toList()
 
-        return NetResult.fromDeserializedModelOk(grades, rootOperationName)
+        return grades.toNetResultOk(rootOperationName)
     }
 }

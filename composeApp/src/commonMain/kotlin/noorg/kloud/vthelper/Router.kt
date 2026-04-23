@@ -137,7 +137,6 @@ fun Navigation(
     val manoSemesterAndSubjectProvider = remember {
         ManoSemesterAndSubjectProvider(
             manoSemesterDao,
-            manoEmployeeDao,
             manoSubjectDao,
             manoSettlementGradeDao,
             manoSettlementGroupDao,
@@ -148,8 +147,7 @@ fun Navigation(
     val loggedInUserViewModel =
         remember {
             LoggedInUserViewModel(
-                LoggedInUserProvider(loggedInUserDao),
-                manoSemesterAndSubjectProvider
+                LoggedInUserProvider(loggedInUserDao)
             )
         }
     val moodleCoursesViewModel =
@@ -170,7 +168,7 @@ fun Navigation(
             DashboardScreen(showSnack)
         }
         composable(NavDrawerItem.Account.route) {
-            AccountScreen(loggedInUserViewModel, showSnack)
+            AccountScreen(loggedInUserViewModel, manoSemesterAndSubjectViewModel, showSnack)
         }
         composable(NavDrawerItem.Results.route) {
             ResultsScreen(

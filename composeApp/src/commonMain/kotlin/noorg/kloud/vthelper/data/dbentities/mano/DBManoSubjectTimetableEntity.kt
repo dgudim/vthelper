@@ -18,8 +18,8 @@ enum class DBManoTimetableEntityWeek(val w: Int) {
     foreignKeys = [
         ForeignKey(
             entity = DBManoSubjectEntity::class,
-            parentColumns = arrayOf("mod_id"),
-            childColumns = arrayOf("subject_mod_id"),
+            parentColumns = arrayOf("composite_pk_id"),
+            childColumns = arrayOf("subject_composite_pk_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
@@ -29,8 +29,11 @@ data class DBManoSubjectTimetableEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
+
+    @ColumnInfo(name = "subject_composite_pk_id")
+    val compositeSubjectId: Int = 0,
     @ColumnInfo(name = "subject_mod_id")
-    val subjectModId: Long = 0,
+    val subjectModId: Int = 0,
 
     @ColumnInfo(name = "time_from_ms_utc")
     val timeFromMsUTC: Long,

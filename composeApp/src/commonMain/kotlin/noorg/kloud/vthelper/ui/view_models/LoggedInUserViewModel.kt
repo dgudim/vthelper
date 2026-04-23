@@ -24,8 +24,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @Stable
 class LoggedInUserViewModel(
-    private val loggedInUserProvider: LoggedInUserProvider,
-    private val manoSemesterAndSubjectProvider: ManoSemesterAndSubjectProvider
+    private val loggedInUserProvider: LoggedInUserProvider
 ) : ViewModel() {
     val userState = loggedInUserProvider
         .getCurrentUserInfo()
@@ -34,14 +33,6 @@ class LoggedInUserViewModel(
             scope = viewModelScope,
             started = WhileSubscribed(5.seconds.inWholeMilliseconds),
             initialValue = ProvidedLoggedInUserEntity(),
-        )
-
-    val currentSemester = manoSemesterAndSubjectProvider
-        .getCurrentSemester()
-        .stateIn(
-            scope = viewModelScope,
-            started = WhileSubscribed(5.seconds.inWholeMilliseconds),
-            initialValue = null,
         )
 
     private var _mfaCode = MutableStateFlow("")
@@ -60,21 +51,12 @@ class LoggedInUserViewModel(
         }
     }
 
-    fun fetchSemesterData(showSnack: SnackbarFun): Job {
-        return viewModelScope.launch {
-            manoSemesterAndSubjectProvider
-                .fetchCurrentSemesterAndSubjectsFromApi()
-                .onFailure {
-                    showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
-                }
-        }
-    }
-
     fun login(
         studentId: String,
         password: String,
         mfaCode: String,
-        showSnack: SnackbarFun
+        showSnack: SnackbarFun,
+        onSuccess: () -> Unit
     ): Job {
         return viewModelScope.launch {
             loggedInUserProvider.login(studentId, password, mfaCode)
@@ -82,7 +64,7 @@ class LoggedInUserViewModel(
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
                 .onSuccess {
-                    fetchSemesterData(showSnack)
+                    onSuccess()
                     showSnack(
                         "Logged in successfully",
                         SnackBarSeverityLevel.SUCCESS,

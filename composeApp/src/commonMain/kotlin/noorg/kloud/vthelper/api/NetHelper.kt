@@ -8,6 +8,7 @@ import io.ktor.utils.io.copyAndClose
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.api.models.NetResult
+import noorg.kloud.vthelper.api.models.toNetResultOk
 
 inline fun <T> safeNetCall(operation: String, block: (op: String) -> NetResult<T>): NetResult<T> {
     return runCatching {
@@ -69,6 +70,6 @@ suspend fun downloadImage(target: Path, sourceUrl: Url): NetResult<String> {
                     .asByteWriteChannel()
             )
 
-        NetResult.fromDeserializedModelOk("OK", it)
+        "Downloaded $sourceUrl".toNetResultOk(it)
     }
 }

@@ -1,6 +1,7 @@
 package noorg.kloud.vthelper.data.dbentities.mano
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -12,13 +13,19 @@ data class DBManoEmployeeEntity(
     @ColumnInfo(name = "mano_id")
     val manoId: Long,
 
+    @ColumnInfo(name = "shortname")
+    val shortName: String,
+
+    @Embedded
+    val extendedData: DBManoEmployeeExtendedData
+)
+
+data class DBManoEmployeeExtendedData (
     @ColumnInfo("avatar_path")
     val avatarPath: String? = null,
 
     @ColumnInfo(name = "fullname")
     val fullName: String? = null,
-    @ColumnInfo(name = "shortname")
-    val shortName: String,
 
     @ColumnInfo(name = "positions")
     val positions: String? = null,
@@ -30,4 +37,11 @@ data class DBManoEmployeeEntity(
     val emails: String? = null,
     @ColumnInfo(name = "offices")
     val offices: String? = null
+)
+
+data class DBManoEmployeeExtendedDataWithPk(
+    @ColumnInfo(name = "mano_id")
+    val manoId: Long,
+    @Embedded
+    val extendedData: DBManoEmployeeExtendedData
 )

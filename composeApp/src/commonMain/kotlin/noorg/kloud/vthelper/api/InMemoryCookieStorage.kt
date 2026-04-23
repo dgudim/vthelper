@@ -12,19 +12,19 @@ import kotlinx.serialization.json.Json
 import kotlin.math.*
 
 /** copied from [io.ktor.client.plugins.cookies.AcceptAllCookiesStorage] but with an ability to get all cookies */
-public class InMemoryCookieStorage(private val clock: () -> Long = { getTimeMillis() }) :
+class InMemoryCookieStorage(private val clock: () -> Long = { getTimeMillis() }) :
     CookiesStorage {
 
     @Serializable
     data class CookieWithTimestamp(val cookie: Cookie, val createdAt: Long)
 
     private val container: MutableList<CookieWithTimestamp> = mutableListOf()
-    private val oldestCookie: AtomicLong = atomic(0L)
+    private val oldestCookieTime: AtomicLong = atomic(0L)
     private val mutex = Mutex()
 
     override suspend fun get(requestUrl: Url): List<Cookie> = mutex.withLock {
         val now = clock()
-        if (now >= oldestCookie.value) cleanup(now)
+        if (now >= oldestCookieTime.value) cleanup(now)
 
         val cookies = container.filter { it.cookie.matches(requestUrl) }.map { it.cookie }
         return@withLock cookies
@@ -87,8 +87,8 @@ public class InMemoryCookieStorage(private val clock: () -> Long = { getTimeMill
             container.add(CookieWithTimestamp(fullCookie, createdAt))
 
             fullCookie.maxAgeOrExpires(createdAt)?.let {
-                if (oldestCookie.value > it) {
-                    oldestCookie.value = it
+                if (oldestCookieTime.value > it) {
+                    oldestCookieTime.value = it
                 }
             }
         }
@@ -96,17 +96,40 @@ public class InMemoryCookieStorage(private val clock: () -> Long = { getTimeMill
 
     override fun close() = Unit
 
+    private fun updateOldestCookieTime() {
+        oldestCookieTime.value = container.fold(Long.MAX_VALUE) { acc, (cookie, createdAt) ->
+            cookie.maxAgeOrExpires(createdAt)
+                ?.let {
+                    min(acc, it)
+                } ?: acc
+        }
+    }
+
     private fun cleanup(timestamp: Long) {
         container.removeAll { (cookie, createdAt) ->
-            val expires = cookie.maxAgeOrExpires(createdAt) ?: return@removeAll false
-            expires < timestamp
+            val expiresTs = cookie.maxAgeOrExpires(createdAt) ?: return@removeAll false
+            val isExpired = expiresTs < timestamp
+            if (isExpired) {
+                println(
+                    "Removing expired cookie ${cookie.name} on ${cookie.domain}${cookie.path}"
+                )
+            }
+            return@removeAll isExpired
         }
+        updateOldestCookieTime()
+    }
 
-        val newOldest = container.fold(Long.MAX_VALUE) { acc, (cookie, createdAt) ->
-            cookie.maxAgeOrExpires(createdAt)?.let { min(acc, it) } ?: acc
+    fun removeCookiesByName(name: String) {
+        container.removeAll { (cookie, _) ->
+            val matches = cookie.name == name
+            if (matches) {
+                println(
+                    "Removing cookie by name ${cookie.name} on ${cookie.domain}${cookie.path}"
+                )
+            }
+            return@removeAll matches
         }
-
-        oldestCookie.value = newOldest
+        updateOldestCookieTime()
     }
 
     private fun Cookie.maxAgeOrExpires(createdAt: Long): Long? =

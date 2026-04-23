@@ -17,6 +17,6 @@ data class ApiManoSubjectSettlementOverview(
     val completedRatio: String, // 1/2 or 2/3, etc.
     val percentageOfFinalAssessment: Int,
     val finalGrade: Float?,
-    val cumulativeScore: Float?,
+    val finalCumulativeScore: Float?,
     val lastUpdatedDate: String?
 )

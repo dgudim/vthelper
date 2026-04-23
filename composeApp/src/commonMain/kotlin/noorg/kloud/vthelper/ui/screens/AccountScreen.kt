@@ -45,6 +45,7 @@ import noorg.kloud.vthelper.ui.components.common.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.account_circle_24px
@@ -60,10 +61,11 @@ import vthelper.composeapp.generated.resources.vt_48px
 @Composable
 fun AccountScreen(
     loggedInUserViewModel: LoggedInUserViewModel,
+    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
     showSnack: SnackbarFun
 ) {
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
-    val currentSemester by loggedInUserViewModel.currentSemester.collectAsStateWithLifecycle()
+    val currentSemester by manoSemesterAndSubjectViewModel.currentSemester.collectAsStateWithLifecycle()
 
     val localMfaCode by loggedInUserViewModel.mfaCode.collectAsStateWithLifecycle()
     val localStudentId by loggedInUserViewModel.studentId.collectAsStateWithLifecycle()
@@ -215,7 +217,12 @@ fun AccountScreen(
                             isLoading = true
                             loggedInUserViewModel.login(
                                 localStudentId, localPassword, localMfaCode,
-                                showSnack
+                                showSnack,
+                                onSuccess = {
+                                    manoSemesterAndSubjectViewModel.fetchCurrentSemesterFromApi(
+                                        showSnack
+                                    )
+                                }
                             ).invokeOnCompletion {
                                 isLoading = false
                             }

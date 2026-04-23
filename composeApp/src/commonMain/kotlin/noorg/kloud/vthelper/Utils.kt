@@ -19,9 +19,11 @@ import io.ktor.utils.io.asByteWriteChannel
 import io.ktor.utils.io.writeByteArray
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.yearsUntil
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
@@ -29,6 +31,9 @@ import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.CustomColorPalette
 import kotlin.io.encoding.Base64
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 typealias SnackbarFun = (String, SnackBarSeverityLevel, SnackbarDuration) -> Unit
 
@@ -109,9 +114,16 @@ fun CustomColorPalette.getColorFromGrade(grade: Float?): Color {
 fun Regex.findFirstGroup(str: String): String? {
     return try {
         find(str)?.groupValues?.get(1)?.trim()
-    } catch(_: Exception) {
+    } catch (_: Exception) {
         null
     }
+}
+
+fun String.nullIfDash(): String? {
+    if (trim() == "-") {
+        return null
+    }
+    return this
 }
 
 fun String.toIntNotNull(): Int {
@@ -128,10 +140,6 @@ fun String.toIntDashAsNull(): Int? {
         println("Error converting $this to int")
     }
     return 0
-}
-
-fun String.toFloatNotNull(): Float {
-    return toFloatDashAsNull() ?: 0F
 }
 
 fun String.toFloatDashAsNull(): Float? {
@@ -179,8 +187,8 @@ suspend fun String.decodeBase64ToFile(targetPath: Path) {
 
 // ============================= DB HELPERS
 
-fun List<DBManoEmployeeEntity>.fuzzyFindEmployeeNullIfDash(lecturerName: String): DBManoEmployeeEntity? {
-    if (lecturerName == "-") {
+fun List<DBManoEmployeeEntity>.fuzzyFindEmployee(lecturerName: String?): DBManoEmployeeEntity? {
+    if (lecturerName == null) {
         return null
     }
 
@@ -203,4 +211,30 @@ fun List<DBManoEmployeeEntity>.fuzzyFindEmployeeNullIfDash(lecturerName: String)
         }
     }
     return null
+}
+
+// ============================= OTHER HELPERS
+
+fun getSemesterYearRange(currentSemesterSequenceNum: Int, targetSemesterSequenceNum: Int): String {
+    // TODO: Use actual timetable here, this will fail during the winter session
+    // Does mano switch to the next semester during the winter session or after it?
+    val currentYear = Instant.fromEpochMilliseconds(0) // Account for semester ending in the next year
+        .yearsUntil(Clock.System.now().minus(40.days), TimeZone.currentSystemDefault())
+        .plus(1970)
+
+    val semesterYearDifference = currentSemesterSequenceNum - targetSemesterSequenceNum
+    val targetSemesterYear = currentYear - semesterYearDifference.floorDiv(2)
+    return "${targetSemesterYear - 1}-${targetSemesterYear}"
+}
+
+fun getSemesterSessionSeason(semesterSequenceNum: Int): String {
+    return if (semesterSequenceNum % 2 == 0) {
+        "spring"
+    } else {
+        "winter"
+    }
+}
+
+fun Int.toRelativeSemester(): Int{
+    return (this + 1) % 2 + 1
 }

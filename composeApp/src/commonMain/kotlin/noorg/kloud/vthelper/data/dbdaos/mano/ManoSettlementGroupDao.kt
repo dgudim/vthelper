@@ -7,8 +7,6 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroupWithGrades
-import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
-import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGradeWithEmployee
 
 @Dao
 interface ManoSettlementGroupDao {
@@ -22,12 +20,17 @@ interface ManoSettlementGroupDao {
     @Query("SELECT count(*) FROM mano_settlement_groups")
     suspend fun count(): Int
 
-    @Transaction
     @Query("SELECT * FROM mano_settlement_groups")
     fun getAllAsFlow(): Flow<List<DBManoSettlementGroup>>
 
     @Transaction
-    @Query("SELECT * FROM mano_settlement_groups where subject_mod_id = :subjectModId")
-    fun getForSubjectWithGrades(subjectModId: Int): Flow<List<DBManoSettlementGroupWithGrades>>
+    @Query("""SELECT * FROM mano_settlement_groups 
+                        WHERE subject_mod_id = :subjectModId
+                        AND sem_absolute_seq = :semAbsoluteSequenceNum
+                        ORDER BY settlement_type ASC""")
+    fun getForSubjectInSemesterWithGrades(
+        semAbsoluteSequenceNum: Int,
+        subjectModId: Int
+    ): Flow<List<DBManoSettlementGroupWithGrades>>
 
 }

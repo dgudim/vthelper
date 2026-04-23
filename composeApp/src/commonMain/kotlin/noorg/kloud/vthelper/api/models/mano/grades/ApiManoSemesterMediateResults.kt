@@ -19,10 +19,10 @@ data class ApiManoSubjectMediateResults(
     val stdTrsId: String, // 1171020105
     @SerialName("ID_MOD")
     val modId: String, // 25891222
-    @SerialName("MODULIS")
-    val name: String, // Specific Purpose Language Culture (KILSB17027)
     @SerialName("MOD_KODAS")
     val modCode: String, // KILSB17027
+    @SerialName("MODULIS")
+    val name: String, // Specific Purpose Language Culture (KILSB17027)
     @SerialName("DESTYTOJAI")
     val lecturerName: String, // V. Buivydienė
     @SerialName("SESIJA_SKST")

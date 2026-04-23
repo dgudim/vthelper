@@ -72,6 +72,7 @@ fun ExpandableCard(
     border: BorderStroke? = null,
     internalPadding: Dp = 0.dp,
     shouldBeExpanded: Boolean = false,
+    expansionAvailable: Boolean = true,
     collapsedContent: @Composable RowScope.() -> Unit,
     expandedContent: @Composable ColumnScope.() -> Unit,
 ) {
@@ -112,7 +113,9 @@ fun ExpandableCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 collapsedContent()
-                ExpandIcon(internalExpandedState, actualExpandedValue)
+                if (expansionAvailable) {
+                    ExpandIcon(internalExpandedState, actualExpandedValue)
+                }
             }
 
             // https://developer.android.com/develop/ui/compose/animation/composables-modifiers#animatedcontent

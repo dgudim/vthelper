@@ -19,12 +19,12 @@ val EvaluationVerdictLookup = mapOf(
 )
 
 data class ApiManoSubjectFinalResult(
-    val modId: String,
+    val modId: Int,
     val modCode: String,
     val link: String,
 
     val name: String,
-    val lecturerShortName: String,
+    val lecturerShortName: String?,
 
     val credits: Int,
     val hours: Int,
@@ -37,8 +37,10 @@ data class ApiManoSubjectFinalResult(
 
 data class ApiManoCompletedSemesterResult(
     val absoluteSequenceNum: Int,
-    val sessionSeason: String,
     val group: String,
+
+    // Not used, calculated in the code from sequence anyway
+    val sessionSeason: String,
     val yearTimeSpan: String,
 
     val finalResults: MutableList<ApiManoSubjectFinalResult>,

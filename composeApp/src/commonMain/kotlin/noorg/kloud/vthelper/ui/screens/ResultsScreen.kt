@@ -19,20 +19,29 @@ fun ResultsScreen(
     showSnack: SnackbarFun
 ) {
 
-    val semesters by manoSemesterAndSubjectViewModel.semesters.collectAsStateWithLifecycle()
+    val allSemesters by manoSemesterAndSubjectViewModel.semesters.collectAsStateWithLifecycle()
+    val currentSemesterData by manoSemesterAndSubjectViewModel.currentSemester.collectAsStateWithLifecycle()
+
     val selectedEmployee by manoEmployeeViewModel.selectedEmployee.collectAsStateWithLifecycle()
 
     LoadableListSection(
         loggedInUserViewModel = loggedInUserViewModel,
-        items = semesters,
+        items = allSemesters,
         fetchFunction = {
-            manoSemesterAndSubjectViewModel.fetchSemestersAndSubjectsFromApi(showSnack)
+            manoSemesterAndSubjectViewModel.fetchAllSemestersFromApi(showSnack)
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Results per semester", isLoading)
         },
         displayDirectly = true,
     ) { semesterData ->
-        SemesterCard(manoSemesterAndSubjectViewModel, semesterData)
+        currentSemesterData?.let {
+            SemesterCard(
+                showSnack,
+                manoSemesterAndSubjectViewModel,
+                it,
+                semesterData
+            )
+        }
     }
 }

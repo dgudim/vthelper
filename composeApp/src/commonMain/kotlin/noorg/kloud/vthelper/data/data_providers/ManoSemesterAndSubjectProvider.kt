@@ -1,31 +1,40 @@
 package noorg.kloud.vthelper.data.data_providers
 
+import kotlinx.atomicfu.AtomicInt
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import noorg.kloud.vthelper.api.ManoApi
-import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
+import noorg.kloud.vthelper.api.models.toResultFail
+import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroupWithGrades
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntityWithEmployee
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEvaluationVerdict
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectMediateData
+import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
+import noorg.kloud.vthelper.data.dbentities.mano.getSettlementGroupCompositeKey
+import noorg.kloud.vthelper.data.dbentities.mano.getSubjectCompositeKey
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGrade
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEvaluationVerdict
-import noorg.kloud.vthelper.fuzzyFindEmployeeNullIfDash
+import noorg.kloud.vthelper.fuzzyFindEmployee
+import noorg.kloud.vthelper.getSemesterYearRange
 import kotlin.String
+import kotlin.concurrent.Volatile
 
 class ManoSemesterAndSubjectProvider(
     private val manoSemesterDao: ManoSemesterDao,
-    private val manoEmployeeDao: ManoEmployeeDao,
     private val manoSubjectDao: ManoSubjectDao,
     private val manoSettlementGradeDao: ManoSettlementGradeDao,
     private val manoSettlementGroupDao: ManoSettlementGroupDao,
@@ -34,73 +43,91 @@ class ManoSemesterAndSubjectProvider(
 
     private val employeeList = mutableListOf<DBManoEmployeeEntity>()
 
+    private val currentSemesterNumber: AtomicInt = atomic(0)
+
     private suspend fun fetchEmployeesIfNeeded(): Result<String> {
-        if (employeeList.isNotEmpty()) {
-            return Result.success("OK")
-        }
-        val lecturersFetchResult = manoEmployeeProvider.fetchEmployeeListFromApi()
-        if (lecturersFetchResult.isFailure) {
-            return lecturersFetchResult
+        // It's important to actually put the employees into the DB. Needed for FK constraints
+        if (employeeList.isEmpty()) {
+            manoEmployeeProvider.fetchEmployeeListFromApi()
+                .onFailure { return it.toResultFail() }
+                .onSuccess {
+                    employeeList.clear()
+                    employeeList.addAll(it)
+                }
         }
 
-        val employees = manoEmployeeDao.getAll()
-        employeeList.clear()
-        employeeList.addAll(employees)
+        return "OK".toResultOk()
+    }
 
-        return Result.success("OK")
+    private suspend fun fetchCurrentSemesterNumberIfNeeded(): Result<Int> {
+
+        if (currentSemesterNumber.value == 0) {
+            ManoApi.getThisSemesterInfo(::fetchCurrentSemesterNumberIfNeeded.name)
+                .onFailure { return toResultFail() }
+                .onSuccess { currentSemesterNumber.value = it.absoluteSequenceNum }
+        }
+
+        return currentSemesterNumber.value.toResultOk()
     }
 
     suspend fun fetchAllSemestersAndSubjectsFromApi(): Result<String> {
 
-        fetchCurrentSemesterAndSubjectsFromApi().apply { if (isFailure) return this }
-        fetchCompletedSemestersWithResultsFromApi().apply { if (isFailure) return this }
+        fetchCurrentSemesterAndSubjectsFromApi().onFailure { return it.toResultFail() }
+        fetchCompletedSemestersWithResultsFromApi().onFailure { return it.toResultFail() }
 
         // TODO: Re-fetch when current semester changes/once every 3 months
 
-        return Result.success("OK")
+        return "OK".toResultOk()
     }
 
     suspend fun fetchCurrentSemesterAndSubjectsFromApi(): Result<String> {
 
-        val currentSemesterResponse = ManoApi.getThisSemesterInfo()
-
-        if (currentSemesterResponse.isFailure) {
-            return currentSemesterResponse.toResult()
-        }
+        val currentSemesterResponse =
+            ManoApi.getThisSemesterInfo(::fetchCurrentSemesterAndSubjectsFromApi.name)
+                .onFailure { return toResultFail() }
 
         val currentSemesterInfo = currentSemesterResponse.bodyTyped!!
+        currentSemesterNumber.value = currentSemesterInfo.absoluteSequenceNum
 
-        manoSemesterDao.upsert(
-            with(currentSemesterInfo) {
+        with(currentSemesterInfo) {
+            manoSemesterDao.upsert(
                 DBManoSemesterEntity(
                     absoluteSequenceNum = absoluteSequenceNum,
                     isCurrent = true,
                     group = group,
                     studyProgram = studyProgram
                 )
-            }
-
-        )
-
-        val employeesFetchResult = fetchEmployeesIfNeeded()
-        if (employeesFetchResult.isFailure) {
-            return employeesFetchResult
+            )
         }
+
+        fetchEmployeesIfNeeded().onFailure { return it.toResultFail() }
+
+        val mediateDatas =
+            fetchMediateResultsForSemester(currentSemesterInfo.absoluteSequenceNum)
+                .onFailure { return it.toResultFail() }
+                .getOrNull()!!
 
         val subjectsToAdd = mutableListOf<DBManoSubjectEntity>()
         for (subject in currentSemesterInfo.subjects) {
 
-            val subjectLecturer = employeeList.fuzzyFindEmployeeNullIfDash(subject.lecturerFullName)
+            val subjectLecturer = employeeList.fuzzyFindEmployee(subject.lecturerFullName)
+
+            val pk = getSubjectCompositeKey(
+                currentSemesterInfo.absoluteSequenceNum,
+                subject.modId
+            )
 
             subjectsToAdd.add(
                 DBManoSubjectEntity(
-                    semesterSequence = currentSemesterInfo.absoluteSequenceNum,
+                    compositePrimaryId = pk,
+                    semesterAbsoluteSeq = currentSemesterInfo.absoluteSequenceNum,
                     lecturerId = subjectLecturer?.manoId ?: 0,
                     modId = subject.modId,
                     modCode = subject.modCode,
                     link = subject.link,
                     name = subject.name,
-                    credits = subject.credits
+                    credits = subject.credits,
+                    mediateData = mediateDatas[pk] ?: DBManoSubjectMediateData()
                 )
             )
 
@@ -108,15 +135,16 @@ class ManoSemesterAndSubjectProvider(
 
         manoSubjectDao.upsertMany(subjectsToAdd)
 
-        return Result.success("OK")
+        fetchMediateResultsForSemester(currentSemesterInfo.absoluteSequenceNum)
+            .onFailure { return it.toResultFail() }
+
+        return "OK".toResultOk()
     }
 
     suspend fun fetchCompletedSemestersWithResultsFromApi(): Result<String> {
-        val completedSemestersResponse = ManoApi.getCompletedSemesterResults()
 
-        if (completedSemestersResponse.isFailure) {
-            return completedSemestersResponse.toResult()
-        }
+        val completedSemestersResponse = ManoApi.getCompletedSemesterResults()
+            .onFailure { return toResultFail() }
 
         manoSemesterDao.upsertMany(
             completedSemestersResponse.bodyTyped!!.map {
@@ -124,29 +152,36 @@ class ManoSemesterAndSubjectProvider(
                     absoluteSequenceNum = it.absoluteSequenceNum,
                     isCurrent = false,
                     group = it.group,
-                    season = it.sessionSeason,
-                    yearRange = it.yearTimeSpan,
                     finalTotalCredits = it.finalTotalCredits,
                     finalWeightedGrade = it.finalWeightedGrade
                 )
             }.toList()
         )
 
-        val employeesFetchResult = fetchEmployeesIfNeeded()
-        if (employeesFetchResult.isFailure) {
-            return employeesFetchResult
-        }
+        fetchEmployeesIfNeeded().onFailure { return it.toResultFail() }
 
         val subjectsToAdd = mutableListOf<DBManoSubjectEntity>()
         for (semesterResponse in completedSemestersResponse.bodyTyped) {
+
+            val mediateDatas =
+                fetchMediateResultsForSemester(semesterResponse.absoluteSequenceNum)
+                    .onFailure { return it.toResultFail() }
+                    .getOrNull()!!
+
             for (subject in semesterResponse.finalResults) {
 
                 val subjectLecturer =
-                    employeeList.fuzzyFindEmployeeNullIfDash(subject.lecturerShortName)
+                    employeeList.fuzzyFindEmployee(subject.lecturerShortName)
+
+                val pk = getSubjectCompositeKey(
+                    semesterResponse.absoluteSequenceNum,
+                    subject.modId
+                )
 
                 subjectsToAdd.add(
                     DBManoSubjectEntity(
-                        semesterSequence = semesterResponse.absoluteSequenceNum,
+                        compositePrimaryId = pk,
+                        semesterAbsoluteSeq = semesterResponse.absoluteSequenceNum,
                         lecturerId = subjectLecturer?.manoId ?: 0,
                         modId = subject.modId,
                         modCode = subject.modCode,
@@ -157,36 +192,144 @@ class ManoSemesterAndSubjectProvider(
                         finalEvaluationVerdict = DBManoSubjectEvaluationVerdict.valueOf(subject.evaluationVerdict.name),
                         credits = subject.credits,
                         hours = subject.hours,
+                        mediateData = mediateDatas[pk] ?: DBManoSubjectMediateData()
                     )
                 )
             }
+
         }
 
         manoSubjectDao.upsertMany(subjectsToAdd)
 
-        return Result.success("OK")
+        return "OK".toResultOk()
     }
 
-    suspend fun fetchSettlementGroupsForSubjectId(
+    suspend fun fetchMediateResultsForSemester(
+        semesterAbsoluteSequenceNum: Int
+    ): Result<Map<String, DBManoSubjectMediateData>> {
+        val currentSemesterSequenceNum =
+            fetchCurrentSemesterNumberIfNeeded()
+                .onFailure { return it.toResultFail() }
+                .getOrNull() ?: 0
+
+        val targetSemesterYearRange =
+            getSemesterYearRange(currentSemesterSequenceNum, semesterAbsoluteSequenceNum)
+
+        val mediateResultsResponse =
+            ManoApi.getSemesterMediateResults(
+                semesterAbsoluteSequenceNum,
+                targetSemesterYearRange
+            ).onFailure { return toResultFail() }
+
+        val mapped = mediateResultsResponse.bodyTyped!!.datas.results.associate {
+            getSubjectCompositeKey(
+                semesterAbsoluteSequenceNum,
+                it.modId.toInt()
+            ) to DBManoSubjectMediateData(
+                mediateResultsAvailable = true,
+                taGaSplitPercentage = it.taGaSplitPercentage,
+                finalCompletionCreditScore = it.fullCreditAndScore,
+                finalCompletionCumulativeScore = it.cumulativeScore
+            )
+        }
+
+        return mapped.toResultOk()
+    }
+
+    suspend fun fetchSettlementGroupsForSubjectInSemester(
         semesterAbsoluteSequenceNum: Int,
-        semesterYearRange: String,
-        subjectModId: String,
-    ) {
-        val settlementOverviewsResponse = ManoApi.getSubjectSettlementOverviews()
+        subjectModId: Int,
+    ): Result<String> {
+
+        val currentSemesterSequenceNum =
+            fetchCurrentSemesterNumberIfNeeded()
+                .onFailure { return it.toResultFail() }
+                .getOrNull() ?: 0
+
+        val targetSemesterYearRange =
+            getSemesterYearRange(currentSemesterSequenceNum, semesterAbsoluteSequenceNum)
+
+        val settlementGroupsResponse =
+            ManoApi.getSubjectSettlementGroups(
+                semesterAbsoluteSequenceNum,
+                targetSemesterYearRange,
+                subjectModId
+            ).onFailure { return toResultFail() }
+
+        val settlementGroups = settlementGroupsResponse.bodyTyped!!
+
+        manoSettlementGroupDao.upsertMany(settlementGroups.map {
+            DBManoSettlementGroup(
+                compositePrimaryId = getSettlementGroupCompositeKey(
+                    semesterAbsoluteSequenceNum,
+                    subjectModId,
+                    it.settlementType
+                ),
+                compositeSubjectId = getSubjectCompositeKey(
+                    semesterAbsoluteSequenceNum,
+                    subjectModId
+                ),
+                settlementType = it.settlementType,
+                subjectModId = subjectModId,
+                semesterAbsoluteSequenceNum = semesterAbsoluteSequenceNum,
+                completedRatio = it.completedRatio,
+                percentageOfFinalAssessment = it.percentageOfFinalAssessment,
+                finalGrade = it.finalGrade,
+                finalCumulativeScore = it.finalCumulativeScore,
+                lastUpdatedDate = it.lastUpdatedDate
+            )
+        })
+
+        fetchEmployeesIfNeeded().onFailure { return it.toResultFail() }
+
+        for (settlementGroup in settlementGroups) {
+            val gradesResponse = ManoApi.getSettlementGrades(
+                settlementGroup.semesterRelativeSequenceNum,
+                subjectModId,
+                settlementGroup.subjectKmdId,
+                settlementGroup.subjectName,
+                settlementGroup.subjectDestVart,
+                targetSemesterYearRange,
+                settlementGroup.settlementType
+            ).onFailure { return toResultFail() }
+
+            manoSettlementGradeDao.upsertMany(
+                gradesResponse.bodyTyped!!.map {
+
+                    val grader =
+                        employeeList.fuzzyFindEmployee(it.graderName)
+
+                    val baseKey = getSettlementGroupCompositeKey(
+                        semesterAbsoluteSequenceNum,
+                        subjectModId,
+                        settlementGroup.settlementType
+                    )
+
+                    DbManoSettlementGrade(
+                        compositePrimaryId = "${baseKey}-name_${it.name}",
+                        compositeSettlementId = baseKey,
+                        name = it.name,
+                        value = it.grade,
+                        date = it.gradeDate,
+                        graderId = grader?.manoId ?: 0
+                    )
+                }
+            )
+        }
+
+        return "OK".toResultOk()
     }
 
     // ================ Semesters
 
     fun mapSemester(model: DBManoSemesterEntity): ProvidedManoSemesterEntity {
-        println("Mapped mano course: ${model.absoluteSequenceNum}")
+        println("Mapped mano semester: ${model.absoluteSequenceNum}")
         with(model) {
             return ProvidedManoSemesterEntity(
                 absoluteSequenceNum = absoluteSequenceNum,
                 isCurrent = isCurrent,
                 group = group,
                 studyProgram = studyProgram ?: "",
-                season = season ?: "",
-                yearRange = yearRange ?: "",
                 finalTotalCredits = finalTotalCredits,
                 finalWeightedGrade = finalWeightedGrade
             )
@@ -196,6 +339,7 @@ class ManoSemesterAndSubjectProvider(
     fun getAllSemesters(): Flow<List<ProvidedManoSemesterEntity>> {
         return manoSemesterDao
             .getAllAsFlow()
+            .distinctUntilChanged()
             .map { dbEntities ->
                 dbEntities.map { mapSemester(it) }
             }
@@ -222,14 +366,15 @@ class ManoSemesterAndSubjectProvider(
                 lecturerName = model.employee.shortName,
                 lecturerId = lecturerId,
                 name = name,
-                taGaSplitPercentage = taGaSplitPercentage,
+                taGaSplitPercentage = mediateData.taGaSplitPercentage,
+                mediateResultsAvailable = mediateData.mediateResultsAvailable,
                 tries = tries,
                 hours = hours,
                 credits = credits,
                 finalCompletionDate = finalCompletionDate,
                 finalCompletionGrade = finalCompletionGrade,
-                finalCompletionCumulativeScore = finalCompletionCumulativeScore,
-                finalCompletionCreditScore = finalCompletionCreditScore,
+                finalCompletionCumulativeScore = mediateData.finalCompletionCumulativeScore,
+                finalCompletionCreditScore = mediateData.finalCompletionCreditScore,
                 finalEvaluationVerdict =
                     if (finalEvaluationVerdict != null)
                         ProvidedManoSubjectEvaluationVerdict.valueOf(finalEvaluationVerdict.name)
@@ -252,7 +397,6 @@ class ManoSemesterAndSubjectProvider(
     fun mapSettlementWithGrades(model: DBManoSettlementGroupWithGrades): ProvidedManoSettlementGroup {
         println("Mapped settlement: [subject mod id: ${model.group.subjectModId}, type: ${model.group.settlementType}, nGrades: ${model.grades.size}]")
         return ProvidedManoSettlementGroup(
-            internalId = model.group.syntheticId,
             settlementType = model.group.settlementType,
             completedRatio = model.group.completedRatio,
             percentageOfFinalAssessment = model.group.percentageOfFinalAssessment,
@@ -271,9 +415,12 @@ class ManoSemesterAndSubjectProvider(
         )
     }
 
-    fun getSettlementGroupsForSubject(subjectModId: Int): Flow<List<ProvidedManoSettlementGroup>> {
+    fun getSettlementGroupsForSubjectInSemester(
+        semAbsoluteSequenceNum: Int,
+        subjectModId: Int
+    ): Flow<List<ProvidedManoSettlementGroup>> {
         return manoSettlementGroupDao
-            .getForSubjectWithGrades(subjectModId)
+            .getForSubjectInSemesterWithGrades(semAbsoluteSequenceNum, subjectModId)
             .distinctUntilChanged()
             .map { dbEntities ->
                 dbEntities.map { mapSettlementWithGrades(it) }

@@ -6,8 +6,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.downloadImage
+import noorg.kloud.vthelper.api.models.toResultFail
+import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedData
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedDataWithPk
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
 import noorg.kloud.vthelper.platform_specific.appDataDirectory
 import noorg.kloud.vthelper.platform_specific.div
@@ -15,63 +19,61 @@ import kotlin.Long
 
 class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
 
-    suspend fun fetchEmployeeListFromApi(): Result<String> {
+    suspend fun fetchEmployeeListFromApi(): Result<List<DBManoEmployeeEntity>> {
+        val employees = mutableListOf<DBManoEmployeeEntity>()
+
         // Insert a placeholder for the cases when the subject lecturer can't be mapped for some reason
-        manoEmployeeDao.upsert(
-            DBManoEmployeeEntity(
-                manoId = 0,
-                shortName = "-"
-            )
+        val dummy = DBManoEmployeeEntity(
+            manoId = 0,
+            shortName = "-",
+            extendedData = DBManoEmployeeExtendedData()
         )
+        employees.add(dummy)
+        manoEmployeeDao.upsert(dummy)
 
-        val employeeResponse = ManoApi.getEmployees()
+        ManoApi.getEmployees()
+            .onFailure { return toResultFail() }
+            .onSuccess { result ->
+                val fetchedEmployees =
+                    result.map {
+                        DBManoEmployeeEntity(
+                            manoId = it.id,
+                            shortName = it.shortName,
+                            extendedData = DBManoEmployeeExtendedData()
+                        )
+                    }
+                employees.addAll(fetchedEmployees)
+                manoEmployeeDao.upsertMany(fetchedEmployees)
+            }
 
-        if (employeeResponse.isFailure) {
-            return employeeResponse.toResult()
-        }
-
-        manoEmployeeDao.upsertMany(employeeResponse.bodyTyped!!.map {
-            DBManoEmployeeEntity(
-                manoId = it.id,
-                shortName = it.shortName
-            )
-        })
-
-        return Result.success("OK")
+        return employees.toResultOk()
     }
 
     suspend fun fetchEmployeeDetailsFromApi(employeeId: Long): Result<String> {
-        val employeeDetailsResponse = ManoApi.getEmployeeDetails(employeeId)
 
-        if (employeeDetailsResponse.isFailure) {
-            return employeeDetailsResponse.toResult()
-        }
+        ManoApi.getEmployeeDetails(employeeId)
+            .onFailure { return toResultFail() }
+            .onSuccess { resp ->
+                val avatarPath = appDataDirectory() / "employee-$employeeId.img"
+                downloadImage(avatarPath, Url(resp.avatarUrl))
 
-        val existingEmployee = manoEmployeeDao.getById(employeeId)
-            ?: return Result.failure(
-                Exception("Could not find employee with id: $employeeId")
-            )
-
-        with(employeeDetailsResponse.bodyTyped!!) {
-            val avatarPath = appDataDirectory() / "employee-$employeeId.img"
-            downloadImage(avatarPath, Url(avatarUrl))
-
-            manoEmployeeDao.upsert(
-                DBManoEmployeeEntity(
-                    manoId = employeeId,
-                    shortName = existingEmployee.shortName,
-                    fullName = fullNameWithPrefix,
-                    emails = emails.joinToString(", "),
-                    phones = phones.joinToString(", "),
-                    positions = positions.joinToString(", "),
-                    offices = offices.joinToString(", ") { "${it.officeName} (${it.address})" },
-                    departments = departments.joinToString(", ") { it.name },
-                    avatarPath = avatarPath.toString()
+                manoEmployeeDao.updateExtended(
+                    DBManoEmployeeExtendedDataWithPk(
+                        manoId = employeeId,
+                        extendedData = DBManoEmployeeExtendedData(
+                            fullName = resp.fullNameWithPrefix,
+                            emails = resp.emails.joinToString(", "),
+                            phones = resp.phones.joinToString(", "),
+                            positions = resp.positions.joinToString(", "),
+                            offices = resp.offices.joinToString(", ") { "${it.officeName} (${it.address})" },
+                            departments = resp.departments.joinToString(", ") { it.name },
+                            avatarPath = avatarPath.toString()
+                        )
+                    )
                 )
-            )
-        }
+            }
 
-        return Result.success("OK")
+        return "OK".toResultOk()
     }
 
     private fun mapDbToProvider(model: DBManoEmployeeEntity): ProvidedManoEmployeeEntity {
@@ -79,13 +81,13 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
         with(model) {
             return ProvidedManoEmployeeEntity(
                 manoId = manoId,
-                fullName = fullName,
+                fullName = extendedData.fullName,
                 shortName = shortName,
-                positions = positions,
-                departments = departments,
-                phones = phones,
-                emails = emails,
-                offices = offices,
+                positions = extendedData.positions,
+                departments = extendedData.departments,
+                phones = extendedData.phones,
+                emails = extendedData.emails,
+                offices = extendedData.offices,
             )
         }
     }
@@ -93,6 +95,7 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
     fun getAllEmployees(): Flow<List<ProvidedManoEmployeeEntity>> {
         return manoEmployeeDao
             .getAllAsFlow()
+            .distinctUntilChanged()
             .map { dbEntities ->
                 dbEntities.map { mapDbToProvider(it) }
             }

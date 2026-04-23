@@ -1,9 +1,9 @@
 package noorg.kloud.vthelper.data.provider_models
 
-data class ProvidedManoSettlementGrade (
+data class ProvidedManoSettlementGrade(
     val name: String,
-    val value: Int,
-    val date: String,
+    val value: Int?,
+    val date: String?,
 
     // Inlined from the db so the ui doesn't have to join lists
     val graderShortName: String,
@@ -11,9 +11,7 @@ data class ProvidedManoSettlementGrade (
     val graderId: Long
 )
 
-data class ProvidedManoSettlementGroup (
-    val internalId: Long,
-
+data class ProvidedManoSettlementGroup(
     val settlementType: String,
 
     val completedRatio: String,
