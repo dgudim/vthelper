@@ -12,6 +12,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,6 +44,11 @@ import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
+import org.jetbrains.compose.resources.painterResource
+import vthelper.composeapp.generated.resources.Res
+import vthelper.composeapp.generated.resources.info_24px
+import vthelper.composeapp.generated.resources.menu_24px
+import vthelper.composeapp.generated.resources.person_24px
 
 @Composable
 fun GradeColumn(finalGrade: Float) {
@@ -185,10 +191,20 @@ fun SubjectCard(
                     fontWeight = FontWeight.Bold,
                     text = subjectData.name
                 )
-                Text(
-                    color = MaterialTheme.colorScheme.outline,
-                    text = subjectData.lecturerName
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        color = MaterialTheme.colorScheme.outline,
+                        text = subjectData.lecturerName
+                    )
+                    if (subjectData.lecturerId > 0) {
+                        Icon(
+                            painter = painterResource(Res.drawable.person_24px),
+                            modifier = Modifier.padding(start=4.dp),
+                            tint = MaterialTheme.colorScheme.outline,
+                            contentDescription = null
+                        )
+                    }
+                }
                 Text(
                     color = MaterialTheme.colorScheme.outline,
                     text = subjectData.modCode

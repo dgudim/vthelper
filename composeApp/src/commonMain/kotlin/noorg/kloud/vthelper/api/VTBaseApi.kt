@@ -13,12 +13,12 @@ import io.ktor.http.parameters
 import io.ktor.util.appendAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.sync.Mutex
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
 import noorg.kloud.vthelper.api.models.toNetResult
 import noorg.kloud.vthelper.api.models.toNetResultFail
+import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 
@@ -42,6 +42,16 @@ object VTBaseApi {
             dispatcher = Dispatchers.IO
         }
         followRedirects = false
+    }
+
+    val clientWithRedirects = HttpClient(getHttpClientEngine()) {
+        install(HttpCookies) {
+            storage = cookieStorage
+        }
+        engine {
+            dispatcher = Dispatchers.IO
+        }
+        followRedirects = true
     }
 
     private val baseHeaders = mapOf(
@@ -294,18 +304,50 @@ object VTBaseApi {
         baseUrl: Url,
         bodyText: String?
     ): NetResult<String>? {
-        if (bodyText?.contains("Working...") == true) {
-            val result = refreshSamlUnsafe(
+        val isSaml = bodyText != null && bodyText.contains("Working...")
+        println("Checking if the page is a saml request: $isSaml")
+        if (isSaml) {
+            return refreshSamlUnsafe(
                 parentOperation,
                 baseUrl,
                 bodyText,
                 baseUrl.toString()
             )
-            if (result.isFailure) {
-                return result
-            }
         }
         return null
+    }
+
+    suspend fun getPageWithSamlRefresh(
+        rootOperationName: String,
+        baseUrl: Url,
+        prevCallBody: String?
+    ): NetResult<String> {
+        refreshSamlForPageIfNeededUnsafe(
+            "$rootOperationName + refresh saml",
+            baseUrl,
+            prevCallBody
+        )?.onFailure { return this }
+
+        val pageResponse = clientWithRedirects.get(baseUrl)
+
+        pageResponse.expect200<String>(
+            operation = "$rootOperationName + main request"
+        )?.let { return it }
+
+        var pageContent = pageResponse.bodyAsText()
+
+        val secondaryRefreshResult = refreshSamlForPageIfNeededUnsafe(
+            "$rootOperationName + refresh saml (new response)",
+            baseUrl,
+            pageContent
+        )?.onFailure { return this }
+
+        // If the saml session was refreshed, get the body after the refresh
+        if (secondaryRefreshResult?.isSuccess == true) {
+            pageContent = secondaryRefreshResult.bodyTyped ?: ""
+        }
+
+        return pageContent.toNetResultOk(rootOperationName)
     }
 
     // This extracts and posts saml response to the corresponding mano or moodle endpoint and refreshes session cookies
@@ -355,13 +397,13 @@ object VTBaseApi {
         println("Final request to $redirectedServiceBaseUrl (Ours: '$serviceBaseUrl')")
 
         // This sets session cookies specific to the service
-        val finalServiceResponse = client.get(redirectedServiceBaseUrl) {
+        // we may get a redirection to some other page on the same site (e.g: moodle's /my)
+        // that's why we use the redirect client here
+        val finalServiceResponse = clientWithRedirects.get(redirectedServiceBaseUrl) {
             headers { appendAll(initialRequestHeaders + mapOf("Referer" to samlUrl)) }
         }
 
-        // 303 is ok here as we may get a redirection to some other page on the same site (e.g: moodle's /my)
-        finalServiceResponse.expectCode<String>(
-            expectedCodes = listOf(HttpStatusCode.OK, HttpStatusCode.SeeOther),
+        finalServiceResponse.expect200<String>(
             operation = "$parentOperation + final service request"
         )?.let { return it }
 

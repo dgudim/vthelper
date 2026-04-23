@@ -39,8 +39,11 @@ fun InfoField(
     @Suppress("DEPRECATION") val clipboard = LocalClipboardManager.current
     val onClickFinal = remember {
         {
-            onClick ?: clipboard.setText(AnnotatedString(bottomText))
-            Unit
+            if (onClick != null) {
+                onClick()
+            } else {
+                clipboard.setText(AnnotatedString(bottomText))
+            }
         }
     }
 

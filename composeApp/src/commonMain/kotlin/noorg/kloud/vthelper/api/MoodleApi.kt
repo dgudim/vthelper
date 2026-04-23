@@ -19,6 +19,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import noorg.kloud.vthelper.api.VTBaseApi.getPageWithSamlRefresh
 import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
@@ -35,10 +36,10 @@ import kotlin.concurrent.Volatile
 
 object MoodleApi {
 
-    val baseUrl = Url("https://moodle.vilniustech.lt")
-    val sessionKeyExtractionRegex = Regex("""sesskey=(.*?)"""", RegexOption.MULTILINE)
-    val userIdExtractionRegex = Regex("""data-userid="(.*?)"""", RegexOption.MULTILINE)
-    val calendarExportUrlExtractionRegex =
+    private val baseUrl = Url("https://moodle.vilniustech.lt")
+    private val sessionKeyExtractionRegex = Regex("""sesskey=(.*?)"""", RegexOption.MULTILINE)
+    private val userIdExtractionRegex = Regex("""data-userid="(.*?)"""", RegexOption.MULTILINE)
+    private val calendarExportUrlExtractionRegex =
         Regex("""id="calendarexporturl".*value="(.*?)"""", RegexOption.MULTILINE)
 
     @Volatile
@@ -55,6 +56,7 @@ object MoodleApi {
         install(ContentNegotiation) {
             json(Json {
                 isLenient = true
+                ignoreUnknownKeys = true
             })
         }
         install(HttpCookies) {
@@ -87,19 +89,12 @@ object MoodleApi {
         rootOperationName: String
     ): NetResult<String> {
         sessionRefreshMutex.withLock {
-            refreshSamlForPageIfNeededUnsafe(
-                "$rootOperationName + refresh saml",
-                baseUrl,
-                prevCallBody
-            )?.let { return it }
 
-            val pageResponse = client.get(baseUrl)
+            val pageContent =
+                getPageWithSamlRefresh(rootOperationName, baseUrl, prevCallBody)
+                    .onFailure { return this }
+                    .bodyTyped ?: ""
 
-            pageResponse.expect200<String>(
-                operation = "$rootOperationName + main request"
-            )?.let { return it }
-
-            val pageContent = pageResponse.bodyAsText()
             val extractedSessionKey =
                 sessionKeyExtractionRegex.findFirstGroup(pageContent)
                     ?: return pageContent.toNetResultFail(
@@ -150,8 +145,7 @@ object MoodleApi {
             }
         )
 
-        calendarUrlPageResponse.expectCode<String>(
-            expectedCodes = listOf(HttpStatusCode.OK),
+        calendarUrlPageResponse.expect200<String>(
             operation = "$rootOperationName + main request"
         )?.let { return it }
 

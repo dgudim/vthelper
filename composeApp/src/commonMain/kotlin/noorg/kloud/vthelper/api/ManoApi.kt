@@ -22,7 +22,7 @@ import noorg.kloud.vthelper.api.ManoApi.getSettlementGradesUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getStudentInfoUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getSubjectTimetableUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getThisSemesterInfoUnsafe
-import noorg.kloud.vthelper.api.VTBaseApi.refreshSamlForPageIfNeededUnsafe
+import noorg.kloud.vthelper.api.VTBaseApi.getPageWithSamlRefresh
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
@@ -61,134 +61,134 @@ object ManoApi {
     private val baseUrl = Url("https://mano.vilniustech.lt")
     private val jsonSerializer = Json { ignoreUnknownKeys = true }
 
-    val unicodeUnescapeRegex = Regex("""\\u([0-9a-fA-F]{4})""")
+    private val unicodeUnescapeRegex = Regex("""\\u([0-9a-fA-F]{4})""")
 
-    val csrfTokenExtractionRegex = Regex("""<meta name="csrf-token" content="(.*?)">""")
+    private val csrfTokenExtractionRegex = Regex("""<meta name="csrf-token" content="(.*?)">""")
 
     /** [getStudentInfoUnsafe] */
-    val personalEmailExtractionRegex =
+    private val personalEmailExtractionRegex =
         Regex("""StudentContactForm\[email].*?" value="(.*?)"""", RegexOption.MULTILINE)
-    val universityEmailExtractionRegex =
+    private val universityEmailExtractionRegex =
         Regex("""StudentContactForm\[email2].*?" value="(.*?)"""", RegexOption.MULTILINE)
-    val addressExtractionRegex =
+    private val addressExtractionRegex =
         Regex("""StudentContactForm\[address].*?" value="(.*?)"""", RegexOption.MULTILINE)
-    val phoneExtractionRegex =
+    private val phoneExtractionRegex =
         Regex("""StudentContactForm\[phone].*?" value="(.*?)"""", RegexOption.MULTILINE)
-    val birthDateExtractionRegex =
+    private val birthDateExtractionRegex =
         Regex(
             """Birth date .*?<td class="border-none color-black">(.*?)<""",
             RegexOption.MULTILINE
         )
-    val birthYearExtractionRegex =
+    private val birthYearExtractionRegex =
         Regex(
             """Birthyear .*?<td class="border-none color-black">(.*?)<""",
             RegexOption.MULTILINE
         )
-    val fullNameAndAvatarExtractionRegex =
+    private val fullNameAndAvatarExtractionRegex =
         Regex("""id="user_img_id".*?alt="(.*?)".*?src="(.*?)"""", RegexOption.MULTILINE)
 
     /** [getThisSemesterInfoUnsafe] */
 
-    val currentSemesterInfoExtractionRegex = Regex(
+    private val currentSemesterInfoExtractionRegex = Regex(
         """<title>(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    val studySubjectExtractionRegex =
+    private val studySubjectExtractionRegex =
         Regex(
             """<a class="profile-link" href="(.*?)">(.*?)<.*?data-title="Lecturer".*?>(.*?)<.*?data-title="Evaluation".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<""",
             RegexOption.MULTILINE
         )
 
     /** [getSubjectTimetableUnsafe] */
-    val courseTimetableExtractionRegex =
+    private val courseTimetableExtractionRegex =
         Regex(
             """data-title="Work day".*?>(.*?)<.*?data-title="Week".*?>(.*?)<.*?data-title="Time".*?>(.*?)<.*?data-title="Auditorium".*?>(.*?)<.*?data-title="Lecture type".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<""",
             RegexOption.MULTILINE
         )
 
     /** [getEmployeesUnsafe] */
-    val outerContactsExtractionRegex = Regex(
+    private val outerContactsExtractionRegex = Regex(
         """(<select.*?name="Contacts\[workers]".*?(?:<option.*option>)+)""",
         RegexOption.MULTILINE
     )
-    val innerContactsExtractionRegex = Regex(
+    private val innerContactsExtractionRegex = Regex(
         """<option value="(.*?)">(.*?)<.option>""",
         RegexOption.MULTILINE
     )
 
     /** [getEmployeeDetailsUnsafe] */
-    val employeeNameExtractionRegex = Regex(
+    private val employeeNameExtractionRegex = Regex(
         """<div class="employee-name">(.*?)<\\/div>""",
         RegexOption.MULTILINE
     )
 
-    val employeePositionExtractionRegex = Regex(
+    private val employeePositionExtractionRegex = Regex(
         """<div class="employee-position">(.*?)<\\/div>""",
         RegexOption.MULTILINE
     )
 
-    val employeeDepartmentDataExtractionRegex = Regex(
+    private val employeeDepartmentDataExtractionRegex = Regex(
         """<div class="employee-department" department_id=(.*?)>.*?<a href="#">(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    val employeePhoneExtractionRegex = Regex(
+    private val employeePhoneExtractionRegex = Regex(
         """<a href="tel:(.*?)"""",
         RegexOption.MULTILINE
     )
 
-    val employeeEmailExtractionRegex = Regex(
+    private val employeeEmailExtractionRegex = Regex(
         """<a href="mailto:(.*?)"""",
         RegexOption.MULTILINE
     )
 
-    val employeeOfficeExtractionRegex = Regex(
+    private val employeeOfficeExtractionRegex = Regex(
         """<strong>Office<\\/strong>(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    val employeeAddressExtractionRegex = Regex(
+    private val employeeAddressExtractionRegex = Regex(
         """<strong>Address<\\/strong>(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    val employeePhotoExtractionRegex = Regex(
+    private val employeePhotoExtractionRegex = Regex(
         """src="(.*?)" alt="photo"""",
         RegexOption.MULTILINE
     )
 
     /** [getCompletedSemesterResultsUnsafe] */
 
-    val tableBodyExtractionRegex = Regex(
+    private val tableBodyExtractionRegex = Regex(
         """<tbody(.*?)tbody>"""
     )
 
-    val semesterResultsExtractionRegex = Regex(
+    private val semesterResultsExtractionRegex = Regex(
         """data-title="Name".*?<a href="(.*?)">(.*?)<.*?data-title="Teacher".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<.*?data-title="Hours".*?>(.*?)<.*?data-title="Grade".*?>(.*?)<.*?data-title="Tries".*?>(.*?)<.*?data-title="Date".*?>(.*?)<""",
         RegexOption.MULTILINE
     )
 
-    val semesterHeaderExtractionRegex = Regex(
+    private val semesterHeaderExtractionRegex = Regex(
         """class="page-header">(.*?)<br>(.*?)group""",
         RegexOption.MULTILINE
     )
 
-    val semesterFooterExtractionRegex = Regex(
+    private val semesterFooterExtractionRegex = Regex(
         """Total number of credits.*?><.*?>(.*?)<.*?The weighted grade point average.*?">(.*?)<""",
         RegexOption.MULTILINE
     )
 
     /** [getSubjectSettlementGroupsUnsafe] */
 
-    val mediateResultsExtractionRegex = Regex(
+    private val mediateResultsExtractionRegex = Regex(
         """data-title="Settlement".*?data-years="(.*?)".*?data-sem="(.*?)".*?data-mod-id="(.*?)".*?data-kmd-id="(.*?)".*?data-dest-vart="(.*?)".*?data-type="(.*?)".*?data-name="(.*?)".*?href="#">.*?data-title="Lecturer".*?href="#">(.*?)<.*?title="Completed".*?href="#">(.*?)<.*?title="Percentage of final assessment grade.*?href="#">(.*?)<.*?title="Grade".*?href="#">(.*?)<.*?title="The cumulative score".*?href="#">(.*?)<.*?title="Date".*?href="#">(.*?)<""",
         RegexOption.MULTILINE
     )
 
     /** [getSettlementGradesUnsafe] */
 
-    val settlementGradesExtractionRegex = Regex(
+    private val settlementGradesExtractionRegex = Regex(
         """data-title="Settlement".*?>(.*?)<.*?data-title="Grade".*?>(.*?)<.*?data-title="Date".*?>(.*?)<.*?>(.*?)<""",
         RegexOption.MULTILINE
     )
@@ -258,20 +258,11 @@ object ManoApi {
         prevCallBody: String?
     ): NetResult<String> {
         sessionRefreshMutex.withLock {
-            refreshSamlForPageIfNeededUnsafe(
-                "$rootOperationName + refresh saml",
-                MoodleApi.baseUrl,
-                prevCallBody
-            )?.let { return it }
 
-            // Refresh csrf token and cookie
-            VTBaseApi.cookieStorage.removeCookiesByName("_csrf")
-            val basePageResponse = client.get(baseUrl)
-            basePageResponse
-                .expect200<String>("$rootOperationName + refresh csrf")
-                ?.let { return it }
-
-            val pageContent = basePageResponse.bodyAsText()
+            val pageContent =
+                getPageWithSamlRefresh(rootOperationName, baseUrl, prevCallBody)
+                    .onFailure { return this }
+                    .bodyRaw ?: ""
 
             val extractedCsrfToken = csrfTokenExtractionRegex.findFirstGroup(pageContent)
                 ?: return pageContent.toNetResultFail(
