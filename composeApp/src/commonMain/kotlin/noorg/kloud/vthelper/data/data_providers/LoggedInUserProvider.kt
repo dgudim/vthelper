@@ -4,6 +4,7 @@ import io.ktor.http.Url
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.io.files.Path
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.VTBaseApi
@@ -52,8 +53,12 @@ class LoggedInUserProvider(
         val studentInfo = studentInfoResult.bodyTyped!!
         val moodleUserId = MoodleApi.userId
 
-        val avatarPath = appDataDirectory() / "$studentId.img"
-        downloadImage(avatarPath, Url(studentInfo.avatarUrl))
+        var avatarPath: Path? = null
+
+        if(studentInfo.avatarUrl != null) {
+            avatarPath = appDataDirectory() / "$studentId.img"
+            downloadImage(avatarPath, Url(studentInfo.avatarUrl))
+        }
 
         // TODO: Save new cookies into the db after session refresh as well
         loggedInUserDao.replace(
@@ -69,7 +74,7 @@ class LoggedInUserProvider(
                 cookiesJson = VTBaseApi.cookieStorage.getAllAsJson(),
                 address = studentInfo.address,
                 birthDate = studentInfo.birthDate,
-                avatarPath = avatarPath.toString()
+                avatarPath = avatarPath?.toString()
             )
         )
 

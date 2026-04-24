@@ -18,19 +18,19 @@ data class DBLoggedInUserEntity (
     @ColumnInfo(name = "session_valid")
     val isSessionValid: Boolean,
     @ColumnInfo(name = "personal_email")
-    val personalEmail: String,
+    val personalEmail: String?,
     @ColumnInfo(name = "university_email")
-    val universityEmail: String,
+    val universityEmail: String?,
     @ColumnInfo(name = "phone")
-    val phone: String,
+    val phone: String?,
     @ColumnInfo(name = "address")
-    val address: String,
+    val address: String?,
     @ColumnInfo(name = "birth_date")
-    val birthDate: String,
+    val birthDate: String?,
     @ColumnInfo(name = "full_name")
-    val fullName: String,
+    val fullName: String?,
     @ColumnInfo(name = "avatar_path")
-    val avatarPath: String,
+    val avatarPath: String?,
     @ColumnInfo(name = "cookies_json")
     val cookiesJson: String,
 )

@@ -102,6 +102,7 @@ fun ExpandableCard(
                 .fillMaxWidth()
                 .padding(internalPadding)
                 .clickable(
+                    enabled = expansionAvailable,
                     interactionSource = null,
                     indication = null
                 ) {

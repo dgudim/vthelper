@@ -1,6 +1,7 @@
 package noorg.kloud.vthelper.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +46,7 @@ import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.theme.customColors
+import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
@@ -162,6 +166,7 @@ fun SettlementGroupCard(settlementGroup: ProvidedManoSettlementGroup) {
 @Composable
 fun SubjectCard(
     showSnack: SnackbarFun,
+    manoEmployeeViewModel: ManoEmployeeViewModel,
     manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
     semAbsoluteSequenceNum: Int,
     subjectData: ProvidedManoSubjectEntity
@@ -199,7 +204,15 @@ fun SubjectCard(
                     if (subjectData.lecturerId > 0) {
                         Icon(
                             painter = painterResource(Res.drawable.person_24px),
-                            modifier = Modifier.padding(start=4.dp),
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    manoEmployeeViewModel.selectEmployeeById(
+                                        showSnack,
+                                        subjectData.lecturerId
+                                    )
+                                },
                             tint = MaterialTheme.colorScheme.outline,
                             contentDescription = null
                         )
@@ -267,6 +280,7 @@ fun SubjectCard(
 @Composable
 fun SemesterCard(
     showSnack: SnackbarFun,
+    manoEmployeeViewModel: ManoEmployeeViewModel,
     manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
     currentSemesterData: ProvidedManoSemesterEntity,
     semesterData: ProvidedManoSemesterEntity,
@@ -335,6 +349,7 @@ fun SemesterCard(
                     }
                     SubjectCard(
                         showSnack,
+                        manoEmployeeViewModel,
                         manoSemesterAndSubjectViewModel,
                         semesterData.absoluteSequenceNum,
                         subject

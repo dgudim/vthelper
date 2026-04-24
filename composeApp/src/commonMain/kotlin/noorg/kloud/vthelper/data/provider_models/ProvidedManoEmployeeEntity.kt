@@ -3,12 +3,14 @@ package noorg.kloud.vthelper.data.provider_models
 data class ProvidedManoEmployeeEntity (
     val manoId: Long,
 
-    val fullName: String? = null,
-    val shortName: String? = null,
+    val avatarPath: String?,
 
-    val positions: String? = null,
-    val departments: String? = null,
-    val phones: String? = null,
-    val emails: String? = null,
-    val offices: String? = null
+    val fullName: String?,
+    val shortName: String,
+
+    val positions: String?,
+    val departments: String?,
+    val phones: String?,
+    val emails: String?,
+    val offices: String?
 )

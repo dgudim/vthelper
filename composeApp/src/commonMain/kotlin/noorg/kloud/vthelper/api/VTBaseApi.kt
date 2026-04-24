@@ -44,15 +44,7 @@ object VTBaseApi {
         followRedirects = false
     }
 
-    val clientWithRedirects = HttpClient(getHttpClientEngine()) {
-        install(HttpCookies) {
-            storage = cookieStorage
-        }
-        engine {
-            dispatcher = Dispatchers.IO
-        }
-        followRedirects = true
-    }
+    val clientWithRedirects = client.config { followRedirects = true }
 
     private val baseHeaders = mapOf(
         "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
@@ -343,7 +335,7 @@ object VTBaseApi {
         )?.onFailure { return this }
 
         // If the saml session was refreshed, get the body after the refresh
-        if (secondaryRefreshResult?.isSuccess == true) {
+        if (secondaryRefreshResult != null) {
             pageContent = secondaryRefreshResult.bodyTyped ?: ""
         }
 

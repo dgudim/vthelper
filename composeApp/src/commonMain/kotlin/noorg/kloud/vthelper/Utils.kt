@@ -126,6 +126,13 @@ fun String.nullIfDash(): String? {
     return this
 }
 
+fun String.nullIfBlank(): String? {
+    if (isBlank()) {
+        return null
+    }
+    return this
+}
+
 fun String.toIntNotNull(): Int {
     return toIntDashAsNull() ?: 0
 }

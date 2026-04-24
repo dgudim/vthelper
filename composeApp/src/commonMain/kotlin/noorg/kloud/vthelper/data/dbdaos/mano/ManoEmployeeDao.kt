@@ -20,9 +20,6 @@ interface ManoEmployeeDao {
     suspend fun updateExtended(employee: DBManoEmployeeExtendedDataWithPk)
 
     @Query("SELECT * from mano_employees where mano_id = :id")
-    fun getByIdAsFlow(id: Long): Flow<DBManoEmployeeEntity?>
-
-    @Query("SELECT * from mano_employees where mano_id = :id")
     suspend fun getById(id: Long): DBManoEmployeeEntity?
 
     @Query("SELECT count(*) FROM mano_employees")

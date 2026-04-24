@@ -47,6 +47,7 @@ import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.nullIfDash
 import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.nullIfBlank
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import noorg.kloud.vthelper.toFloatDashAsNull
 import noorg.kloud.vthelper.toIntDashAsNull
@@ -119,12 +120,12 @@ object ManoApi {
 
     /** [getEmployeeDetailsUnsafe] */
     private val employeeNameExtractionRegex = Regex(
-        """<div class="employee-name">(.*?)<\\/div>""",
+        """<div class="employee-name">(.*?)</div>""",
         RegexOption.MULTILINE
     )
 
     private val employeePositionExtractionRegex = Regex(
-        """<div class="employee-position">(.*?)<\\/div>""",
+        """<div class="employee-position">(.*?)</div>""",
         RegexOption.MULTILINE
     )
 
@@ -144,12 +145,12 @@ object ManoApi {
     )
 
     private val employeeOfficeExtractionRegex = Regex(
-        """<strong>Office<\\/strong>(.*?)<""",
+        """<strong>Office</strong>(.*?)<""",
         RegexOption.MULTILINE
     )
 
     private val employeeAddressExtractionRegex = Regex(
-        """<strong>Address<\\/strong>(.*?)<""",
+        """<strong>Address</strong>(.*?)<""",
         RegexOption.MULTILINE
     )
 
@@ -262,7 +263,7 @@ object ManoApi {
             val pageContent =
                 getPageWithSamlRefresh(rootOperationName, baseUrl, prevCallBody)
                     .onFailure { return this }
-                    .bodyRaw ?: ""
+                    .bodyTyped ?: ""
 
             val extractedCsrfToken = csrfTokenExtractionRegex.findFirstGroup(pageContent)
                 ?: return pageContent.toNetResultFail(
@@ -314,22 +315,27 @@ object ManoApi {
                 ?.trim()
         val birthYear =
             birthYearExtractionRegex.findFirstGroup(basePageResponseContent)?.replace("m.", "")
-                ?.trim()?.toInt()
+                ?.trim()
+                ?.toInt()
 
         val fullNameAndAvatarMatch =
             fullNameAndAvatarExtractionRegex.find(basePageResponseContent)?.groupValues
         val fullName = fullNameAndAvatarMatch?.get(1)?.trim()
-        val avatarUrl = fullNameAndAvatarMatch?.get(2)?.trim()
+        var avatarUrl = fullNameAndAvatarMatch?.get(2)?.trim()
+
+        if(!avatarUrl.isNullOrBlank()) {
+            avatarUrl = "$baseUrl$avatarUrl"
+        }
 
         return ApiManoStudentInfo(
-            fullName = fullName ?: "",
-            birthYear = birthYear ?: 0,
-            birthDate = birthDate ?: "",
-            address = address ?: "",
-            phone = phone ?: "",
-            personalEmail = personalEmail ?: "",
-            universityEmail = universityEmail ?: "",
-            avatarUrl = "$baseUrl$avatarUrl"
+            fullName = fullName,
+            birthYear = birthYear,
+            birthDate = birthDate,
+            address = address,
+            phone = phone,
+            personalEmail = personalEmail,
+            universityEmail = universityEmail,
+            avatarUrl = avatarUrl
         ).toNetResultOk(rootOperationName)
     }
 
@@ -548,8 +554,8 @@ object ManoApi {
         var employeePhotoUrl = employeePhotoExtractionRegex
             .findFirstGroup(detailsPageContent) ?: ""
 
-        // Relative to absolute url
-        if (!employeePhotoUrl.startsWith("http")) {
+        // Relative to absolute url if it's not empty
+        if (!employeePhotoUrl.isBlank() && !employeePhotoUrl.startsWith("http")) {
             employeePhotoUrl = "$baseUrl$employeePhotoUrl"
         }
 
@@ -589,8 +595,8 @@ object ManoApi {
             departments = departments,
             offices = offices,
             positions = positions,
-            fullNameWithPrefix = fullName ?: "",
-            avatarUrl = employeePhotoUrl
+            fullNameWithPrefix = fullName?.nullIfBlank(),
+            avatarUrl = employeePhotoUrl.nullIfBlank()
         ).toNetResultOk(rootOperationName)
     }
 

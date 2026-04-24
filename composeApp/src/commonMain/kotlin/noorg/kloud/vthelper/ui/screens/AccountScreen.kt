@@ -2,12 +2,14 @@ package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +45,7 @@ import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.InfoField
 import noorg.kloud.vthelper.ui.components.common.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
+import noorg.kloud.vthelper.ui.components.common.AsyncImageWithPlaceholder
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
@@ -55,6 +58,7 @@ import vthelper.composeapp.generated.resources.calendar_month_24px
 import vthelper.composeapp.generated.resources.id_card_24px
 import vthelper.composeapp.generated.resources.logout_24px
 import vthelper.composeapp.generated.resources.moodle
+import vthelper.composeapp.generated.resources.person_24px
 import vthelper.composeapp.generated.resources.school_24px
 import vthelper.composeapp.generated.resources.vt_48px
 
@@ -105,16 +109,6 @@ fun AccountScreen(
                     MaterialTheme.colorScheme.onPrimary
         )
 
-    val platformContext = LocalPlatformContext.current
-    val userAvatarLoader by remember {
-        lazy {
-            ImageRequest.Builder(platformContext)
-                .data(userState.avatarPath)
-                .crossfade(true)
-                .build()
-        }
-    }
-
     val logoutDialogShown = remember { mutableStateOf(false) }
 
     if (logoutDialogShown.value) ConfirmationDialog(
@@ -128,27 +122,17 @@ fun AccountScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState(0))
-            .wrapContentSize(Alignment.TopCenter),
+            .verticalScroll(rememberScrollState())
+            .fillMaxWidth()
+            .wrapContentHeight(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (userState.isSessionValid && userState.avatarPath?.isNotEmpty() == true) {
-            AsyncImage(
-                model = userAvatarLoader,
-                contentDescription = null,
-                contentScale = ContentScale.Inside,
-                modifier = Modifier
-                    .height(102.dp)
-                    .clip(RoundedCornerShape(10))
-            )
-        } else {
-            Icon(
-                painter = painterResource(Res.drawable.account_circle_24px),
-                contentDescription = null,
-                modifier = Modifier.size(102.dp)
-            )
-        }
+        AsyncImageWithPlaceholder(
+            userState.avatarPath,
+            Res.drawable.account_circle_24px,
+            userState.isSessionValid,
+            102.dp
+        )
         Text(
             text = loggedInTopHeaderText,
             modifier = Modifier.padding(8.dp),
@@ -241,39 +225,39 @@ fun AccountScreen(
         }
         Column {
             InfoField(
-                Res.drawable.account_circle_24px,
+                Res.drawable.person_24px,
                 "Full name",
-                userState.fullName ?: "-"
+                userState.fullName
             )
             InfoField(
                 Res.drawable.alternate_email_24px,
                 "Personal email",
-                userState.personalEmail ?: "-"
+                userState.personalEmail
             )
             InfoField(
                 Res.drawable.alternate_email_24px,
                 "University email",
-                userState.universityEmail ?: "-"
+                userState.universityEmail
             )
             InfoField(
                 Res.drawable.id_card_24px,
                 "Student id",
-                userState.studentId ?: "-"
+                userState.studentId
             )
             InfoField(
                 Res.drawable.school_24px,
                 "Group",
-                currentSemester?.group ?: "-"
+                currentSemester?.group
             )
             InfoField(
                 Res.drawable.book_24px,
                 "Study program",
-                currentSemester?.studyProgram ?: "-"
+                currentSemester?.studyProgram
             )
             InfoField(
                 Res.drawable.calendar_month_24px,
                 "Current semester",
-                if (currentSemester != null) "${currentSemester?.absoluteSequenceNum}" else "-"
+                currentSemester?.absoluteSequenceNum?.toString()
             )
             HorizontalDivider(modifier = Modifier.padding(16.dp))
             InfoField(Res.drawable.vt_48px, "Open mano", "mano.vilniustech.lt", {

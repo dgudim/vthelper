@@ -48,7 +48,7 @@ fun CourseEntry(
 
     val mixedColor = courseColor.mixWith(MaterialTheme.colorScheme.primary, 0.3F)
 
-    val courseImageLoader by remember {
+    val courseImageLoader by remember(courseCoverImagePath) {
         lazy {
             ImageRequest.Builder(platformContext)
                 .data(courseCoverImagePath)

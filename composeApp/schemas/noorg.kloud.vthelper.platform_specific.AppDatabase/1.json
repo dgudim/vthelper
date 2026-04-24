@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "db1855917487577448f12b25ca886101",
+    "identityHash": "3ed8fab6549374f74a35dc45a98800a0",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -48,7 +48,7 @@
       },
       {
         "tableName": "mano_subjects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `mod_id` INTEGER NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_absolute_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, `final_evaluation_verdict` TEXT, `ta_ga_split_percentage` TEXT, `mediate_results_available` INTEGER NOT NULL, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`semester_absolute_seq`) REFERENCES `mano_semesters`(`absolute_seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `mod_id` INTEGER NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `semester_absolute_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_evaluation_verdict` TEXT, `ta_ga_split_percentage` TEXT, `mediate_results_available` INTEGER NOT NULL, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`semester_absolute_seq`) REFERENCES `mano_semesters`(`absolute_seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "compositePrimaryId",
@@ -118,16 +118,6 @@
             "affinity": "INTEGER"
           },
           {
-            "fieldPath": "finalCompletionCumulativeScore",
-            "columnName": "final_completion_cumulative_score",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "finalCompletionCreditScore",
-            "columnName": "final_completion_credit_score",
-            "affinity": "TEXT"
-          },
-          {
             "fieldPath": "finalEvaluationVerdict",
             "columnName": "final_evaluation_verdict",
             "affinity": "TEXT"
@@ -142,6 +132,16 @@
             "columnName": "mediate_results_available",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "mediateData.finalCompletionCumulativeScore",
+            "columnName": "final_completion_cumulative_score",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mediateData.finalCompletionCreditScore",
+            "columnName": "final_completion_credit_score",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -458,7 +458,7 @@
       },
       {
         "tableName": "mano_employees",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mano_id` INTEGER NOT NULL, `avatar_path` TEXT, `fullname` TEXT, `shortname` TEXT NOT NULL, `positions` TEXT, `departments` TEXT, `phones` TEXT, `emails` TEXT, `offices` TEXT, PRIMARY KEY(`mano_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mano_id` INTEGER NOT NULL, `shortname` TEXT NOT NULL, `avatar_path` TEXT, `fullname` TEXT, `positions` TEXT, `departments` TEXT, `phones` TEXT, `emails` TEXT, `offices` TEXT, PRIMARY KEY(`mano_id`))",
         "fields": [
           {
             "fieldPath": "manoId",
@@ -467,43 +467,43 @@
             "notNull": true
           },
           {
-            "fieldPath": "avatarPath",
-            "columnName": "avatar_path",
-            "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "fullName",
-            "columnName": "fullname",
-            "affinity": "TEXT"
-          },
-          {
             "fieldPath": "shortName",
             "columnName": "shortname",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "positions",
+            "fieldPath": "extendedData.avatarPath",
+            "columnName": "avatar_path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extendedData.fullName",
+            "columnName": "fullname",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extendedData.positions",
             "columnName": "positions",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "departments",
+            "fieldPath": "extendedData.departments",
             "columnName": "departments",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "phones",
+            "fieldPath": "extendedData.phones",
             "columnName": "phones",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "emails",
+            "fieldPath": "extendedData.emails",
             "columnName": "emails",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "offices",
+            "fieldPath": "extendedData.offices",
             "columnName": "offices",
             "affinity": "TEXT"
           }
@@ -517,7 +517,7 @@
       },
       {
         "tableName": "logged_in_user",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT NOT NULL, `university_email` TEXT NOT NULL, `phone` TEXT NOT NULL, `address` TEXT NOT NULL, `birth_date` TEXT NOT NULL, `full_name` TEXT NOT NULL, `avatar_path` TEXT NOT NULL, `cookies_json` TEXT NOT NULL, PRIMARY KEY(`student_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT, `university_email` TEXT, `phone` TEXT, `address` TEXT, `birth_date` TEXT, `full_name` TEXT, `avatar_path` TEXT, `cookies_json` TEXT NOT NULL, PRIMARY KEY(`student_id`))",
         "fields": [
           {
             "fieldPath": "studentId",
@@ -546,44 +546,37 @@
           {
             "fieldPath": "personalEmail",
             "columnName": "personal_email",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "universityEmail",
             "columnName": "university_email",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "phone",
             "columnName": "phone",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "address",
             "columnName": "address",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "birthDate",
             "columnName": "birth_date",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "fullName",
             "columnName": "full_name",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "avatarPath",
             "columnName": "avatar_path",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "cookiesJson",
@@ -602,7 +595,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'db1855917487577448f12b25ca886101')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3ed8fab6549374f74a35dc45a98800a0')"
     ]
   }
 }

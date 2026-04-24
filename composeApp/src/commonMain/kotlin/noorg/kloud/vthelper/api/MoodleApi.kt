@@ -67,6 +67,8 @@ object MoodleApi {
         }
     }
 
+    // TODO: Add caching to most endpoints
+
     suspend fun loginIfNeeded(
         studentId: String,
         password: String,

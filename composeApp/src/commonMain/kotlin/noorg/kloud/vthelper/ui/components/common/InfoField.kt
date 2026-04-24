@@ -30,10 +30,15 @@ import org.jetbrains.compose.resources.painterResource
 fun InfoField(
     icon: DrawableResource,
     topText: String,
-    bottomText: String,
+    bottomText: String?,
     onClick: (() -> Unit)? = null,
     coloredIcon: Boolean = false
 ) {
+
+    var bottomTextNn = bottomText ?: "-"
+    if (bottomTextNn.isBlank()) {
+        bottomTextNn = "-"
+    }
 
     // https://youtrack.jetbrains.com/issue/CMP-7624
     @Suppress("DEPRECATION") val clipboard = LocalClipboardManager.current
@@ -42,13 +47,14 @@ fun InfoField(
             if (onClick != null) {
                 onClick()
             } else {
-                clipboard.setText(AnnotatedString(bottomText))
+                clipboard.setText(AnnotatedString(bottomTextNn))
             }
         }
     }
 
     Surface(
-        onClick = onClickFinal
+        onClick = onClickFinal,
+        color = Color.Transparent
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -69,7 +75,7 @@ fun InfoField(
                 )
                 Text(
                     color = MaterialTheme.colorScheme.outline,
-                    text = bottomText
+                    text = bottomTextNn
                 )
             }
         }

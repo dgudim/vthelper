@@ -12,8 +12,8 @@ data class ApiManoBasicOfficeData(
 
 // If there are multiple cards we bundle into one object
 data class ApiManoEmployeeDetails(
-    val avatarUrl: String,
-    val fullNameWithPrefix: String, // 'Dr.' or similar
+    val avatarUrl: String?,
+    val fullNameWithPrefix: String?, // 'Dr.' or similar
     val positions: List<String>,
     val departments: List<ApiManoBasicDepartmentData>,
     val phones: List<String>,

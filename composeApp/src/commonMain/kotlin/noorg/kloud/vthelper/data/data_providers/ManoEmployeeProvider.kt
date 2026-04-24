@@ -4,15 +4,17 @@ import io.ktor.http.Url
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.io.files.Path
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.downloadImage
-import noorg.kloud.vthelper.api.models.toResultFail
 import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedDataWithPk
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
+import noorg.kloud.vthelper.nullIfBlank
+import noorg.kloud.vthelper.nullIfDash
 import noorg.kloud.vthelper.platform_specific.appDataDirectory
 import noorg.kloud.vthelper.platform_specific.div
 import kotlin.Long
@@ -54,20 +56,25 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
         ManoApi.getEmployeeDetails(employeeId)
             .onFailure { return toResultFail() }
             .onSuccess { resp ->
-                val avatarPath = appDataDirectory() / "employee-$employeeId.img"
-                downloadImage(avatarPath, Url(resp.avatarUrl))
+
+                var avatarPath: Path? = null
+
+                if(resp.avatarUrl != null) {
+                    avatarPath = appDataDirectory() / "employee-$employeeId.img"
+                    downloadImage(avatarPath, Url(resp.avatarUrl))
+                }
 
                 manoEmployeeDao.updateExtended(
                     DBManoEmployeeExtendedDataWithPk(
                         manoId = employeeId,
                         extendedData = DBManoEmployeeExtendedData(
                             fullName = resp.fullNameWithPrefix,
-                            emails = resp.emails.joinToString(", "),
-                            phones = resp.phones.joinToString(", "),
-                            positions = resp.positions.joinToString(", "),
-                            offices = resp.offices.joinToString(", ") { "${it.officeName} (${it.address})" },
-                            departments = resp.departments.joinToString(", ") { it.name },
-                            avatarPath = avatarPath.toString()
+                            emails = resp.emails.joinToString(", ").nullIfBlank(),
+                            phones = resp.phones.joinToString(", ").nullIfBlank(),
+                            positions = resp.positions.joinToString(", ").nullIfBlank(),
+                            offices = resp.offices.joinToString(", ") { "${it.officeName} (${it.address})" }.nullIfBlank(),
+                            departments = resp.departments.joinToString(", ") { it.name }.nullIfBlank(),
+                            avatarPath = avatarPath?.toString()
                         )
                     )
                 )
@@ -81,6 +88,7 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
         with(model) {
             return ProvidedManoEmployeeEntity(
                 manoId = manoId,
+                avatarPath = extendedData.avatarPath,
                 fullName = extendedData.fullName,
                 shortName = shortName,
                 positions = extendedData.positions,
@@ -92,7 +100,7 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
         }
     }
 
-    fun getAllEmployees(): Flow<List<ProvidedManoEmployeeEntity>> {
+    fun getAllEmployeesAsFlow(): Flow<List<ProvidedManoEmployeeEntity>> {
         return manoEmployeeDao
             .getAllAsFlow()
             .distinctUntilChanged()
@@ -101,17 +109,13 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
             }
     }
 
-    fun getEmployeeById(employeeId: Long): Flow<ProvidedManoEmployeeEntity?> {
-        return manoEmployeeDao
-            .getByIdAsFlow(employeeId)
-            .distinctUntilChanged()
-            .map {
-                return@map if (it != null) {
-                    mapDbToProvider(it)
-                } else {
-                    null
-                }
-            }
+    suspend fun getEmployeeById(employeeId: Long): ProvidedManoEmployeeEntity? {
+        val dbEntity = manoEmployeeDao.getById(employeeId)
+        return if (dbEntity != null) {
+            mapDbToProvider(dbEntity)
+        } else {
+            null
+        }
     }
 
 }
