@@ -9,6 +9,7 @@ private const val APP_ID = "vthelper"
 fun String.toPath(): Path = Path(this)
 
 // https://discuss.kotlinlang.org/t/keep-nullability-of-function-parameter-type-on-return-type/15233/4
+@Suppress("UNCHECKED_CAST")
 operator fun <T: Path?> T.div(child: String): T = (if (this != null) Path(this, child) else null) as T
 
 internal expect fun dataDirectory(appId: String): Path

@@ -44,7 +44,7 @@ class LoggedInUserProvider(
     private suspend fun fetchUserDataFromApi(
         studentId: String, password: String
     ): Result<String> {
-        val studentInfoResult = ManoApi.getStudentInfo()
+        val studentInfoResult = ManoApi.getStudentInfo(::fetchUserDataFromApi.name)
             .onFailure { return toResultFail() }
 
         MoodleApi.updateSessionInfo()

@@ -74,9 +74,10 @@ class ManoSemesterAndSubjectProvider(
     suspend fun fetchAllSemestersAndSubjectsFromApi(): Result<String> {
 
         fetchCurrentSemesterAndSubjectsFromApi().onFailure { return it.toResultFail() }
-        fetchCompletedSemestersWithResultsFromApi().onFailure { return it.toResultFail() }
 
-        // TODO: Re-fetch when current semester changes/once every 3 months
+        if (manoSemesterDao.count() <= 1) {
+            fetchCompletedSemestersWithResultsFromApi().onFailure { return it.toResultFail() }
+        }
 
         return "OK".toResultOk()
     }
@@ -144,7 +145,7 @@ class ManoSemesterAndSubjectProvider(
 
     suspend fun fetchCompletedSemestersWithResultsFromApi(): Result<String> {
 
-        val completedSemestersResponse = ManoApi.getCompletedSemesterResults()
+        val completedSemestersResponse = ManoApi.getCompletedSemesterResults(::fetchCompletedSemestersWithResultsFromApi.name)
             .onFailure { return toResultFail() }
 
         manoSemesterDao.upsertMany(
@@ -218,6 +219,7 @@ class ManoSemesterAndSubjectProvider(
 
         val mediateResultsResponse =
             ManoApi.getSemesterMediateResults(
+                ::fetchMediateResultsForSemester.name,
                 semesterAbsoluteSequenceNum,
                 targetSemesterYearRange
             ).onFailure { return toResultFail() }
@@ -252,6 +254,7 @@ class ManoSemesterAndSubjectProvider(
 
         val settlementGroupsResponse =
             ManoApi.getSubjectSettlementGroups(
+                ::fetchSettlementGroupsForSubjectInSemester.name,
                 semesterAbsoluteSequenceNum,
                 targetSemesterYearRange,
                 subjectModId
@@ -285,6 +288,7 @@ class ManoSemesterAndSubjectProvider(
 
         for (settlementGroup in settlementGroups) {
             val gradesResponse = ManoApi.getSettlementGrades(
+                ::fetchSettlementGroupsForSubjectInSemester.name,
                 settlementGroup.semesterRelativeSequenceNum,
                 subjectModId,
                 settlementGroup.subjectKmdId,

@@ -32,7 +32,7 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
         employees.add(dummy)
         manoEmployeeDao.upsertBare(dummy)
 
-        ManoApi.getEmployees()
+        ManoApi.getEmployees(::fetchEmployeeListFromApi.name)
             .onFailure { return toResultFail() }
             .onSuccess { result ->
                 val fetchedEmployees =
@@ -51,7 +51,7 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
 
     suspend fun fetchEmployeeDetailsFromApi(employeeId: Long): Result<String> {
 
-        ManoApi.getEmployeeDetails(employeeId)
+        ManoApi.getEmployeeDetails(::fetchEmployeeDetailsFromApi.name, employeeId)
             .onFailure { return toResultFail() }
             .onSuccess { resp ->
 

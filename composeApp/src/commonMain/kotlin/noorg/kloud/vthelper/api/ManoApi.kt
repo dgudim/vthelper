@@ -277,7 +277,7 @@ object ManoApi {
         }
     }
 
-    suspend fun getStudentInfo(): NetResult<ApiManoStudentInfo> {
+    suspend fun getStudentInfo(source: String): NetResult<ApiManoStudentInfo> {
         return safeRetryWithPrecall(
             "get student info", "update session",
             mainBlock = {
@@ -403,7 +403,8 @@ object ManoApi {
         ).toNetResultOk(rootOperationName)
     }
 
-    suspend fun getSubjectTimetable(subjectModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
+    suspend fun getSubjectTimetable(source: String, subjectModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
+        println("${::getSubjectTimetable.name} called from $source")
         return safeRetryWithPrecall(
             "get subject timetable for '$subjectModId'", "update session",
             mainBlock = {
@@ -445,7 +446,8 @@ object ManoApi {
         return subjects.toNetResultOk(rootOperationName)
     }
 
-    suspend fun getEmployees(): NetResult<List<ApiManoEmployeeBasicEntity>> {
+    suspend fun getEmployees(source: String): NetResult<List<ApiManoEmployeeBasicEntity>> {
+        println("${::getEmployees.name} called from $source")
         return safeRetryWithPrecall(
             "get employees", "update session",
             mainBlock = {
@@ -490,7 +492,8 @@ object ManoApi {
         return employees.toNetResultOk(rootOperationName)
     }
 
-    suspend fun getEmployeeDetails(employeeId: Long): NetResult<ApiManoEmployeeDetails> {
+    suspend fun getEmployeeDetails(source: String, employeeId: Long): NetResult<ApiManoEmployeeDetails> {
+        println("${::getEmployeeDetails.name} called from $source")
         return safeRetryWithPrecall(
             "get employee details for '$employeeId'", "update session",
             mainBlock = {
@@ -600,7 +603,8 @@ object ManoApi {
         ).toNetResultOk(rootOperationName)
     }
 
-    suspend fun getCompletedSemesterResults(): NetResult<List<ApiManoCompletedSemesterResult>> {
+    suspend fun getCompletedSemesterResults(source: String): NetResult<List<ApiManoCompletedSemesterResult>> {
+        println("${::getCompletedSemesterResults.name} called from $source")
         return safeRetryWithPrecall(
             "get completed semester results", "update session",
             mainBlock = {
@@ -707,9 +711,11 @@ object ManoApi {
     }
 
     suspend fun getSemesterMediateResults(
+        source: String,
         semesterAbsoluteSequenceNum: Int,
         semesterYearRange: String
     ): NetResult<ApiManoSemesterMediateResults> {
+        println("${::getSemesterMediateResults.name} called from $source")
         return safeRetryWithPrecall(
             "get mediate results for semester '$semesterAbsoluteSequenceNum' in '$semesterYearRange'",
             "update session",
@@ -749,10 +755,12 @@ object ManoApi {
     }
 
     suspend fun getSubjectSettlementGroups(
+        source: String,
         semesterAbsoluteSequenceNum: Int,
         semesterYearRange: String,
         subjectModId: Int,
     ): NetResult<List<ApiManoSubjectSettlementOverview>> {
+        println("${::getSubjectSettlementGroups.name} called from $source")
         return safeRetryWithPrecall(
             "get settlement groups for subject (mod id) '$subjectModId'",
             "update session",
@@ -821,6 +829,7 @@ object ManoApi {
     }
 
     suspend fun getSettlementGrades(
+        source: String,
         semesterRelativeSequenceNum: Int,
         subjectModId: Int,
         subjectKmdId: String,
@@ -829,6 +838,7 @@ object ManoApi {
         semesterYearRange: String,
         settlementType: String,
     ): NetResult<List<ApiManoSubjectSettlementGrade>> {
+        println("${::getSettlementGrades.name} called from $source")
         return safeRetryWithPrecall(
             "get grades for '$settlementType', '$subjectName'",
             "update session",
