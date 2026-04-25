@@ -39,6 +39,14 @@ data class DBManoEmployeeExtendedData (
     val offices: String? = null
 )
 
+data class DBManoBareEmployeeData(
+    @ColumnInfo(name = "mano_id")
+    val manoId: Long,
+
+    @ColumnInfo(name = "shortname")
+    val shortName: String
+)
+
 data class DBManoEmployeeExtendedDataWithPk(
     @ColumnInfo(name = "mano_id")
     val manoId: Long,

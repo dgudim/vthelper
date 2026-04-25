@@ -5,16 +5,17 @@ import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedDataWithPk
 
 @Dao
 interface ManoEmployeeDao {
-    @Upsert
-    suspend fun upsert(item: DBManoEmployeeEntity)
+    @Upsert(entity = DBManoEmployeeEntity::class)
+    suspend fun upsertBare(item: DBManoBareEmployeeData)
 
-    @Upsert
-    suspend fun upsertMany(items: List<DBManoEmployeeEntity>)
+    @Upsert(entity = DBManoEmployeeEntity::class)
+    suspend fun upsertBareMany(items: List<DBManoBareEmployeeData>)
 
     @Update(entity = DBManoEmployeeEntity::class)
     suspend fun updateExtended(employee: DBManoEmployeeExtendedDataWithPk)

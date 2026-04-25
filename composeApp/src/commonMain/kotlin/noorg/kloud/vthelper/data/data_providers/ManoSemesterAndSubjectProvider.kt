@@ -12,6 +12,7 @@ import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
@@ -41,7 +42,7 @@ class ManoSemesterAndSubjectProvider(
     private val manoEmployeeProvider: ManoEmployeeProvider
 ) {
 
-    private val employeeList = mutableListOf<DBManoEmployeeEntity>()
+    private val employeeList = mutableListOf<DBManoBareEmployeeData>()
 
     private val currentSemesterNumber: AtomicInt = atomic(0)
 

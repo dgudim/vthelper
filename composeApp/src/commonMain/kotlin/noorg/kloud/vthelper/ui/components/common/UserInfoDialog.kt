@@ -3,14 +3,21 @@ package noorg.kloud.vthelper.ui.components.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +36,11 @@ import vthelper.composeapp.generated.resources.person_24px
 import vthelper.composeapp.generated.resources.school_24px
 
 @Composable
-fun UserInfoDialog(userInfo: ProvidedManoEmployeeEntity, onDismissRequest: () -> Unit) {
+fun UserInfoDialog(
+    userInfo: ProvidedManoEmployeeEntity,
+    isLoading: Boolean,
+    onDismissRequest: () -> Unit
+) {
     Dialog(onDismissRequest = onDismissRequest) {
         Box(
             Modifier
@@ -47,16 +58,25 @@ fun UserInfoDialog(userInfo: ProvidedManoEmployeeEntity, onDismissRequest: () ->
                     true,
                     102.dp
                 )
-                Text(
-                    text = userInfo.shortName,
-                    modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.titleLarge
-                )
+                Row {
+                    Text(
+                        text = userInfo.shortName,
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
 
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(8.dp)
-                )
+                if (isLoading) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
 
                 Column(
                     modifier = Modifier

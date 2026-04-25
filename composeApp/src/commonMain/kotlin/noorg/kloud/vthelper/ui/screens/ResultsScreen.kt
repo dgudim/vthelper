@@ -33,8 +33,8 @@ fun ResultsScreen(
 
     val selectedEmployee by manoEmployeeViewModel.selectedEmployee.collectAsStateWithLifecycle()
 
-    selectedEmployee?.let {
-        UserInfoDialog(it) {
+    selectedEmployee.data?.let {
+        UserInfoDialog(it, selectedEmployee.isLoading) {
             manoEmployeeViewModel.deselectEmployee()
         }
     }

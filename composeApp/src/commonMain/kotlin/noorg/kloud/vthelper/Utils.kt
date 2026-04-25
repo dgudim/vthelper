@@ -26,6 +26,7 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.yearsUntil
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.CustomColorPalette
@@ -194,7 +195,7 @@ suspend fun String.decodeBase64ToFile(targetPath: Path) {
 
 // ============================= DB HELPERS
 
-fun List<DBManoEmployeeEntity>.fuzzyFindEmployee(lecturerName: String?): DBManoEmployeeEntity? {
+fun List<DBManoBareEmployeeData>.fuzzyFindEmployee(lecturerName: String?): DBManoBareEmployeeData? {
     if (lecturerName == null) {
         return null
     }

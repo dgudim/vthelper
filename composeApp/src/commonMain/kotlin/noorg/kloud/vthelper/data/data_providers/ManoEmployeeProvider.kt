@@ -9,43 +9,41 @@ import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.downloadImage
 import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeExtendedDataWithPk
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
 import noorg.kloud.vthelper.nullIfBlank
-import noorg.kloud.vthelper.nullIfDash
 import noorg.kloud.vthelper.platform_specific.appDataDirectory
 import noorg.kloud.vthelper.platform_specific.div
 import kotlin.Long
 
 class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
 
-    suspend fun fetchEmployeeListFromApi(): Result<List<DBManoEmployeeEntity>> {
-        val employees = mutableListOf<DBManoEmployeeEntity>()
+    suspend fun fetchEmployeeListFromApi(): Result<List<DBManoBareEmployeeData>> {
+        val employees = mutableListOf<DBManoBareEmployeeData>()
 
         // Insert a placeholder for the cases when the subject lecturer can't be mapped for some reason
-        val dummy = DBManoEmployeeEntity(
+        val dummy = DBManoBareEmployeeData(
             manoId = 0,
-            shortName = "-",
-            extendedData = DBManoEmployeeExtendedData()
+            shortName = "-"
         )
         employees.add(dummy)
-        manoEmployeeDao.upsert(dummy)
+        manoEmployeeDao.upsertBare(dummy)
 
         ManoApi.getEmployees()
             .onFailure { return toResultFail() }
             .onSuccess { result ->
                 val fetchedEmployees =
                     result.map {
-                        DBManoEmployeeEntity(
+                        DBManoBareEmployeeData(
                             manoId = it.id,
-                            shortName = it.shortName,
-                            extendedData = DBManoEmployeeExtendedData()
+                            shortName = it.shortName
                         )
                     }
                 employees.addAll(fetchedEmployees)
-                manoEmployeeDao.upsertMany(fetchedEmployees)
+                manoEmployeeDao.upsertBareMany(fetchedEmployees)
             }
 
         return employees.toResultOk()
