@@ -154,7 +154,7 @@ fun Navigation(
             )
         }
     val moodleCoursesViewModel =
-        remember { MoodleCoursesViewModel(moodleCourseProvider) }
+        remember { MoodleCoursesViewModel(moodleCourseProvider, manoSemesterAndSubjectProvider) }
     val manoSemesterAndSubjectViewModel =
         remember { ManoSemesterAndSubjectViewModel(manoSemesterAndSubjectProvider) }
     val manoEmployeeViewModel =
@@ -191,7 +191,12 @@ fun Navigation(
             )
         }
         composable(NavDrawerItem.Courses.route) {
-            MoodleCoursesScreen(loggedInUserViewModel, moodleCoursesViewModel, showSnack)
+            MoodleCoursesScreen(
+                loggedInUserViewModel,
+                moodleCoursesViewModel,
+                manoSemesterAndSubjectViewModel,
+                showSnack
+            )
         }
         composable(NavDrawerItem.Settings.route) {
             SettingsScreen(showSnack)

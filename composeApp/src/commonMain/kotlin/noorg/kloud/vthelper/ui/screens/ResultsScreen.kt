@@ -43,7 +43,9 @@ fun ResultsScreen(
         loggedInUserViewModel = loggedInUserViewModel,
         items = allSemesters,
         fetchFunction = {
-            manoSemesterAndSubjectViewModel.fetchAllSemestersFromApi(showSnack)
+            manoSemesterAndSubjectViewModel
+                .fetchAllSemestersFromApi(showSnack)
+                .join()
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Results per semester", isLoading)

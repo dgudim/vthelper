@@ -32,7 +32,7 @@ fun <T> LoadableListSection(
     loggedInUserViewModel: LoggedInUserViewModel,
     items: List<T>,
     displayDirectly: Boolean = false,
-    fetchFunction: () -> Job,
+    fetchFunction: suspend () -> Unit,
     header: @Composable (Boolean) -> Unit,
     item: @Composable (T) -> Unit
 ) {
@@ -46,7 +46,8 @@ fun <T> LoadableListSection(
             return@LaunchedEffect
         }
         isLoading = true
-        fetchFunction().invokeOnCompletion { isLoading = false }
+        fetchFunction()
+        isLoading = false
     }
 
     Column(

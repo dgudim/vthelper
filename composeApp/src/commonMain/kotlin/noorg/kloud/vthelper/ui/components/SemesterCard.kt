@@ -261,10 +261,9 @@ fun SubjectCard(
                     semAbsoluteSequenceNum,
                     subjectData.modId,
                     showSnack
-                ).invokeOnCompletion {
-                    isLoading = false
-                    settlementsFetched = true
-                }
+                ).join()
+                isLoading = false
+                settlementsFetched = true
             }
 
             Row {

@@ -22,7 +22,10 @@ import kotlin.time.Instant
 
 class CalendarProvider {
 
-    val appDataDir = appDataDirectory()
+    private val appDataDir = appDataDirectory()
+
+    private val icsFileLocation = appDataDir / "moodle-calendar.ics"
+    private val markerFileLocation = appDataDir / "moodle-calendar-marker.txt"
 
     // https://kotlinlang.org/api/kotlinx-datetime/kotlinx-datetime/kotlinx.datetime.format/parse.html
     // https://github.com/ical4j/ical4j/blob/develop/src/main/java/net/fortuna/ical4j/model/DateTime.java
@@ -33,9 +36,15 @@ class CalendarProvider {
         char('Z')
     }
 
-    suspend fun fetchOrLoadMoodleEvents(expiryDuration: Duration): Result<List<LocalMoodleCalendarEvent>> {
-        val icsFileLocation = appDataDir / "moodle-calendar.ics"
-        val markerFileLocation = appDataDir / "moodle-calendar-marker.txt"
+
+    fun loadFromFileIfAvailable(): Result<List<LocalMoodleCalendarEvent>> {
+        if (SystemFileSystem.exists(icsFileLocation)) {
+            return loadFromFile(icsFileLocation)
+        }
+        return "ICS is not available".toResultFail()
+    }
+
+    suspend fun fetchMoodleEventsIfNeeded(expiryDuration: Duration): Result<List<LocalMoodleCalendarEvent>> {
 
         var lastModTimeMs = 0L
         if (SystemFileSystem.exists(markerFileLocation)) {

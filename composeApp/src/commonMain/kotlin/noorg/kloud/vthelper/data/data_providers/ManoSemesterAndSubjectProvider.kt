@@ -1,6 +1,5 @@
 package noorg.kloud.vthelper.data.data_providers
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import kotlinx.atomicfu.AtomicInt
 import kotlinx.atomicfu.atomic
@@ -33,7 +32,6 @@ import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEvaluationVe
 import noorg.kloud.vthelper.fuzzyFindEmployee
 import noorg.kloud.vthelper.getHashedColor
 import noorg.kloud.vthelper.getSemesterYearRange
-import noorg.kloud.vthelper.mixWith
 import kotlin.String
 
 class ManoSemesterAndSubjectProvider(
@@ -399,6 +397,15 @@ class ManoSemesterAndSubjectProvider(
     fun getSubjectsForSemester(semesterAbsoluteSequence: Int): Flow<List<ProvidedManoSubjectEntity>> {
         return manoSubjectDao
             .getForSemesterWithEmployee(semesterAbsoluteSequence)
+            .distinctUntilChanged()
+            .map { dbEntities ->
+                dbEntities.map { mapSubject(it) }
+            }
+    }
+
+    fun getAllSubjects(): Flow<List<ProvidedManoSubjectEntity>> {
+        return manoSubjectDao
+            .getAllWithEmployeeAsFlow()
             .distinctUntilChanged()
             .map { dbEntities ->
                 dbEntities.map { mapSubject(it) }

@@ -9,10 +9,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.Calendar
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
@@ -40,11 +42,11 @@ fun CalendarScreen(
             return@LaunchedEffect
         }
         isLoading = true
-        calendarViewModel.fetchMoodleEvents(showSnack)
-            .invokeOnCompletion {
-                isLoading = false
-            }
-        moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack)
+        listOf(
+            calendarViewModel.fetchMoodleEvents(showSnack),
+            moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack)
+        ).joinAll()
+        isLoading = false
     }
 
     Column(

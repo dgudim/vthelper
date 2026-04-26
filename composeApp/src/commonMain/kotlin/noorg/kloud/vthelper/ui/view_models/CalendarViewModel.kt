@@ -40,8 +40,6 @@ class CalendarViewModel(
     private var _moodleEvents = MutableStateFlow(listOf<LocalMoodleCalendarEvent>())
 
     val moodleEvents = _moodleEvents.combine(moodleCoursesMap) { events, courses ->
-        println(events)
-        println(courses)
         for (event in events) {
             event.setLinkedMoodleCourse(courses[event.courseModCode])
         }
@@ -56,7 +54,12 @@ class CalendarViewModel(
 
     fun fetchMoodleEvents(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
-            calendarProvider.fetchOrLoadMoodleEvents(1.hours)
+            // Don't wait for the API, load immediately if present
+            calendarProvider.loadFromFileIfAvailable()
+                .onSuccess {
+                    _moodleEvents.value = it
+                }
+            calendarProvider.fetchMoodleEventsIfNeeded(6.hours)
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
