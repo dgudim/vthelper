@@ -16,6 +16,9 @@ data class DBMoodleCourseEntity(
     @ColumnInfo(name = "description")
     val description: String,
 
+    @ColumnInfo(name = "custom_color")
+    val customColor: Long? = null,
+
     @ColumnInfo(name = "view_url")
     val viewUrl: String,
 

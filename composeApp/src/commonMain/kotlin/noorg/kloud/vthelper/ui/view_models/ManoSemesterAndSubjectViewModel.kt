@@ -41,7 +41,7 @@ class ManoSemesterAndSubjectViewModel(
 
     fun fetchAllSemestersFromApi(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
-            manoSemesterAndSubjectProvider.fetchAllSemestersAndSubjectsFromApi()
+            manoSemesterAndSubjectProvider.fetchAllSemestersAndSubjectsFromApiIfNeeded()
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }

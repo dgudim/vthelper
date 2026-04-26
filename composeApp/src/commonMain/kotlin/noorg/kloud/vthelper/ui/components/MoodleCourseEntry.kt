@@ -32,6 +32,7 @@ import coil3.request.allowConversionToBitmap
 import coil3.request.crossfade
 import io.ktor.http.Url
 import noorg.kloud.vthelper.mixWith
+import noorg.kloud.vthelper.mixedWithPrimary
 import kotlin.getValue
 
 @Composable
@@ -46,7 +47,7 @@ fun CourseEntry(
     val uriHandler = LocalUriHandler.current
     val platformContext = LocalPlatformContext.current
 
-    val mixedColor = courseColor.mixWith(MaterialTheme.colorScheme.primary, 0.3F)
+    val mixedColor = courseColor.mixedWithPrimary()
 
     val courseImageLoader by remember(courseCoverImagePath) {
         lazy {

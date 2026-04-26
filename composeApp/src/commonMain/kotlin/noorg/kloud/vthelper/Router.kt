@@ -38,8 +38,8 @@ import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
 import noorg.kloud.vthelper.data.data_providers.ManoEmployeeProvider
 import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
+import noorg.kloud.vthelper.data.data_providers.CalendarProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
-import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.ui.components.StatusSnackbar
 import noorg.kloud.vthelper.ui.screens.AccountScreen
 import noorg.kloud.vthelper.ui.screens.CalendarScreen
@@ -47,6 +47,7 @@ import noorg.kloud.vthelper.ui.screens.MoodleCoursesScreen
 import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
+import noorg.kloud.vthelper.ui.view_models.CalendarViewModel
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
@@ -133,7 +134,7 @@ fun Navigation(
     val loggedInUserDao = remember { db.loggedInUserDao() }
 
     val manoEmployeeProvider = remember { ManoEmployeeProvider(manoEmployeeDao) }
-
+    val moodleCourseProvider = remember { MoodleCoursesProvider(moodleCourseDao) }
     val manoSemesterAndSubjectProvider = remember {
         ManoSemesterAndSubjectProvider(
             manoSemesterDao,
@@ -143,6 +144,8 @@ fun Navigation(
             manoEmployeeProvider
         )
     }
+    val calendarProvider = remember { CalendarProvider() }
+
 
     val loggedInUserViewModel =
         remember {
@@ -151,11 +154,12 @@ fun Navigation(
             )
         }
     val moodleCoursesViewModel =
-        remember { MoodleCoursesViewModel(MoodleCoursesProvider(moodleCourseDao)) }
+        remember { MoodleCoursesViewModel(moodleCourseProvider) }
     val manoSemesterAndSubjectViewModel =
         remember { ManoSemesterAndSubjectViewModel(manoSemesterAndSubjectProvider) }
     val manoEmployeeViewModel =
         remember { ManoEmployeeViewModel(manoEmployeeProvider) }
+    val calendarViewModel = remember { CalendarViewModel(calendarProvider, moodleCourseProvider) }
 
     NavHost(
         navController = navController,
@@ -179,7 +183,12 @@ fun Navigation(
             )
         }
         composable(NavDrawerItem.Calendar.route) {
-            CalendarScreen(showSnack)
+            CalendarScreen(
+                loggedInUserViewModel,
+                calendarViewModel,
+                moodleCoursesViewModel,
+                showSnack
+            )
         }
         composable(NavDrawerItem.Courses.route) {
             MoodleCoursesScreen(loggedInUserViewModel, moodleCoursesViewModel, showSnack)

@@ -46,9 +46,6 @@ object MoodleApi {
     private var sessionKey = ""
 
     @Volatile
-    private var calendarUrl = ""
-
-    @Volatile
     var userId: Int? = null
         private set
 
@@ -160,9 +157,9 @@ object MoodleApi {
                     operation = "$rootOperationName + calender url extraction"
                 )
 
-        calendarUrl = extractedCalendarUrl
+        val cleanedCalendarUrl = extractedCalendarUrl.replace("&amp;", "&")
 
-        return extractedCalendarUrl.toNetResultOk(operation = rootOperationName)
+        return cleanedCalendarUrl.toNetResultOk(operation = rootOperationName)
     }
 
     suspend fun getCourses(): NetResult<ApiMoodleListCoursesResponse> {

@@ -60,7 +60,7 @@ inline fun <T> safeRetry(
     return prevResult!!
 }
 
-suspend fun downloadImage(target: Path, sourceUrl: Url): NetResult<String> {
+suspend fun downloadFile(target: Path, sourceUrl: Url): NetResult<String> {
     return safeNetCall("download $sourceUrl") {
         VTBaseApi.client
             .get(sourceUrl)

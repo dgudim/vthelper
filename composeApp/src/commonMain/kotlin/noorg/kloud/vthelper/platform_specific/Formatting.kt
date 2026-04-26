@@ -41,10 +41,10 @@ expect fun Month.getDisplayName(short: Boolean, locale: Locale): String
 
 expect fun DayOfWeek.getDisplayName(narrow: Boolean, locale: Locale): String
 
-fun Instant.formatLocalDate(): String {
-    return toLocalDateTime(TimeZone.currentSystemDefault()).format(localDateFormat)
+fun Instant.toSystemLocalDt(): LocalDateTime {
+    return toLocalDateTime(TimeZone.currentSystemDefault())
 }
 
-fun Instant.formatLocalTime(): String {
-    return toLocalDateTime(TimeZone.currentSystemDefault()).format(localTimeFormat)
+fun LocalDateTime.formatLocalTime(): String {
+    return format(localTimeFormat)
 }

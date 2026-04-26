@@ -15,16 +15,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,12 +40,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
@@ -62,6 +62,7 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.yearMonth
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEventType
+import noorg.kloud.vthelper.mixedWithPrimary
 import noorg.kloud.vthelper.platform_specific.displayText
 import noorg.kloud.vthelper.platform_specific.formatLocalTime
 import noorg.kloud.vthelper.next
@@ -70,6 +71,7 @@ import noorg.kloud.vthelper.rememberFirstMostVisibleMonth
 import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.theme.ColorVariants
 import noorg.kloud.vthelper.ui.theme.calendarColors
+import noorg.kloud.vthelper.ui.view_models.CalendarViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
@@ -79,11 +81,19 @@ import vthelper.composeapp.generated.resources.circle_24px
 import vthelper.composeapp.generated.resources.info_24px
 import vthelper.composeapp.generated.resources.keyboard_arrow_left_24px
 import vthelper.composeapp.generated.resources.keyboard_arrow_right_24px
+import vthelper.composeapp.generated.resources.person_add_24px
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+fun getEventsOnDay(day: LocalDate, events: List<LocalCalendarEvent>): List<LocalCalendarEvent> {
+    return events.filter { it.isVisibleOnDate(day) }
+}
+
 @Composable
-fun Calendar() {
+fun Calendar(
+    calendarViewModel: CalendarViewModel,
+    isLoading: Boolean
+) {
 
     val currentDate = remember { LocalDate.now() }
     val currentClock = remember { Clock.System.now() }
@@ -93,40 +103,10 @@ fun Calendar() {
     var selection by remember { mutableStateOf(currentDate) }
     val daysOfWeek = remember { daysOfWeek() }
 
-    val events = listOf(
-        LocalCalendarEvent(
-            LocalCalendarEventType.TIMETABLE,
-            "Test event",
-            "Bla bla",
-            Color.Red,
-            0,
-            Clock.System.now(),
-            Clock.System.now(),
-        ),
-        LocalCalendarEvent(
-            LocalCalendarEventType.TIMETABLE,
-            "Test event 2",
-            "Bla bla 2",
-            Color.Green,
-            0,
-            Clock.System.now(),
-            Clock.System.now(),
-        ),
-        LocalCalendarEvent(
-            LocalCalendarEventType.TIMETABLE,
-            "Test event 3",
-            "Bla bla 3",
-            Color.Yellow,
-            0,
-            Clock.System.now(),
-            Clock.System.now(),
-        )
-    );
+    val moodleEvents by calendarViewModel.moodleEvents.collectAsStateWithLifecycle()
 
-    val eventsInSelectedDate = remember {
-        derivedStateOf {
-            events
-        }
+    val eventsInSelectedDate by remember {
+        derivedStateOf { getEventsOnDay(selection, moodleEvents) }
     }
     Column(
         modifier = Modifier.fillMaxSize()
@@ -157,13 +137,16 @@ fun Calendar() {
                     state.animateScrollToMonth(state.firstVisibleMonth.yearMonth.next)
                 }
             },
+            isLoading = isLoading
         )
         HorizontalCalendar(
             modifier = Modifier.wrapContentWidth(),
             state = state,
             dayContent = { day ->
-                val colors = events.map {
-                    it.color.setAlpha(if (day.position == DayPosition.MonthDate) 1.0F else 0.25F)
+                val colors = getEventsOnDay(day.date, moodleEvents).map {
+                    it.getColor()
+                        .mixedWithPrimary()
+                        .setAlpha(if (day.position == DayPosition.MonthDate) 1.0F else 0.25F)
                 }
                 DayView(
                     day = day,
@@ -183,7 +166,7 @@ fun Calendar() {
         )
         HorizontalDivider(color = MaterialTheme.calendarColors.calendarDividerColor)
         LazyColumn(modifier = Modifier.fillMaxWidth()) {
-            items(items = eventsInSelectedDate.value) { event ->
+            items(items = eventsInSelectedDate) { event ->
                 EventInformation(event, currentClock)
             }
         }
@@ -319,6 +302,7 @@ fun CalendarTitle(
     currentMonth: YearMonth,
     goToPrevious: () -> Unit,
     goToNext: () -> Unit,
+    isLoading: Boolean
 ) {
     Row(
         modifier = modifier.height(40.dp),
@@ -344,6 +328,9 @@ fun CalendarTitle(
             onClick = goToNext
         )
     }
+    if (isLoading) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    }
 }
 
 @Composable
@@ -356,7 +343,7 @@ private fun CalendarNavigationIcon(
         .fillMaxHeight()
         .aspectRatio(1f)
         .clip(shape = CircleShape)
-        .clickable(role = Role.Button, onClick = onClick),
+        .clickable(onClick = onClick),
 ) {
     Icon(
         modifier = Modifier
@@ -369,55 +356,55 @@ private fun CalendarNavigationIcon(
 }
 
 @Composable
-private fun LazyItemScope.EventInformation(event: LocalCalendarEvent, now: Instant) {
+private fun EventInformation(event: LocalCalendarEvent, now: Instant) {
 
-    val formattedTimeSpan = remember {
-        "${event.startTime.formatLocalTime()} - ${event.endTime.formatLocalTime()}"
+    val subtext = event.getSubtext()
+
+    val formattedTimeSpan = remember(event.startTime, event.endTime) {
+        "${event.startLocalDt.formatLocalTime()} - ${event.endLocalDt.formatLocalTime()}"
     }
 
     val strikethroughIfDone =
-        if (event.endTime >= now)
+        if (event.endTime <= now)
             LocalTextStyle.current.copy(textDecoration = TextDecoration.LineThrough)
         else
             LocalTextStyle.current
 
     Card(
         modifier = Modifier
-            .fillParentMaxWidth()
-            .height(IntrinsicSize.Max)
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .padding(top = 8.dp, start = 8.dp, end = 8.dp),
-        border = BorderStroke(1.dp, event.color),
+        border = BorderStroke(1.dp, event.getColor().mixedWithPrimary()),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp)
-        ) {
-            Icon(
-                painter = painterResource(
-                    when (event.eventType) {
-                        LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
-                        LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
-                        LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
-                        LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
-                    }
-                ),
-                contentDescription = null,
+        Column {
+
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .width(48.dp)
-                    .padding(end = 8.dp)
-                    .fillMaxHeight()
-            )
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    text = formattedTimeSpan,
-                    style = strikethroughIfDone
+                    .weight(1F)
+                    .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(
+                        when (event.eventType) {
+                            LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
+                            LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
+                            LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
+                            LocalCalendarEventType.ATTENDANCE -> Res.drawable.person_add_24px
+                            LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
+                        }
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .padding(end = 8.dp)
                 )
+
                 Column(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
+                        .weight(1F)
                 ) {
                     Text(
                         fontWeight = FontWeight.Bold,
@@ -426,6 +413,30 @@ private fun LazyItemScope.EventInformation(event: LocalCalendarEvent, now: Insta
                     Text(
                         color = MaterialTheme.colorScheme.outline,
                         text = event.description
+                    )
+                }
+                Text(
+                    modifier = Modifier.fillMaxHeight(),
+                    text = formattedTimeSpan,
+                    style = strikethroughIfDone
+                )
+            }
+
+            if (!subtext.isBlank()) {
+                HorizontalDivider()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.info_24px),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        color = MaterialTheme.colorScheme.outline,
+                        text = subtext,
+                        modifier = Modifier.padding(start = 4.dp)
                     )
                 }
             }

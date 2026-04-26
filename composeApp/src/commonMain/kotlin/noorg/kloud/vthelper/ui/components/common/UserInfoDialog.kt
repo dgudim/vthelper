@@ -1,5 +1,6 @@
 package noorg.kloud.vthelper.ui.components.common
 
+import androidx.collection.LruCache
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.account_circle_24px
 import vthelper.composeapp.generated.resources.alternate_email_24px
+import vthelper.composeapp.generated.resources.book_24px
 import vthelper.composeapp.generated.resources.call_24px
 import vthelper.composeapp.generated.resources.corporate_fare_24px
 import vthelper.composeapp.generated.resources.person_24px
@@ -68,8 +70,9 @@ fun UserInfoDialog(
 
                 if (isLoading) {
                     LinearProgressIndicator(
-                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-                        color = MaterialTheme.colorScheme.primary
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
                     )
                 } else {
                     HorizontalDivider(
@@ -101,7 +104,7 @@ fun UserInfoDialog(
                         "Phone(s)", userInfo.phones?.replace(", ", "\n")
                     )
                     InfoField(
-                        Res.drawable.corporate_fare_24px,
+                        Res.drawable.book_24px,
                         "Department(s)", userInfo.departments?.replace(", ", "\n")
                     )
                     InfoField(

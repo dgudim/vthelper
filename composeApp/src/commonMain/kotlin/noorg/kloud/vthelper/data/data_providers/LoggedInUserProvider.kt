@@ -8,8 +8,7 @@ import kotlinx.io.files.Path
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.VTBaseApi
-import noorg.kloud.vthelper.api.downloadImage
-import noorg.kloud.vthelper.api.models.toResultFail
+import noorg.kloud.vthelper.api.downloadFile
 import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
 import noorg.kloud.vthelper.data.dbentities.DBLoggedInUserEntity
@@ -20,6 +19,8 @@ import noorg.kloud.vthelper.platform_specific.div
 class LoggedInUserProvider(
     private val loggedInUserDao: LoggedInUserDao
 ) {
+
+    val appDataDir = appDataDirectory()
 
     suspend fun logout() {
         loggedInUserDao.deleteAll()
@@ -56,8 +57,8 @@ class LoggedInUserProvider(
         var avatarPath: Path? = null
 
         if(studentInfo.avatarUrl != null) {
-            avatarPath = appDataDirectory() / "$studentId.img"
-            downloadImage(avatarPath, Url(studentInfo.avatarUrl))
+            avatarPath = appDataDir / "$studentId.img"
+            downloadFile(avatarPath, Url(studentInfo.avatarUrl))
         }
 
         // TODO: Save new cookies into the db after session refresh as well

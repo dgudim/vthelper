@@ -5,6 +5,8 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ktor.util.reflect.instanceOf
+import kotlinx.atomicfu.AtomicRef
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,13 +28,13 @@ class ManoEmployeeViewModel(
     private val manoEmployeeProvider: ManoEmployeeProvider
 ) : ViewModel() {
 
-    private var currentFetchJob: Job? = null
+    private val currentFetchJob: AtomicRef<Job?> = atomic(null)
     private var _selectedEmployee = MutableStateFlow(SelectedEmployeeData())
     val selectedEmployee = _selectedEmployee.asStateFlow()
 
     fun selectEmployeeById(showSnack: SnackbarFun, employeeId: Long) {
         deselectEmployee()
-        currentFetchJob = viewModelScope.launch {
+        currentFetchJob.value = viewModelScope.launch {
             val baseData =
                 SelectedEmployeeData(
                     isLoading = true,
@@ -59,8 +61,7 @@ class ManoEmployeeViewModel(
     }
 
     fun deselectEmployee() {
-        currentFetchJob?.cancel()
-        currentFetchJob = null
+        currentFetchJob.getAndSet(null)?.cancel()
         _selectedEmployee.update { SelectedEmployeeData() }
     }
 }

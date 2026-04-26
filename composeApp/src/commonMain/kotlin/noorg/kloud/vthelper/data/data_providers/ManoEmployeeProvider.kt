@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.io.files.Path
 import noorg.kloud.vthelper.api.ManoApi
-import noorg.kloud.vthelper.api.downloadImage
+import noorg.kloud.vthelper.api.downloadFile
 import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
@@ -20,6 +20,8 @@ import noorg.kloud.vthelper.platform_specific.div
 import kotlin.Long
 
 class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
+
+    val appDataDir = appDataDirectory()
 
     suspend fun fetchEmployeeListFromApi(): Result<List<DBManoBareEmployeeData>> {
         val employees = mutableListOf<DBManoBareEmployeeData>()
@@ -58,8 +60,8 @@ class ManoEmployeeProvider(private val manoEmployeeDao: ManoEmployeeDao) {
                 var avatarPath: Path? = null
 
                 if(resp.avatarUrl != null) {
-                    avatarPath = appDataDirectory() / "employee-$employeeId.img"
-                    downloadImage(avatarPath, Url(resp.avatarUrl))
+                    avatarPath = appDataDir / "employee-$employeeId.img"
+                    downloadFile(avatarPath, Url(resp.avatarUrl))
                 }
 
                 manoEmployeeDao.updateExtended(

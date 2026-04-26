@@ -1,5 +1,7 @@
 package noorg.kloud.vthelper.data.provider_models
 
+import androidx.compose.ui.graphics.Color
+
 enum class ProvidedManoSubjectEvaluationVerdict(v: String) {
     PASS("T"),
     FAIL("R"),
@@ -12,6 +14,8 @@ data class ProvidedManoSubjectEntity(
     val modId: Int,
     val modCode: String,
     val link: String,
+    
+    val color: Color,
 
     // Inlined from the db so the ui doesn't have to join lists
     val lecturerName: String,

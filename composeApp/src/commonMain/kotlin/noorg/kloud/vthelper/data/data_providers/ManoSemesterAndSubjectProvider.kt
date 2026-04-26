@@ -1,5 +1,7 @@
 package noorg.kloud.vthelper.data.data_providers
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import kotlinx.atomicfu.AtomicInt
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
@@ -13,7 +15,6 @@ import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
-import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroupWithGrades
@@ -30,9 +31,10 @@ import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEvaluationVerdict
 import noorg.kloud.vthelper.fuzzyFindEmployee
+import noorg.kloud.vthelper.getHashedColor
 import noorg.kloud.vthelper.getSemesterYearRange
+import noorg.kloud.vthelper.mixWith
 import kotlin.String
-import kotlin.concurrent.Volatile
 
 class ManoSemesterAndSubjectProvider(
     private val manoSemesterDao: ManoSemesterDao,
@@ -71,7 +73,7 @@ class ManoSemesterAndSubjectProvider(
         return currentSemesterNumber.value.toResultOk()
     }
 
-    suspend fun fetchAllSemestersAndSubjectsFromApi(): Result<String> {
+    suspend fun fetchAllSemestersAndSubjectsFromApiIfNeeded(): Result<String> {
 
         fetchCurrentSemesterAndSubjectsFromApi().onFailure { return it.toResultFail() }
 
@@ -145,8 +147,9 @@ class ManoSemesterAndSubjectProvider(
 
     suspend fun fetchCompletedSemestersWithResultsFromApi(): Result<String> {
 
-        val completedSemestersResponse = ManoApi.getCompletedSemesterResults(::fetchCompletedSemestersWithResultsFromApi.name)
-            .onFailure { return toResultFail() }
+        val completedSemestersResponse =
+            ManoApi.getCompletedSemesterResults(::fetchCompletedSemestersWithResultsFromApi.name)
+                .onFailure { return toResultFail() }
 
         manoSemesterDao.upsertMany(
             completedSemestersResponse.bodyTyped!!.map {
@@ -371,6 +374,11 @@ class ManoSemesterAndSubjectProvider(
                 lecturerName = model.employee.shortName,
                 lecturerId = lecturerId,
                 name = name,
+                color =
+                    if (customColor == null)
+                        getHashedColor(modId.toLong())
+                    else
+                        Color(customColor),
                 taGaSplitPercentage = mediateData.taGaSplitPercentage,
                 mediateResultsAvailable = mediateData.mediateResultsAvailable,
                 tries = tries,

@@ -5,9 +5,8 @@ import io.ktor.http.Url
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.api.MoodleApi
-import noorg.kloud.vthelper.api.downloadImage
+import noorg.kloud.vthelper.api.downloadFile
 import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.dbdaos.moodle.MoodleCourseDao
 import noorg.kloud.vthelper.data.dbentities.moodle.DBMoodleCourseEntity
@@ -34,7 +33,7 @@ class MoodleCoursesProvider(private val moodleCourseDao: MoodleCourseDao) {
 
                             // TODO: Add a setting to download images only if not already downloaded
                             if (course.courseImageBase64OrUrl.startsWith("http")) {
-                                downloadImage(coverImagePath, Url(course.courseImageBase64OrUrl))
+                                downloadFile(coverImagePath, Url(course.courseImageBase64OrUrl))
                             } else {
                                 course.courseImageBase64OrUrl.decodeBase64ToFile(coverImagePath)
                             }
@@ -66,9 +65,12 @@ class MoodleCoursesProvider(private val moodleCourseDao: MoodleCourseDao) {
                         description = dbEntity.description,
                         coverImagePath = dbEntity.coverImagePath,
                         viewUrl = dbEntity.viewUrl,
-                        color = getHashedColor(
-                            dbEntity.moodleId
-                        ) // TODO: Fetch from settings
+                        courseModCode = dbEntity.description.split(',').first(),
+                        color =
+                            if (dbEntity.customColor == null)
+                                getHashedColor(dbEntity.moodleId)
+                            else
+                                Color(dbEntity.customColor)
                     )
                 }
             }

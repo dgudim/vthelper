@@ -1,5 +1,6 @@
 package noorg.kloud.vthelper.data.dbentities.mano
 
+import androidx.compose.ui.graphics.Color
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
@@ -46,6 +47,9 @@ data class DBManoSubjectEntity(
     val modCode: String,
     @ColumnInfo(name = "link")
     val link: String,
+
+    @ColumnInfo(name = "custom_color")
+    val customColor: Long? = null,
 
     // FK to mano_semesters
     @ColumnInfo(name = "semester_absolute_seq")

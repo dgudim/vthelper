@@ -1,5 +1,6 @@
 package noorg.kloud.vthelper
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +17,8 @@ import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.core.CalendarMonth
 import io.ktor.util.cio.use
 import io.ktor.utils.io.asByteWriteChannel
+import io.ktor.utils.io.core.writeText
+import io.ktor.utils.io.readText
 import io.ktor.utils.io.writeByteArray
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.datetime.DateTimeUnit
@@ -24,6 +27,7 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.yearsUntil
+import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
@@ -88,12 +92,11 @@ fun Color.setAlpha(newAlpha: Float): Color {
 
 fun getHashedColor(num: Long): Color {
     val randomGenerator = Random(num)
-    val resolution = 1024
     return Color(
-        red = randomGenerator.nextInt(0, resolution * 255) / resolution,
-        green = randomGenerator.nextInt(0, resolution * 255) / resolution,
-        blue = randomGenerator.nextInt(0, resolution * 255) / resolution,
-        alpha = 1
+        red = randomGenerator.nextInt(0, 256),
+        green = randomGenerator.nextInt(0, 256),
+        blue = randomGenerator.nextInt(0, 256),
+        alpha = 255
     )
 }
 
@@ -108,6 +111,11 @@ fun Color.mixWith(other: Color, ratioRaw: Float): Color {
 
 fun CustomColorPalette.getColorFromGrade(grade: Float?): Color {
     return badResult.mixWith(goodResult, ((grade ?: 0F) - 5F) / 5F)
+}
+
+@Composable
+fun Color.mixedWithPrimary(): Color {
+    return mixWith(MaterialTheme.colorScheme.primary, 0.3F)
 }
 
 // ============================= GENERAL STR
@@ -193,6 +201,18 @@ suspend fun String.decodeBase64ToFile(targetPath: Path) {
     }
 }
 
+fun writeFile(targetPath: Path, content: String) {
+    SystemFileSystem.sink(targetPath).use { rawSink ->
+        rawSink.buffered().use { it.writeText(content) }
+    }
+}
+
+fun readFile(targetPath: Path): String {
+    SystemFileSystem.source(targetPath).use { rawSource ->
+        rawSource.buffered().use { return it.readText() }
+    }
+}
+
 // ============================= DB HELPERS
 
 fun List<DBManoBareEmployeeData>.fuzzyFindEmployee(lecturerName: String?): DBManoBareEmployeeData? {
@@ -226,9 +246,10 @@ fun List<DBManoBareEmployeeData>.fuzzyFindEmployee(lecturerName: String?): DBMan
 fun getSemesterYearRange(currentSemesterSequenceNum: Int, targetSemesterSequenceNum: Int): String {
     // TODO: Use actual timetable here, this will fail during the winter session
     // Does mano switch to the next semester during the winter session or after it?
-    val currentYear = Instant.fromEpochMilliseconds(0) // Account for semester ending in the next year
-        .yearsUntil(Clock.System.now().minus(40.days), TimeZone.currentSystemDefault())
-        .plus(1970)
+    val currentYear =
+        Instant.fromEpochMilliseconds(0) // Account for semester ending in the next year
+            .yearsUntil(Clock.System.now().minus(40.days), TimeZone.currentSystemDefault())
+            .plus(1970)
 
     val semesterYearDifference = currentSemesterSequenceNum - targetSemesterSequenceNum
     val targetSemesterYear = currentYear - semesterYearDifference.floorDiv(2)
@@ -243,6 +264,6 @@ fun getSemesterSessionSeason(semesterSequenceNum: Int): String {
     }
 }
 
-fun Int.toRelativeSemester(): Int{
+fun Int.toRelativeSemester(): Int {
     return (this + 1) % 2 + 1
 }

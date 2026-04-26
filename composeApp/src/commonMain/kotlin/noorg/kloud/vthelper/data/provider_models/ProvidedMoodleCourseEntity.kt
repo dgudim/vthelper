@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 
 data class ProvidedMoodleCourseEntity (
     val moodleId: Long,
+    val courseModCode: String,
 
     val title: String,
     val description: String,

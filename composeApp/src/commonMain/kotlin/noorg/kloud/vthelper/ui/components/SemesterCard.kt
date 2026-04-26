@@ -1,14 +1,21 @@
 package noorg.kloud.vthelper.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.text.font.FontWeight
@@ -40,8 +48,11 @@ import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.getColorFromGrade
+import noorg.kloud.vthelper.getHashedColor
 import noorg.kloud.vthelper.getSemesterSessionSeason
 import noorg.kloud.vthelper.getSemesterYearRange
+import noorg.kloud.vthelper.mixWith
+import noorg.kloud.vthelper.mixedWithPrimary
 import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
@@ -121,7 +132,6 @@ fun SettlementGroupCard(settlementGroup: ProvidedManoSettlementGroup) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(top = 4.dp)
     ) {
-        VerticalDivider(color = Color.Red)
         Column(modifier = Modifier.weight(1F)) {
             Row {
                 Text(
@@ -218,10 +228,20 @@ fun SubjectCard(
                         )
                     }
                 }
-                Text(
-                    color = MaterialTheme.colorScheme.outline,
-                    text = subjectData.modCode
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .padding(end = 4.dp)
+                            .clip(CircleShape)
+                            .background(subjectData.color.mixedWithPrimary())
+                    )
+                    Text(
+                        color = MaterialTheme.colorScheme.outline,
+                        text = subjectData.modCode
+                    )
+                }
+
             }
             if (subjectData.finalCompletionGrade != null) {
                 GradeColumn(subjectData.finalCompletionGrade.toFloat())
@@ -312,7 +332,9 @@ fun SemesterCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
         shouldBeExpanded = semesterData.isCurrent,
         internalPadding = 4.dp,
         border = BorderStroke(1.dp, borderColor),
@@ -336,7 +358,10 @@ fun SemesterCard(
             // Collect only when rendered
             val subjectsForSemesterCollected by subjectsForSemester.collectAsStateWithLifecycle()
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
                 HorizontalDivider()
 
