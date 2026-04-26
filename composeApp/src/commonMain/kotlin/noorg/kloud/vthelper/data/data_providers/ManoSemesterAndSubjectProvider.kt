@@ -376,7 +376,7 @@ class ManoSemesterAndSubjectProvider(
                 name = name,
                 color =
                     if (customColor == null)
-                        getHashedColor(modId.toLong())
+                        getHashedColor(modCode.hashCode().toLong())
                     else
                         Color(customColor),
                 taGaSplitPercentage = mediateData.taGaSplitPercentage,

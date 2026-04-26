@@ -16,6 +16,7 @@ data class DBMoodleCourseEntity(
     @ColumnInfo(name = "description")
     val description: String,
 
+    // TODO: Make a separate table with custom colors and base them on modId
     @ColumnInfo(name = "custom_color")
     val customColor: Long? = null,
 

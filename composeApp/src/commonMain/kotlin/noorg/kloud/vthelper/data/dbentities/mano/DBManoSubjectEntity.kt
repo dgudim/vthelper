@@ -48,6 +48,7 @@ data class DBManoSubjectEntity(
     @ColumnInfo(name = "link")
     val link: String,
 
+    // TODO: extract custom colors into preferences and base them on the modCode
     @ColumnInfo(name = "custom_color")
     val customColor: Long? = null,
 

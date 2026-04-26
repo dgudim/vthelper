@@ -59,16 +59,17 @@ class MoodleCoursesProvider(private val moodleCourseDao: MoodleCourseDao) {
             .map { dbEntities ->
                 dbEntities.map { dbEntity ->
                     println("Mapped moodle course: ${dbEntity.title}")
+                    val modCode = dbEntity.description.split(',').first()
                     ProvidedMoodleCourseEntity(
                         moodleId = dbEntity.moodleId,
                         title = dbEntity.title,
                         description = dbEntity.description,
                         coverImagePath = dbEntity.coverImagePath,
                         viewUrl = dbEntity.viewUrl,
-                        courseModCode = dbEntity.description.split(',').first(),
+                        courseModCode = modCode,
                         color =
                             if (dbEntity.customColor == null)
-                                getHashedColor(dbEntity.moodleId)
+                                getHashedColor(modCode.hashCode().toLong())
                             else
                                 Color(dbEntity.customColor)
                     )
