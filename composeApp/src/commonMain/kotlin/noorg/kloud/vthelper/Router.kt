@@ -18,6 +18,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -296,11 +297,21 @@ fun NavigationDrawer(
             Navigation(
                 navController, innerPadding,
                 showSnack = { message, level, duration ->
+                    var msgToShow = message
+                    var durationToShow = duration
+                    if (message.contains("ENETUNREACH") // Network unreachable
+                        || message.contains("EAI_NODATA") // Dns
+                        || message.contains("No address associated with") // Also dns
+                    ) {
+                        msgToShow = "No internet"
+                        durationToShow = SnackbarDuration.Short
+
+                    }
                     appScope.launch {
                         snackbarHostState.showSnackbar(
-                            message = message,
+                            message = msgToShow,
                             actionLabel = level.name,
-                            duration = duration
+                            duration = durationToShow
                         )
                     }
                 })

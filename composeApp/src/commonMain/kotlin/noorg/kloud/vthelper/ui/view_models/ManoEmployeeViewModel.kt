@@ -35,20 +35,20 @@ class ManoEmployeeViewModel(
     fun selectEmployeeById(showSnack: SnackbarFun, employeeId: Long) {
         deselectEmployee()
         currentFetchJob.value = viewModelScope.launch {
-            val baseData =
+            _selectedEmployee.update {
                 SelectedEmployeeData(
                     isLoading = true,
                     data = manoEmployeeProvider.getEmployeeById(employeeId)
                 )
-            _selectedEmployee.update { baseData }
+            }
             manoEmployeeProvider.fetchEmployeeDetailsFromApi(employeeId)
-                .onFailure {
-                    val msg = it.message ?: ""
-                    if (msg.contains("JobCancellationException")) {
+                .onFailure { ex ->
+                    val msg = ex.message ?: ""
+                    if (msg.contains("CancellationException")) {
                         return@launch
                     }
                     showSnack(msg, SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
-                    _selectedEmployee.update { baseData.copy(isLoading = false) }
+                    _selectedEmployee.update { it.copy(isLoading = false) }
                 }.onSuccess {
                     _selectedEmployee.update {
                         SelectedEmployeeData(

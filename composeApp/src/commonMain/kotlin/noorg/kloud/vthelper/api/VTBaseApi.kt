@@ -339,7 +339,7 @@ object VTBaseApi {
             pageContent = secondaryRefreshResult.bodyTyped ?: ""
         }
 
-        return pageContent.toNetResultOk(rootOperationName)
+        return pageContent.toNetResultOk("$rootOperationName + ret")
     }
 
     // This extracts and posts saml response to the corresponding mano or moodle endpoint and refreshes session cookies

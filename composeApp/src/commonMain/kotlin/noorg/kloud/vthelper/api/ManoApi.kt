@@ -273,11 +273,12 @@ object ManoApi {
 
             csrfToken = extractedCsrfToken
 
-            return "CSRF token: $extractedCsrfToken".toNetResultOk(rootOperationName)
+            return "CSRF token: $extractedCsrfToken".toNetResultOk("$rootOperationName + ret")
         }
     }
 
     suspend fun getStudentInfo(source: String): NetResult<ApiManoStudentInfo> {
+        println("${::getStudentInfo.name} called from $source")
         return safeRetryWithPrecall(
             "get student info", "update session",
             mainBlock = {
@@ -336,7 +337,7 @@ object ManoApi {
             personalEmail = personalEmail,
             universityEmail = universityEmail,
             avatarUrl = avatarUrl
-        ).toNetResultOk(rootOperationName)
+        ).toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getThisSemesterInfo(source: String): NetResult<ApiManoThisSemesterInfo> {
@@ -400,7 +401,7 @@ object ManoApi {
             absoluteSequenceNum = semesterAbsoluteSequenceNum ?: 0,
             group = group ?: "",
             subjects = subjects
-        ).toNetResultOk(rootOperationName)
+        ).toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getSubjectTimetable(source: String, subjectModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
@@ -443,7 +444,7 @@ object ManoApi {
             )
         }.toList()
 
-        return subjects.toNetResultOk(rootOperationName)
+        return subjects.toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getEmployees(source: String): NetResult<List<ApiManoEmployeeBasicEntity>> {
@@ -489,7 +490,7 @@ object ManoApi {
             )
         }.toList()
 
-        return employees.toNetResultOk(rootOperationName)
+        return employees.toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getEmployeeDetails(source: String, employeeId: Long): NetResult<ApiManoEmployeeDetails> {
@@ -516,6 +517,10 @@ object ManoApi {
         )?.let { return it }
 
         val detailsPageContent = detailsPageResponse.bodyAsText().singleLine()
+
+        val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
+
+        require(!fullName.isNullOrBlank()) { "Full name is required" }
 
         val phones = employeePhoneExtractionRegex
             .findAll(detailsPageContent)
@@ -590,17 +595,15 @@ object ManoApi {
             .distinct()
             .toList()
 
-        val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
-
         return ApiManoEmployeeDetails(
             phones = phones,
             emails = emails,
             departments = departments,
             offices = offices,
             positions = positions,
-            fullNameWithPrefix = fullName?.nullIfBlank(),
+            fullNameWithPrefix = fullName,
             avatarUrl = employeePhotoUrl.nullIfBlank()
-        ).toNetResultOk(rootOperationName)
+        ).toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getCompletedSemesterResults(source: String): NetResult<List<ApiManoCompletedSemesterResult>> {
@@ -707,7 +710,7 @@ object ManoApi {
                 return@fastZip result
             }
 
-        return semesterResults.toNetResultOk(rootOperationName)
+        return semesterResults.toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getSemesterMediateResults(
@@ -751,7 +754,7 @@ object ManoApi {
         return jsonSerializer.decodeFromString<ApiManoSemesterMediateResults>(
             semesterResultDetailsResponse.bodyAsText()
         )
-            .toNetResultOk(rootOperationName)
+            .toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getSubjectSettlementGroups(
@@ -825,7 +828,7 @@ object ManoApi {
                 )
             }.toList()
 
-        return groups.toNetResultOk(rootOperationName)
+        return groups.toNetResultOk("$rootOperationName + ret")
     }
 
     suspend fun getSettlementGrades(
@@ -902,6 +905,6 @@ object ManoApi {
                 }
             }.toList()
 
-        return grades.toNetResultOk(rootOperationName)
+        return grades.toNetResultOk("$rootOperationName + ret")
     }
 }

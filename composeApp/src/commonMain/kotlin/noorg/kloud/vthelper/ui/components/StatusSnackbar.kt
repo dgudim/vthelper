@@ -45,14 +45,13 @@ fun StatusSnackbar(snackbarData: SnackbarData) {
     Box(
         modifier = Modifier
             .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
-            .background(MaterialTheme.colorScheme.primary, shape = corners)
+            .background(MaterialTheme.colorScheme.surfaceContainer, shape = corners)
             .border(width = 1.dp, color = borderColor, shape = corners),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
             snackbarData.visuals.message,
             fontWeight = FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.padding(8.dp)
         )
     }
