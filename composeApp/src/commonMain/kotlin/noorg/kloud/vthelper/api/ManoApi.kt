@@ -27,6 +27,7 @@ import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
+import noorg.kloud.vthelper.api.models.mano.ApiManoCalloutData
 import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
@@ -194,6 +195,13 @@ object ManoApi {
         RegexOption.MULTILINE
     )
 
+    /** [getCalloutsUnsafe] */
+
+    private val calloutExtractionRegex = Regex(
+        """<div class="callout callout-(.*?)">(.*?)</div>""",
+        RegexOption.MULTILINE
+    )
+
     @Volatile
     private var csrfToken = ""
 
@@ -324,7 +332,7 @@ object ManoApi {
         val fullName = fullNameAndAvatarMatch?.get(1)?.trim()
         var avatarUrl = fullNameAndAvatarMatch?.get(2)?.trim()
 
-        if(!avatarUrl.isNullOrBlank()) {
+        if (!avatarUrl.isNullOrBlank()) {
             avatarUrl = "$baseUrl$avatarUrl"
         }
 
@@ -404,7 +412,10 @@ object ManoApi {
         ).toNetResultOk("$rootOperationName + ret")
     }
 
-    suspend fun getSubjectTimetable(source: String, subjectModId: String): NetResult<List<ApiManoCourseTimetableEntity>> {
+    suspend fun getSubjectTimetable(
+        source: String,
+        subjectModId: String
+    ): NetResult<List<ApiManoCourseTimetableEntity>> {
         println("${::getSubjectTimetable.name} called from $source")
         return safeRetryWithPrecall(
             "get subject timetable for '$subjectModId'", "update session",
@@ -493,7 +504,10 @@ object ManoApi {
         return employees.toNetResultOk("$rootOperationName + ret")
     }
 
-    suspend fun getEmployeeDetails(source: String, employeeId: Long): NetResult<ApiManoEmployeeDetails> {
+    suspend fun getEmployeeDetails(
+        source: String,
+        employeeId: Long
+    ): NetResult<ApiManoEmployeeDetails> {
         println("${::getEmployeeDetails.name} called from $source")
         return safeRetryWithPrecall(
             "get employee details for '$employeeId'", "update session",
@@ -520,7 +534,13 @@ object ManoApi {
 
         val fullName = employeeNameExtractionRegex.findFirstGroup(detailsPageContent)
 
-        require(!fullName.isNullOrBlank()) { "Full name is required" }
+        if (fullName.isNullOrBlank()) {
+            return "Full name is required"
+                .toNetResultFail(
+                    "extraction precheck",
+                    "$rootOperationName + extraction"
+                )
+        }
 
         val phones = employeePhoneExtractionRegex
             .findAll(detailsPageContent)
@@ -906,5 +926,47 @@ object ManoApi {
             }.toList()
 
         return grades.toNetResultOk("$rootOperationName + ret")
+    }
+
+    suspend fun getCallouts(source: String): NetResult<List<ApiManoCalloutData>> {
+        println("${::getCallouts.name} called from $source")
+        return safeRetryWithPrecall(
+            "get callouts", "update session",
+            mainBlock = {
+                getCalloutsUnsafe(it)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
+    }
+
+    private suspend fun getCalloutsUnsafe(rootOperationName: String): NetResult<List<ApiManoCalloutData>> {
+
+        val basePageResponse = client.get(baseUrl)
+
+        basePageResponse.expect200<List<ApiManoCalloutData>>(
+            "$rootOperationName + main request"
+        )?.let { return it }
+
+        val pageContent = basePageResponse.bodyAsText().singleLine()
+
+        if (!pageContent.contains("My VILNIUS TECH")) {
+            return "Page must be home page"
+                .toNetResultFail(
+                    "extraction precheck",
+                    "$rootOperationName + extraction"
+                )
+        }
+
+        val callouts = calloutExtractionRegex.findAll(pageContent)
+            .map {
+                return@map ApiManoCalloutData(
+                    type = it.groupValues[1],
+                    contents = it.groupValues[2]
+                )
+            }
+            .toList()
+
+        return callouts.toNetResultOk("$rootOperationName + ret")
     }
 }

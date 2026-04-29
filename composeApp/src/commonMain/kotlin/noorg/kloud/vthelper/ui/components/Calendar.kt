@@ -370,6 +370,7 @@ private fun EventInformation(event: LocalCalendarEvent, now: Instant) {
         else
             LocalTextStyle.current
 
+    // https://developer.android.com/develop/ui/compose/layouts/intrinsic-measurements
     Card(
         modifier = Modifier
             .fillMaxWidth()

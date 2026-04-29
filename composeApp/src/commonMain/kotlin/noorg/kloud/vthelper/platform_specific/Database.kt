@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoEmployeeDao
 import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoCalloutsDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
@@ -23,6 +24,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectTimetableEntity
+import noorg.kloud.vthelper.data.dbentities.mano.DbManoCalloutEntity
 import noorg.kloud.vthelper.data.dbentities.moodle.DBMoodleCourseEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
 
@@ -39,6 +41,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
         DBManoSemesterEntity::class,
         DBManoSettlementGroup::class,
         DbManoSettlementGrade::class,
+        DbManoCalloutEntity::class,
         DBManoSubjectTimetableEntity::class,
         DBManoEmployeeEntity::class,
         DBLoggedInUserEntity::class,
@@ -60,6 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun manoSettlementGradeDao(): ManoSettlementGradeDao
     abstract fun manoSemesterDao(): ManoSemesterDao
     abstract fun manoEmployeeDao(): ManoEmployeeDao
+    abstract fun manoCalloutsDao(): ManoCalloutsDao
     abstract fun manoCourseTimetableDao(): ManoSubjectTimetableDao
     abstract fun loggedInUserDao(): LoggedInUserDao
 }

@@ -10,11 +10,15 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.VicoZoomState
 import com.patrykandpatrick.vico.compose.cartesian.Zoom
@@ -30,11 +34,15 @@ import com.patrykandpatrick.vico.compose.common.ProvideVicoTheme
 import com.patrykandpatrick.vico.compose.common.VicoTheme
 import com.patrykandpatrick.vico.compose.common.VicoTheme.CandlestickCartesianLayerColors
 import com.patrykandpatrick.vico.compose.common.vicoTheme
+import kotlinx.coroutines.joinAll
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.DeadlineEntry
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
+import noorg.kloud.vthelper.ui.components.common.HtmlCard
+import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoCalloutsViewModel
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -43,10 +51,28 @@ import kotlin.time.Instant
 // https://stackoverflow.com/questions/78323263/how-to-display-bars-in-different-colors-in-vico-bar-charts
 
 @Composable
-fun DashboardScreen(showSnack: SnackbarFun) {
+fun DashboardScreen(
+    manoCalloutsViewModel: ManoCalloutsViewModel,
+    loggedInUserViewModel: LoggedInUserViewModel,
+    showSnack: SnackbarFun
+) {
 
     val modelProducer = remember { CartesianChartModelProducer() }
-    LaunchedEffect(Unit) {
+
+    val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
+
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userState.isSessionValid) {
+        if (!userState.isSessionValid) {
+            return@LaunchedEffect
+        }
+        isLoading = true
+        listOf(
+            manoCalloutsViewModel.fetchAllCallouts(showSnack)
+        ).joinAll()
+        isLoading = false
+
         modelProducer.runTransaction {
             lineSeries { series(8, 9, 8, 10, 9, 7, 10, 9, 8, 8, 9, 10) }
         }
@@ -54,6 +80,8 @@ fun DashboardScreen(showSnack: SnackbarFun) {
 
     val colorScheme = MaterialTheme.colorScheme
     val vico = vicoTheme
+
+    val callouts by manoCalloutsViewModel.callouts.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -87,6 +115,17 @@ fun DashboardScreen(showSnack: SnackbarFun) {
                     minZoom = Zoom.fixed(1f),
                     maxZoom = Zoom.fixed(1f),
                 )
+            )
+        }
+        Text(
+            text = "Announcements",
+            style = MaterialTheme.typography.titleLarge
+        )
+        for (callout in callouts) {
+            HtmlCard(
+                Modifier.padding(4.dp),
+                html = callout.contents,
+                borderColor = Color.Cyan
             )
         }
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp))

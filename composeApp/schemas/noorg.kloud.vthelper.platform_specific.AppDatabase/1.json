@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d7e32d4cc5382b17668a6d663cc81d61",
+    "identityHash": "7180d56a2224a36073c87e0134200962",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -394,6 +394,36 @@
         ]
       },
       {
+        "tableName": "mano_callouts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`absolute_seq` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `contents` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "absolute_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contents",
+            "columnName": "contents",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "absolute_seq"
+          ]
+        }
+      },
+      {
         "tableName": "mano_timetable",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject_composite_pk_id` INTEGER NOT NULL, `subject_mod_id` INTEGER NOT NULL, `time_from_ms_utc` INTEGER NOT NULL, `time_to_ms_utc` INTEGER NOT NULL, `type` TEXT NOT NULL, `student_group` INTEGER NOT NULL, `week` TEXT NOT NULL, FOREIGN KEY(`subject_composite_pk_id`) REFERENCES `mano_subjects`(`composite_pk_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
@@ -605,7 +635,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd7e32d4cc5382b17668a6d663cc81d61')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7180d56a2224a36073c87e0134200962')"
     ]
   }
 }
