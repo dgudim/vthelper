@@ -950,7 +950,7 @@ object ManoApi {
 
         val pageContent = basePageResponse.bodyAsText().singleLine()
 
-        if (!pageContent.contains("My VILNIUS TECH")) {
+        if (!pageContent.contains("class=\"navbar navbar-static-top\"")) {
             return "Page must be home page"
                 .toNetResultFail(
                     "extraction precheck",
@@ -959,10 +959,18 @@ object ManoApi {
         }
 
         val callouts = calloutExtractionRegex.findAll(pageContent)
-            .map {
-                return@map ApiManoCalloutData(
-                    type = it.groupValues[1],
-                    contents = it.groupValues[2]
+            .mapNotNull {
+                val type = it.groupValues[1]
+                val content = it.groupValues[2];
+                if (type.isBlank()
+                    || content.contains("Your web browser") // Filter out placeholder callouts
+                    || content.contains("The student is currently")
+                ) {
+                    return@mapNotNull null
+                }
+                return@mapNotNull ApiManoCalloutData(
+                    type = type,
+                    contents = content
                 )
             }
             .toList()

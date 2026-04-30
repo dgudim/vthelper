@@ -2,8 +2,14 @@ package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -41,6 +47,9 @@ import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.DeadlineEntry
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.components.common.HtmlCard
+import noorg.kloud.vthelper.ui.components.common.LoadableListSection
+import noorg.kloud.vthelper.ui.components.common.ScreenHeaderTextWithLoader
+import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoCalloutsViewModel
 import kotlin.time.Clock
@@ -61,18 +70,7 @@ fun DashboardScreen(
 
     val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
 
-    var isLoading by remember { mutableStateOf(false) }
-
     LaunchedEffect(userState.isSessionValid) {
-        if (!userState.isSessionValid) {
-            return@LaunchedEffect
-        }
-        isLoading = true
-        listOf(
-            manoCalloutsViewModel.fetchAllCallouts(showSnack)
-        ).joinAll()
-        isLoading = false
-
         modelProducer.runTransaction {
             lineSeries { series(8, 9, 8, 10, 9, 7, 10, 9, 8, 8, 9, 10) }
         }
@@ -86,9 +84,50 @@ fun DashboardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp),
+            .padding(start = 16.dp, end = 16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
+        LoadableListSection(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            loggedInUserViewModel = loggedInUserViewModel,
+            items = callouts,
+            fetchFunction = {
+                manoCalloutsViewModel.fetchAllCallouts(showSnack).join()
+            },
+            header = { isLoading ->
+                ScreenHeaderTextWithLoader("Announcements", isLoading)
+            },
+            displayDirectly = true,
+            scroll = false
+        ) { callout ->
+            val color = when {
+                callout.type.contains("info") -> {
+                    MaterialTheme.colorScheme.primary
+                }
+
+                callout.type.contains("warn") -> {
+                    MaterialTheme.customColors.okResult
+                }
+
+                callout.type.contains("success") -> {
+                    MaterialTheme.customColors.goodResult
+                }
+
+                else -> MaterialTheme.colorScheme.outline
+            }
+
+            HtmlCard(
+                Modifier.padding(top = 6.dp),
+                html = callout.contents,
+                borderColor = color
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp))
         Text(
             text = "Your performance over time",
             style = MaterialTheme.typography.titleLarge
@@ -115,17 +154,6 @@ fun DashboardScreen(
                     minZoom = Zoom.fixed(1f),
                     maxZoom = Zoom.fixed(1f),
                 )
-            )
-        }
-        Text(
-            text = "Announcements",
-            style = MaterialTheme.typography.titleLarge
-        )
-        for (callout in callouts) {
-            HtmlCard(
-                Modifier.padding(4.dp),
-                html = callout.contents,
-                borderColor = Color.Cyan
             )
         }
         HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp))

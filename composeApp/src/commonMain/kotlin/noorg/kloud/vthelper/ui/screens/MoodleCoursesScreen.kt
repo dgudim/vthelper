@@ -1,7 +1,11 @@
 package noorg.kloud.vthelper.ui.screens
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -25,6 +29,9 @@ fun MoodleCoursesScreen(
     val courses by moodleCoursesViewModel.courses.collectAsStateWithLifecycle()
 
     LoadableListSection(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 16.dp, end = 16.dp),
         loggedInUserViewModel = loggedInUserViewModel,
         items = courses,
         fetchFunction = {
@@ -35,7 +42,9 @@ fun MoodleCoursesScreen(
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Moodle courses", isLoading)
-        }
+        },
+        displayDirectly = false,
+        scroll = true
     ) { course ->
         CourseEntry(course)
     }

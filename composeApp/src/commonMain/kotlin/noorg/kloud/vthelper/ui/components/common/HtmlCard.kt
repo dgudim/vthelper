@@ -16,36 +16,66 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import be.digitalia.compose.htmlconverter.HtmlStyle
 import be.digitalia.compose.htmlconverter.htmlToAnnotatedString
+import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.titleCase
+
+val titleFindRegex = Regex("(<h[0-9]>.*?</h[0-9]>)")
 
 @Composable
-fun HtmlCard(modifier: Modifier, html: String, borderColor: Color) {
+fun HtmlCard(
+    modifier: Modifier,
+    html: String,
+    borderColor: Color
+) {
+
+    val titleHtml = titleFindRegex.findFirstGroup(html) ?: ""
+    val contentHtml = html.replace(titleHtml, "")
 
     val linkColor = MaterialTheme.colorScheme.primary
-    val convertedText = remember(html, linkColor) {
+    val convertedContentText = remember(contentHtml, linkColor) {
         htmlToAnnotatedString(
-            html,
+            contentHtml,
             style = HtmlStyle(
                 textLinkStyles = TextLinkStyles(
-                    style = SpanStyle(color = linkColor)
+                    style = SpanStyle(
+                        color = linkColor,
+                        textDecoration = TextDecoration.Underline
+                    )
                 )
             )
         )
     }
 
-    Card(
+    val convertedTitleText = remember(titleHtml, linkColor) {
+        htmlToAnnotatedString(titleHtml)
+    }
+
+    ExpandableCard(
         modifier = modifier,
         border = BorderStroke(1.dp, borderColor),
+        collapsedContent = {
+            Text(
+                text = convertedTitleText.text.titleCase(),
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .weight(1F)
+                    .padding(8.dp)
+            )
+        }
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1F)
                 .padding(8.dp)
         ) {
             Text(
-                text = convertedText
+                text = convertedContentText
             )
         }
     }

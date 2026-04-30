@@ -3,9 +3,13 @@ package noorg.kloud.vthelper.ui.components.common
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
@@ -29,9 +33,11 @@ import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
 
 @Composable
 fun <T> LoadableListSection(
+    modifier: Modifier,
     loggedInUserViewModel: LoggedInUserViewModel,
     items: List<T>,
     displayDirectly: Boolean = false,
+    scroll: Boolean,
     fetchFunction: suspend () -> Unit,
     header: @Composable (Boolean) -> Unit,
     item: @Composable (T) -> Unit
@@ -50,10 +56,16 @@ fun <T> LoadableListSection(
         isLoading = false
     }
 
+    var columnModifier = Modifier
+        .fillMaxWidth()
+        .wrapContentHeight()
+
+    if (scroll) {
+        columnModifier = columnModifier.verticalScroll(rememberScrollState())
+    }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp)
+        modifier = modifier
     ) {
 
         header(isLoading)
@@ -72,10 +84,7 @@ fun <T> LoadableListSection(
         } else {
             if (displayDirectly) {
                 Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .fillMaxWidth()
-                        .wrapContentHeight()
+                    modifier = columnModifier
                 ) {
                     for (data in items) {
                         item(data)
@@ -83,7 +92,11 @@ fun <T> LoadableListSection(
                 }
 
             } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                ) {
                     items(items = items) { course -> item(course) }
                 }
             }

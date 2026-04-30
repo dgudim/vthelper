@@ -1,5 +1,7 @@
 package noorg.kloud.vthelper.ui.screens
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -8,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.ui.components.SemesterCard
@@ -40,6 +44,9 @@ fun ResultsScreen(
     }
 
     LoadableListSection(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 16.dp, end = 16.dp),
         loggedInUserViewModel = loggedInUserViewModel,
         items = allSemesters,
         fetchFunction = {
@@ -51,6 +58,7 @@ fun ResultsScreen(
             ScreenHeaderTextWithLoader("Results per semester", isLoading)
         },
         displayDirectly = true,
+        scroll = true
     ) { semesterData ->
         currentSemesterData?.let {
             SemesterCard(

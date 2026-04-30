@@ -170,6 +170,14 @@ fun String.toFloatDashAsNull(): Float? {
     return 0F
 }
 
+fun String.titleCase(): String {
+    return lowercase().replaceFirstChar { char ->
+        char.titlecase()
+    }
+}
+
+// ============================= Exceptions
+
 fun Throwable.fullMessage(): String {
     var currentThrowable: Throwable? = this
     var message = ""
