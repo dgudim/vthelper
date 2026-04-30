@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectBasicData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntityWithEmployee
 
@@ -15,6 +16,9 @@ interface ManoSubjectDao {
 
     @Upsert
     suspend fun upsertMany(items: List<DBManoSubjectEntity>)
+
+    @Upsert(entity = DBManoSubjectEntity::class)
+    suspend fun upsertManyBasic(items: List<DBManoSubjectBasicData>)
 
     @Query("SELECT count(*) FROM mano_subjects")
     suspend fun count(): Int

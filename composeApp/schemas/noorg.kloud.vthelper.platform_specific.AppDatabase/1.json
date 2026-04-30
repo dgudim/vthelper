@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "7180d56a2224a36073c87e0134200962",
+    "identityHash": "eae15624271fb61c8b85428c9c9eba9c",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -53,7 +53,7 @@
       },
       {
         "tableName": "mano_subjects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `mod_id` INTEGER NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `custom_color` INTEGER, `semester_absolute_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_evaluation_verdict` TEXT, `ta_ga_split_percentage` TEXT, `mediate_results_available` INTEGER NOT NULL, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`semester_absolute_seq`) REFERENCES `mano_semesters`(`absolute_seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`composite_pk_id` TEXT NOT NULL, `mod_id` INTEGER NOT NULL, `mod_code` TEXT NOT NULL, `link` TEXT NOT NULL, `custom_color` INTEGER, `semester_absolute_seq` INTEGER NOT NULL, `lecturer_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `tries` INTEGER, `hours` INTEGER, `credits` INTEGER NOT NULL, `final_completion_date` TEXT, `final_completion_grade` INTEGER, `final_evaluation_verdict` TEXT, `ta_ga_split_percentage` TEXT, `mediate_results_available` INTEGER NOT NULL, `final_completion_cumulative_score` TEXT, `final_completion_credit_score` TEXT, PRIMARY KEY(`composite_pk_id`), FOREIGN KEY(`semester_absolute_seq`) REFERENCES `mano_semesters`(`absolute_seq`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`lecturer_id`) REFERENCES `mano_employees`(`mano_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "compositePrimaryId",
@@ -115,7 +115,8 @@
           {
             "fieldPath": "credits",
             "columnName": "credits",
-            "affinity": "INTEGER"
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "finalCompletionDate",
@@ -187,17 +188,11 @@
       },
       {
         "tableName": "mano_semesters",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`absolute_seq` INTEGER NOT NULL, `is_current` INTEGER NOT NULL, `group` TEXT NOT NULL, `study_program` TEXT, `final_total_credits` INTEGER, `final_weighted_grade` REAL, PRIMARY KEY(`absolute_seq`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`absolute_seq` INTEGER NOT NULL, `group` TEXT NOT NULL, `study_program` TEXT, `final_total_credits` INTEGER, `final_weighted_grade` REAL, PRIMARY KEY(`absolute_seq`))",
         "fields": [
           {
             "fieldPath": "absoluteSequenceNum",
             "columnName": "absolute_seq",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isCurrent",
-            "columnName": "is_current",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -635,7 +630,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7180d56a2224a36073c87e0134200962')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eae15624271fb61c8b85428c9c9eba9c')"
     ]
   }
 }

@@ -5,7 +5,10 @@ import kotlinx.atomicfu.AtomicInt
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.models.toResultFail
 import noorg.kloud.vthelper.api.models.toResultOk
@@ -17,6 +20,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroupWithGrades
+import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectBasicData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntityWithEmployee
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEvaluationVerdict
@@ -74,10 +78,7 @@ class ManoSemesterAndSubjectProvider(
     suspend fun fetchAllSemestersAndSubjectsFromApiIfNeeded(): Result<String> {
 
         fetchCurrentSemesterAndSubjectsFromApi().onFailure { return it.toResultFail() }
-
-        if (manoSemesterDao.count() <= 1) {
-            fetchCompletedSemestersWithResultsFromApi().onFailure { return it.toResultFail() }
-        }
+        fetchCompletedSemestersWithResultsFromApi().onFailure { return it.toResultFail() }
 
         return "OK".toResultOk()
     }
@@ -95,7 +96,6 @@ class ManoSemesterAndSubjectProvider(
             manoSemesterDao.upsert(
                 DBManoSemesterEntity(
                     absoluteSequenceNum = absoluteSequenceNum,
-                    isCurrent = true,
                     group = group,
                     studyProgram = studyProgram
                 )
@@ -109,7 +109,7 @@ class ManoSemesterAndSubjectProvider(
                 .onFailure { return it.toResultFail() }
                 .getOrNull()!!
 
-        val subjectsToAdd = mutableListOf<DBManoSubjectEntity>()
+        val subjectsToAdd = mutableListOf<DBManoSubjectBasicData>()
         for (subject in currentSemesterInfo.subjects) {
 
             val subjectLecturer = employeeList.fuzzyFindEmployee(subject.lecturerFullName)
@@ -120,7 +120,7 @@ class ManoSemesterAndSubjectProvider(
             )
 
             subjectsToAdd.add(
-                DBManoSubjectEntity(
+                DBManoSubjectBasicData(
                     compositePrimaryId = pk,
                     semesterAbsoluteSeq = currentSemesterInfo.absoluteSequenceNum,
                     lecturerId = subjectLecturer?.manoId ?: 0,
@@ -135,7 +135,7 @@ class ManoSemesterAndSubjectProvider(
 
         }
 
-        manoSubjectDao.upsertMany(subjectsToAdd)
+        manoSubjectDao.upsertManyBasic(subjectsToAdd)
 
         fetchMediateResultsForSemester(currentSemesterInfo.absoluteSequenceNum)
             .onFailure { return it.toResultFail() }
@@ -143,7 +143,15 @@ class ManoSemesterAndSubjectProvider(
         return "OK".toResultOk()
     }
 
-    suspend fun fetchCompletedSemestersWithResultsFromApi(): Result<String> {
+    private suspend fun fetchCompletedSemestersWithResultsFromApi(): Result<String> {
+
+        val existingSemesters = manoSemesterDao
+            .getAllAsFlow()
+            .take(1)
+            .first()
+            .associateBy { it.absoluteSequenceNum }
+
+        val currentSemester = existingSemesters.entries.first().value
 
         val completedSemestersResponse =
             ManoApi.getCompletedSemesterResults(::fetchCompletedSemestersWithResultsFromApi.name)
@@ -151,9 +159,18 @@ class ManoSemesterAndSubjectProvider(
 
         manoSemesterDao.upsertMany(
             completedSemestersResponse.bodyTyped!!.map {
+                val existing = existingSemesters[it.absoluteSequenceNum]
+
+                if (existing != null) {
+                    return@map existing.copy(
+                        group = it.group,
+                        finalTotalCredits = it.finalTotalCredits,
+                        finalWeightedGrade = it.finalWeightedGrade
+                    )
+                }
+
                 DBManoSemesterEntity(
                     absoluteSequenceNum = it.absoluteSequenceNum,
-                    isCurrent = false,
                     group = it.group,
                     finalTotalCredits = it.finalTotalCredits,
                     finalWeightedGrade = it.finalWeightedGrade
@@ -165,6 +182,13 @@ class ManoSemesterAndSubjectProvider(
 
         val subjectsToAdd = mutableListOf<DBManoSubjectEntity>()
         for (semesterResponse in completedSemestersResponse.bodyTyped) {
+
+            if (!(semesterResponse.absoluteSequenceNum == currentSemester.absoluteSequenceNum
+                        || !existingSemesters.contains(semesterResponse.absoluteSequenceNum))
+            ) {
+                // Only fetch data for last semester (current) and ones not already in the db
+                continue
+            }
 
             val mediateDatas =
                 fetchMediateResultsForSemester(semesterResponse.absoluteSequenceNum)
@@ -328,7 +352,7 @@ class ManoSemesterAndSubjectProvider(
 
     // ================ Semesters
 
-    fun mapSemester(model: DBManoSemesterEntity): ProvidedManoSemesterEntity {
+    fun mapSemester(model: DBManoSemesterEntity, isCurrent: Boolean): ProvidedManoSemesterEntity {
         println("Mapped mano semester: ${model.absoluteSequenceNum}")
         with(model) {
             return ProvidedManoSemesterEntity(
@@ -347,7 +371,7 @@ class ManoSemesterAndSubjectProvider(
             .getAllAsFlow()
             .distinctUntilChanged()
             .map { dbEntities ->
-                dbEntities.map { mapSemester(it) }
+                dbEntities.withIndex().map { mapSemester(it.value, it.index == 0) }
             }
     }
 
@@ -356,7 +380,7 @@ class ManoSemesterAndSubjectProvider(
             .getCurrentAsFlow()
             .distinctUntilChanged()
             .map { dbEntities ->
-                dbEntities.map { mapSemester(it) }.firstOrNull()
+                dbEntities.map { mapSemester(it, true) }.firstOrNull()
             }
     }
 

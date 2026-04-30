@@ -12,9 +12,6 @@ data class DBManoSemesterEntity(
     @ColumnInfo(name = "absolute_seq")
     val absoluteSequenceNum: Int, // 1 - to 8 or to 10 usually
 
-    @ColumnInfo(name = "is_current")
-    val isCurrent: Boolean,
-
     @ColumnInfo(name = "group")
     val group: String,
     // No available directly, not filled for completed semester

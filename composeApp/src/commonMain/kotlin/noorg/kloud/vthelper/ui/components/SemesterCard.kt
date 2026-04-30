@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -271,22 +272,28 @@ fun SubjectCard(
                     modifier = Modifier.padding(start = 12.dp)
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
+                        LinearProgressIndicator(
                             modifier = Modifier
-                                .size(20.dp),
-                            color = MaterialTheme.colorScheme.primary
+                                .padding(
+                                    start = 12.dp,
+                                    end = 12.dp,
+                                    top = 8.5.dp,
+                                    bottom = 2.5.dp
+                                )
+                                .fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F)
+                        )
+                    } else {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F),
+                            modifier = Modifier.padding(
+                                start = 12.dp,
+                                top = 10.dp,
+                                bottom = 4.dp,
+                                end = 12.dp
+                            )
                         )
                     }
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F),
-                        modifier = Modifier.padding(
-                            start = 12.dp,
-                            top = 10.dp,
-                            bottom = 4.dp,
-                            end = 12.dp
-                        )
-                    )
                     for (group in settlementGroupsWithGradesCollected) {
                         SettlementGroupCard(group)
                     }

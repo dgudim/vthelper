@@ -72,10 +72,8 @@ data class DBManoSubjectEntity(
     val tries: Int? = null,
     @ColumnInfo(name = "hours")
     val hours: Int? = null,
-    // Fetchable from https://mano.vilniustech.lt/program/site, but right now only after completing the subject
-    // TODO: Fetch this and make not null
     @ColumnInfo(name = "credits")
-    val credits: Int? = null,
+    val credits: Int,
 
     @ColumnInfo(name = "final_completion_date")
     val finalCompletionDate: String? = null,
@@ -95,6 +93,35 @@ data class DBManoSubjectMediateData(
     val finalCompletionCumulativeScore: String? = null,
     @ColumnInfo(name = "final_completion_credit_score")
     val finalCompletionCreditScore: String? = null,
+)
+
+// For inserting when getting subjects for current semester
+data class DBManoSubjectBasicData(
+    @ColumnInfo(name = "composite_pk_id")
+    val compositePrimaryId: String,
+
+    @ColumnInfo(name = "mod_id")
+    val modId: Int,
+    @ColumnInfo(name = "mod_code")
+    val modCode: String,
+    @ColumnInfo(name = "link")
+    val link: String,
+
+    @ColumnInfo(name = "semester_absolute_seq")
+    val semesterAbsoluteSeq: Int,
+
+    // FK to mano_employees
+    @ColumnInfo(name = "lecturer_id")
+    val lecturerId: Long,
+
+    @ColumnInfo(name = "name")
+    val name: String,
+
+    @ColumnInfo(name = "credits")
+    val credits: Int,
+
+    @Embedded
+    val mediateData: DBManoSubjectMediateData,
 )
 
 // https://developer.android.com/training/data-storage/room/relationships/one-to-one

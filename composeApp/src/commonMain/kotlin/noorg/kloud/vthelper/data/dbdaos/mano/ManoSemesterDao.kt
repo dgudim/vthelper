@@ -17,9 +17,12 @@ interface ManoSemesterDao {
     @Query("SELECT count(*) FROM mano_semesters")
     suspend fun count(): Int
 
-    @Query("SELECT * FROM mano_semesters order by absolute_seq desc")
+    @Query("SELECT * FROM mano_semesters ORDER BY absolute_seq desc")
     fun getAllAsFlow(): Flow<List<DBManoSemesterEntity>>
 
-    @Query("SELECT * FROM mano_semesters where is_current")
+    // Last one is treated as latest for simplicity’s sake
+    @Query("""SELECT * FROM mano_semesters
+                        ORDER BY absolute_seq desc
+                        LIMIT 1""")
     fun getCurrentAsFlow(): Flow<List<DBManoSemesterEntity>>
 }
