@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
+import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.Calendar
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.CalendarColorPalette
@@ -75,9 +76,9 @@ fun CalendarScreen(
 
             bgColor = ColorVariants(
                 selected = MaterialTheme.colorScheme.surfaceContainerHighest,
-                deselected = Color.Transparent,
+                deselected = MaterialTheme.colorScheme.surfaceContainer.setAlpha(0.6F),
                 disabled = Color.Transparent,
-                today = Color.Transparent
+                today = MaterialTheme.colorScheme.surfaceContainer
             ),
         )
 
