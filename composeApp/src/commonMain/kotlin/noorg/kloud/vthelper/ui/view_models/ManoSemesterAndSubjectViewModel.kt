@@ -4,7 +4,9 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -39,8 +41,8 @@ class ManoSemesterAndSubjectViewModel(
             initialValue = null,
         )
 
-    fun fetchAllSemestersFromApi(showSnack: SnackbarFun): Job {
-        return viewModelScope.launch {
+    fun fetchAllSemestersFromApi(showSnack: SnackbarFun): Deferred<Result<String>> {
+        return viewModelScope.async {
             manoSemesterAndSubjectProvider.fetchAllSemestersAndSubjectsFromApiIfNeeded()
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
@@ -48,8 +50,8 @@ class ManoSemesterAndSubjectViewModel(
         }
     }
 
-    fun fetchCurrentSemesterFromApi(showSnack: SnackbarFun): Job {
-        return viewModelScope.launch {
+    fun fetchCurrentSemesterFromApi(showSnack: SnackbarFun): Deferred<Result<String>> {
+        return viewModelScope.async {
             manoSemesterAndSubjectProvider
                 .fetchCurrentSemesterAndSubjectsFromApi()
                 .onFailure {

@@ -4,6 +4,8 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.jordond.connectivity.Connectivity
+import dev.jordond.connectivity.Connectivity.Status
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
@@ -14,7 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
-import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.provider_models.ProvidedLoggedInUserEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import kotlin.time.Duration.Companion.seconds
@@ -23,8 +24,9 @@ import kotlin.time.Duration.Companion.seconds
 // https://www.reddit.com/r/androiddev/comments/1dkyzbg/confused_about_when_to_use_mutablestateflow_vs/
 
 @Stable
-class LoggedInUserViewModel(
-    private val loggedInUserProvider: LoggedInUserProvider
+class LoggedInUserAndInternetViewModel(
+    private val loggedInUserProvider: LoggedInUserProvider,
+    connectivityProvider: Connectivity
 ) : ViewModel() {
     val userState = loggedInUserProvider
         .getCurrentUserInfo()
@@ -33,6 +35,13 @@ class LoggedInUserViewModel(
             scope = viewModelScope,
             started = WhileSubscribed(5.seconds.inWholeMilliseconds),
             initialValue = ProvidedLoggedInUserEntity(),
+        )
+
+    val internetState = connectivityProvider.statusUpdates
+        .stateIn(
+            scope = viewModelScope,
+            started = WhileSubscribed(5.seconds.inWholeMilliseconds),
+            initialValue = Status.Disconnected,
         )
 
     private var _mfaCode = MutableStateFlow("")

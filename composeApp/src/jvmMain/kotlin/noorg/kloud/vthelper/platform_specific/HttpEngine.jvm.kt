@@ -1,7 +1,10 @@
 package noorg.kloud.vthelper.platform_specific
 
 import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.engine.okhttp.OkHttpEngine
+import okhttp3.OkHttpClient
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
@@ -31,6 +34,12 @@ actual fun getHttpClientEngine(): HttpClientEngine {
             }
 
             sslSocketFactory(sslContext.socketFactory, trustAllCerts)
+
+            // Important for ktor to handle all of this on its own, set by default
+            // followRedirects(false)
+            // followSslRedirects(false)
+            // retryOnConnectionFailure(true)
+
             hostnameVerifier { _, _ -> true }
         }
     }

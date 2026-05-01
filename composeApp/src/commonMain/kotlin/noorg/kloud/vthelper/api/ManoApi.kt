@@ -49,6 +49,7 @@ import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.nullIfDash
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.nullIfBlank
+import noorg.kloud.vthelper.platform_specific.getHttpClientBase
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import noorg.kloud.vthelper.toFloatDashAsNull
 import noorg.kloud.vthelper.toIntDashAsNull
@@ -218,12 +219,9 @@ object ManoApi {
         return VTBaseApi.loginIfNeeded(baseUrl, studentId, password, mfaCode, "login into mano")
     }
 
-    val client = HttpClient(getHttpClientEngine()) {
+    val client = getHttpClientBase().config {
         install(HttpCookies) {
             storage = VTBaseApi.cookieStorage
-        }
-        engine {
-            dispatcher = Dispatchers.IO
         }
     }
 

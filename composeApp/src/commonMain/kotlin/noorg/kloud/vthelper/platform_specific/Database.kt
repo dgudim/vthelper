@@ -1,5 +1,6 @@
 package noorg.kloud.vthelper.platform_specific
 
+import androidx.compose.runtime.Stable
 import androidx.room.BuiltInTypeConverters
 import androidx.room.ConstructedBy
 import androidx.room.Database
@@ -56,6 +57,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
     )
 )
 @ConstructedBy(AppDatabaseConstructor::class)
+@Stable
 abstract class AppDatabase : RoomDatabase() {
     abstract fun moodleCourseDao(): MoodleCourseDao
     abstract fun manoSubjectDao(): ManoSubjectDao

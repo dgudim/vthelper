@@ -4,7 +4,9 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,9 +27,9 @@ class ManoCalloutsViewModel(private val manoCalloutsProvider: ManoCalloutsProvid
             initialValue = listOf(),
         )
 
-    fun fetchAllCallouts(showSnack: SnackbarFun): Job {
-        return viewModelScope.launch {
-            manoCalloutsProvider.fetchAllCallouts()
+    fun fetchAllCallouts(showSnack: SnackbarFun): Deferred<Result<String>> {
+        return viewModelScope.async {
+            return@async manoCalloutsProvider.fetchAllCallouts()
                 .onFailure {
                     showSnack(
                         it.message ?: "",

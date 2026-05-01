@@ -1,6 +1,5 @@
 package noorg.kloud.vthelper.api
 
-import io.ktor.client.HttpClient
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
@@ -11,8 +10,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import io.ktor.http.parameters
 import io.ktor.util.appendAll
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import noorg.kloud.vthelper.api.models.NetResult
 import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.expectCode
@@ -20,7 +17,7 @@ import noorg.kloud.vthelper.api.models.toNetResult
 import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.findFirstGroup
-import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
+import noorg.kloud.vthelper.platform_specific.getHttpClientBase
 
 object VTBaseApi {
 
@@ -34,17 +31,13 @@ object VTBaseApi {
         Regex("""name="SAMLResponse" value="(.*?)"""", RegexOption.MULTILINE)
     val samlUrlRegex = Regex("""name="hiddenform" action="(.*?)"""", RegexOption.MULTILINE)
 
-    val client = HttpClient(getHttpClientEngine()) {
+    val clientWithRedirects = getHttpClientBase().config {
         install(HttpCookies) {
             storage = cookieStorage
         }
-        engine {
-            dispatcher = Dispatchers.IO
-        }
-        followRedirects = false
     }
 
-    val clientWithRedirects = client.config { followRedirects = true }
+    val clientWithoutRedirects = clientWithRedirects.config { followRedirects = false }
 
     private val baseHeaders = mapOf(
         "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
@@ -108,7 +101,7 @@ object VTBaseApi {
 
         // Try loading the page directly
         // MDL_SSP_SessID and MoodleSession are set if we are logging into moodle
-        val initialResponse = client.get(serviceBaseUrl) {
+        val initialResponse = clientWithoutRedirects.get(serviceBaseUrl) {
             headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
@@ -145,7 +138,7 @@ object VTBaseApi {
 
         // Load the redirected page to see what we got
         // This doesn't normally set any cookies, unless it's a local session refresh
-        val initialRedirectedResponse = client.get(redirectLocation) {
+        val initialRedirectedResponse = clientWithoutRedirects.get(redirectLocation) {
             headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
@@ -167,7 +160,7 @@ object VTBaseApi {
 
         // Otherwise it's a redirect to full login page
         // This sets MSISAuth cookie
-        val loginResponse = client.submitForm(
+        val loginResponse = clientWithoutRedirects.submitForm(
             url = redirectLocation.toString(),
             formParameters = parameters {
                 append("UserName", "university\\$studentId")
@@ -193,7 +186,7 @@ object VTBaseApi {
 
         // Load the redirected page to see what we got and extract mfa context
         // This doesn't set any cookies
-        val initialMfaPageResponse = client.get(redirectLocation) {
+        val initialMfaPageResponse = clientWithoutRedirects.get(redirectLocation) {
             headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
@@ -213,7 +206,7 @@ object VTBaseApi {
         println("Posting initial mfa request")
 
         // This doesn't set any cookies
-        val mfaContextPostResponse = client.submitForm(
+        val mfaContextPostResponse = clientWithoutRedirects.submitForm(
             url = redirectLocation.toString(),
             formParameters = parameters {
                 append("AuthMethod", "AzureMfaAuthentication")
@@ -241,7 +234,7 @@ object VTBaseApi {
         println("Posting mfa code")
 
         // This resets MSISAuth on adfs/ls and sets the MSISAuth + MSISAuth1 on /adfs
-        val mfaCodeResponse = client.submitForm(
+        val mfaCodeResponse = clientWithoutRedirects.submitForm(
             url = redirectLocation.toString(),
             formParameters = parameters {
                 append("AuthMethod", "AzureMfaAuthentication")
@@ -274,7 +267,7 @@ object VTBaseApi {
         println("Loading final redirect page (should be a saml hidden form)")
 
         // This sets a bunch of cookies, including SamlSession and MSISAuthenticated
-        val finalSamlLoadRequest = client.get(redirectLocation) {
+        val finalSamlLoadRequest = clientWithoutRedirects.get(redirectLocation) {
             headers { appendAll(initialRequestHeaders + mapOf("Referer" to currentReferrer)) }
         }
 
@@ -367,7 +360,7 @@ object VTBaseApi {
         println("Refreshing local login, posting to '$samlUrl'")
 
         // This sets cookies specific to the saml session (SimpleSAMLAuthToken and SimpleSAMLSessionID for mano for example)
-        val serviceSamlAuthResponse = client.submitForm(
+        val serviceSamlAuthResponse = clientWithoutRedirects.submitForm(
             url = samlUrl,
             formParameters = parameters {
                 append("SAMLResponse", samlResponse)

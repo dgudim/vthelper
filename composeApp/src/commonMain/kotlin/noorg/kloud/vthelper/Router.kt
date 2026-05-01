@@ -2,11 +2,20 @@
 
 package noorg.kloud.vthelper
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,17 +32,20 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.jordond.connectivity.Connectivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.data.data_providers.LoggedInUserProvider
@@ -42,6 +54,9 @@ import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.data_providers.CalendarProvider
 import noorg.kloud.vthelper.data.data_providers.ManoCalloutsProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
+import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
+import noorg.kloud.vthelper.platform_specific.AppDatabase
+import noorg.kloud.vthelper.platform_specific.getHttpClientBase
 import noorg.kloud.vthelper.ui.components.StatusSnackbar
 import noorg.kloud.vthelper.ui.screens.AccountScreen
 import noorg.kloud.vthelper.ui.screens.CalendarScreen
@@ -49,8 +64,9 @@ import noorg.kloud.vthelper.ui.screens.MoodleCoursesScreen
 import noorg.kloud.vthelper.ui.screens.DashboardScreen
 import noorg.kloud.vthelper.ui.screens.ResultsScreen
 import noorg.kloud.vthelper.ui.screens.SettingsScreen
+import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.CalendarViewModel
-import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoCalloutsViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
@@ -82,9 +98,68 @@ sealed class NavDrawerItem(var route: String, var icon: DrawableResource, var ti
 }
 
 @Composable
-fun TopBar(appScope: CoroutineScope, drawerState: DrawerState) {
+fun TopBar(
+    appScope: CoroutineScope,
+    drawerState: DrawerState,
+    loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel
+) {
+
+    val userStatus by loggedInUserAndInternetViewModel.userState.collectAsStateWithLifecycle()
+    val internetStatus by loggedInUserAndInternetViewModel.internetState.collectAsStateWithLifecycle()
+
+    val loginText = if (userStatus.isSessionValid) "Logged in" else "Logged out"
+    val loginColor =
+        if (userStatus.isSessionValid) MaterialTheme.customColors.goodResult else MaterialTheme.customColors.badResult
+
+    val onlineText = if (internetStatus.isConnected) "Online" else "Offline"
+    val onlineColor =
+        if (internetStatus.isConnected) MaterialTheme.customColors.goodResult else MaterialTheme.customColors.okResult
+
     TopAppBar(
-        title = { Text("VTHelper") },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("VTHelper", modifier = Modifier.weight(1F))
+
+                Card(
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    shape = RoundedCornerShape(30),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors().copy(containerColor = Color.Transparent)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .height(IntrinsicSize.Min) // Wrap vertical separator
+                            .padding(
+                                start = 8.dp,
+                                end = 8.dp,
+                                top = 4.dp,
+                                bottom = 4.dp
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            loginText,
+                            color = loginColor,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier
+                                .width(IntrinsicSize.Max) // Don't reflow text, use full width
+                        )
+
+                        VerticalDivider(modifier = Modifier.padding(start = 8.dp, end = 8.dp))
+
+                        Text(
+                            onlineText,
+                            color = onlineColor,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.width(IntrinsicSize.Max)
+                        )
+                    }
+                }
+            }
+        },
         navigationIcon = {
             IconButton(onClick = {
                 appScope.launch {
@@ -122,12 +197,13 @@ fun DrawerItem(item: NavDrawerItem, selected: Boolean, onItemClick: (NavDrawerIt
 
 @Composable
 fun Navigation(
+    loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
+    db: AppDatabase,
     navController: NavHostController,
     innerPadding: PaddingValues,
     showSnack: SnackbarFun,
 ) {
 
-    val db = LocalDb.current!!
     val manoSemesterDao = remember { db.manoSemesterDao() }
     val moodleCourseDao = remember { db.moodleCourseDao() }
     val manoSubjectDao = remember { db.manoSubjectDao() }
@@ -135,7 +211,6 @@ fun Navigation(
     val manoSettlementGradeDao = remember { db.manoSettlementGradeDao() }
     val manoCalloutsDao = remember { db.manoCalloutsDao() }
     val manoEmployeeDao = remember { db.manoEmployeeDao() }
-    val loggedInUserDao = remember { db.loggedInUserDao() }
 
     val manoEmployeeProvider = remember { ManoEmployeeProvider(manoEmployeeDao) }
     val manoCalloutsProvider = remember { ManoCalloutsProvider(manoCalloutsDao) }
@@ -151,13 +226,6 @@ fun Navigation(
     }
     val calendarProvider = remember { CalendarProvider() }
 
-
-    val loggedInUserViewModel =
-        remember {
-            LoggedInUserViewModel(
-                LoggedInUserProvider(loggedInUserDao)
-            )
-        }
     val moodleCoursesViewModel =
         remember { MoodleCoursesViewModel(moodleCourseProvider, manoSemesterAndSubjectProvider) }
     val manoSemesterAndSubjectViewModel =
@@ -174,14 +242,18 @@ fun Navigation(
             .padding(innerPadding)
     ) {
         composable(NavDrawerItem.Dashboard.route) {
-            DashboardScreen(manoCalloutsViewModel, loggedInUserViewModel, showSnack)
+            DashboardScreen(manoCalloutsViewModel, loggedInUserAndInternetViewModel, showSnack)
         }
         composable(NavDrawerItem.Account.route) {
-            AccountScreen(loggedInUserViewModel, manoSemesterAndSubjectViewModel, showSnack)
+            AccountScreen(
+                loggedInUserAndInternetViewModel,
+                manoSemesterAndSubjectViewModel,
+                showSnack
+            )
         }
         composable(NavDrawerItem.Results.route) {
             ResultsScreen(
-                loggedInUserViewModel,
+                loggedInUserAndInternetViewModel,
                 manoEmployeeViewModel,
                 manoSemesterAndSubjectViewModel,
                 showSnack
@@ -189,7 +261,7 @@ fun Navigation(
         }
         composable(NavDrawerItem.Calendar.route) {
             CalendarScreen(
-                loggedInUserViewModel,
+                loggedInUserAndInternetViewModel,
                 calendarViewModel,
                 moodleCoursesViewModel,
                 showSnack
@@ -197,7 +269,7 @@ fun Navigation(
         }
         composable(NavDrawerItem.Courses.route) {
             MoodleCoursesScreen(
-                loggedInUserViewModel,
+                loggedInUserAndInternetViewModel,
                 moodleCoursesViewModel,
                 manoSemesterAndSubjectViewModel,
                 showSnack
@@ -212,10 +284,31 @@ fun Navigation(
 @Composable
 fun NavigationDrawer(
     appScope: CoroutineScope,
+    appIOScope: CoroutineScope,
+    db: AppDatabase,
     drawerState: DrawerState,
     navController: NavHostController,
     snackbarHostState: SnackbarHostState
 ) {
+
+    val connectivity = remember {
+        Connectivity(
+            httpClient = getHttpClientBase(),
+            scope = appIOScope
+        ) {
+            timeoutMs = 3.seconds
+            pollingIntervalMs = 15.seconds
+            autoStart = true
+        }
+    }
+
+    val loggedInUserAndInternetViewModel =
+        remember {
+            LoggedInUserAndInternetViewModel(
+                LoggedInUserProvider(db.loggedInUserDao()),
+                connectivity
+            )
+        }
 
     val items = listOf(
         NavDrawerItem.Account,
@@ -291,7 +384,9 @@ fun NavigationDrawer(
     ) {
         Scaffold(
             // https://developer.android.com/develop/ui/compose/components/app-bars
-            topBar = { TopBar(appScope, drawerState) },
+            topBar = {
+                TopBar(appScope, drawerState, loggedInUserAndInternetViewModel)
+            },
             snackbarHost = {
                 SnackbarHost(hostState = snackbarHostState) {
                     StatusSnackbar(it)
@@ -299,7 +394,7 @@ fun NavigationDrawer(
             }
         ) { innerPadding ->
             Navigation(
-                navController, innerPadding,
+                loggedInUserAndInternetViewModel, db, navController, innerPadding,
                 showSnack = { message, level, duration ->
                     var msgToShow = message
                     var durationToShow = duration
@@ -325,7 +420,11 @@ fun NavigationDrawer(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Router(appScope: CoroutineScope) {
+fun Router(
+    appScope: CoroutineScope,
+    appIOScope: CoroutineScope,
+    db: AppDatabase
+) {
 
     // https://stackoverflow.com/questions/65368007/what-does-jetpack-compose-remember-actually-do-how-does-it-work-under-the-hood
 
@@ -335,6 +434,8 @@ fun Router(appScope: CoroutineScope) {
 
     NavigationDrawer(
         appScope = appScope,
+        appIOScope = appIOScope,
+        db = db,
         drawerState = drawerState,
         navController = navController,
         snackbarHostState = snackbarHostState

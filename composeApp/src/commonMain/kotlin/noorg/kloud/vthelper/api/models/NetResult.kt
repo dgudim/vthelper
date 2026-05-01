@@ -189,6 +189,15 @@ fun <T> T.toResultOk(): Result<T> {
     return Result.success(this)
 }
 
+fun <T> List<Result<T>>.combine(): Result<T> {
+    for (result in this) {
+        if (result.isFailure) {
+            return result
+        }
+    }
+    return this[0]
+}
+
 fun <R> String.toResultFail(): Result<R> {
     return Exception(this).toResultFail()
 }

@@ -4,7 +4,9 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +15,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import noorg.kloud.vthelper.SnackbarFun
+import noorg.kloud.vthelper.api.models.toResultFail
+import noorg.kloud.vthelper.api.models.toResultOk
 import noorg.kloud.vthelper.data.data_providers.CalendarProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
 import noorg.kloud.vthelper.data.local_models.LocalManoCalendarEvent
@@ -52,8 +56,9 @@ class CalendarViewModel(
 
     val manoEvents = _manoEvents.asStateFlow()
 
-    fun fetchMoodleEvents(showSnack: SnackbarFun): Job {
-        return viewModelScope.launch {
+    fun fetchMoodleEvents(showSnack: SnackbarFun): Deferred<Result<String>> {
+        // https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html
+        return viewModelScope.async {
             // Don't wait for the API, load immediately if present
             calendarProvider.loadFromFileIfAvailable()
                 .onSuccess {
@@ -62,11 +67,13 @@ class CalendarViewModel(
             calendarProvider.fetchMoodleEventsIfNeeded(6.hours)
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
+                    return@async it.toResultFail()
                 }
                 .onSuccess {
                     _moodleEvents.value = it
                 }
 
+            return@async "OK".toResultOk()
         }
     }
 

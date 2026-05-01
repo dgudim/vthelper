@@ -9,45 +9,42 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
+import noorg.kloud.vthelper.api.models.combine
 import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.Calendar
-import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
+import noorg.kloud.vthelper.ui.components.common.SmartFetcher
 import noorg.kloud.vthelper.ui.theme.CalendarColorPalette
 import noorg.kloud.vthelper.ui.theme.ColorVariants
 import noorg.kloud.vthelper.ui.theme.LocalCalendarColorPalette
 import noorg.kloud.vthelper.ui.view_models.CalendarViewModel
-import noorg.kloud.vthelper.ui.view_models.LoggedInUserViewModel
+import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 
 @Composable
 fun CalendarScreen(
-    loggedInUserViewModel: LoggedInUserViewModel,
+    loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     calendarViewModel: CalendarViewModel,
     moodleCoursesViewModel: MoodleCoursesViewModel,
     showSnack: SnackbarFun,
 ) {
 
-    val userState by loggedInUserViewModel.userState.collectAsStateWithLifecycle()
+    val isLoadingState = remember { mutableStateOf(false) }
+    val isLoading by isLoadingState
 
-    var isLoading by remember { mutableStateOf(false) }
-
-    LaunchedEffect(userState.isSessionValid) {
-        if (!userState.isSessionValid) {
-            return@LaunchedEffect
-        }
-        isLoading = true
+    SmartFetcher(
+        loggedInUserAndInternetViewModel,
+        isLoadingState
+    ) {
         listOf(
-            calendarViewModel.fetchMoodleEvents(showSnack),
-            moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack)
-        ).joinAll()
-        isLoading = false
+            calendarViewModel.fetchMoodleEvents(showSnack).await(),
+            moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack).await()
+        ).combine()
     }
 
     Column(

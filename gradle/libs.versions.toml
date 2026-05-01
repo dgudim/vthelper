@@ -40,6 +40,7 @@ sqlite = "2.6.2"
 calendar = "2.10.1"
 
 html-converter = "1.1.0"
+connectivity = "2.2.1"
 
 vico-charts = "3.0.3"
 
@@ -103,6 +104,10 @@ html-converter = { module = "be.digitalia.compose.htmlconverter:htmlconverter", 
 vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico-charts" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico-charts" }
 
+connectivity-core = { module = "dev.jordond.connectivity:connectivity-core", version.ref = "connectivity" }
+connectivity-http = { module = "dev.jordond.connectivity:connectivity-http", version.ref = "connectivity" }
+connectivity-compose-http = { module = "dev.jordond.connectivity:connectivity-compose-http", version.ref = "connectivity" }
+connectivity-compose = { module = "dev.jordond.connectivity:connectivity-compose", version.ref = "connectivity" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -132,4 +137,10 @@ coil = [
     "coil-compose-core",
     "coil-mp",
     "coil-svg",
+]
+connectivity = [
+    "connectivity-core",
+    "connectivity-http",
+    "connectivity-compose",
+    "connectivity-compose-http"
 ]

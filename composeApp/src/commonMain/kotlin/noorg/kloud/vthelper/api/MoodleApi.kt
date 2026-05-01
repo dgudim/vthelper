@@ -31,6 +31,7 @@ import noorg.kloud.vthelper.api.models.toNetResult
 import noorg.kloud.vthelper.api.models.toNetResultFail
 import noorg.kloud.vthelper.api.models.toNetResultOk
 import noorg.kloud.vthelper.findFirstGroup
+import noorg.kloud.vthelper.platform_specific.getHttpClientBase
 import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import kotlin.concurrent.Volatile
 
@@ -49,7 +50,7 @@ object MoodleApi {
     var userId: Int? = null
         private set
 
-    val client = HttpClient(getHttpClientEngine()) {
+    val client = getHttpClientBase().config {
         install(ContentNegotiation) {
             json(Json {
                 isLenient = true
@@ -58,9 +59,6 @@ object MoodleApi {
         }
         install(HttpCookies) {
             storage = VTBaseApi.cookieStorage
-        }
-        engine {
-            dispatcher = Dispatchers.IO
         }
     }
 

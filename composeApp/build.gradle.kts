@@ -64,7 +64,7 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.components.resources)
 
-            // 3d-party ui
+            // 3d-party ui and utils
             implementation(libs.kizitonwose.calendar)
             implementation(libs.vico.compose)
             implementation(libs.vico.compose.m3)
@@ -88,6 +88,7 @@ kotlin {
             // Network
             implementation(libs.bundles.ktor)
             implementation(libs.bundles.coil)
+            implementation(libs.bundles.connectivity)
             implementation(libs.kotlinx.serialization.json)
         }
         nativeMain.dependencies { // Only ios
