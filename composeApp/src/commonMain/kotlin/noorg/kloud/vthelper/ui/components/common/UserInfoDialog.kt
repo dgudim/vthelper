@@ -3,6 +3,7 @@ package noorg.kloud.vthelper.ui.components.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
+import noorg.kloud.vthelper.setAlpha
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.account_circle_24px
 import vthelper.composeapp.generated.resources.alternate_email_24px
@@ -61,18 +63,14 @@ fun UserInfoDialog(
                     )
                 }
 
-                if (isLoading) {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
+                HorizontalLoadingDivider(
+                    isLoading = isLoading,
+                    color = MaterialTheme.colorScheme.primary.setAlpha(0.5F),
+                    padding = PaddingValues.Absolute(
+                        left = 8.dp, right = 8.dp,
+                        top = 4.dp, bottom = 8.dp
                     )
-                } else {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
+                )
 
                 Column(
                     modifier = Modifier

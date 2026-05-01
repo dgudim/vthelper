@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
@@ -56,6 +57,7 @@ import noorg.kloud.vthelper.mixWith
 import noorg.kloud.vthelper.mixedWithPrimary
 import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
+import noorg.kloud.vthelper.ui.components.common.HorizontalLoadingDivider
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
@@ -271,29 +273,16 @@ fun SubjectCard(
                 Column(
                     modifier = Modifier.padding(start = 12.dp)
                 ) {
-                    if (isLoading) {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .padding(
-                                    start = 12.dp,
-                                    end = 12.dp,
-                                    top = 8.5.dp,
-                                    bottom = 2.5.dp
-                                )
-                                .fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F)
+                    HorizontalLoadingDivider(
+                        isLoading = isLoading,
+                        color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F),
+                        padding = PaddingValues.Absolute(
+                            left = 12.dp,
+                            top = 10.dp,
+                            bottom = 4.dp,
+                            right = 12.dp
                         )
-                    } else {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.tertiary.setAlpha(0.5F),
-                            modifier = Modifier.padding(
-                                start = 12.dp,
-                                top = 10.dp,
-                                bottom = 4.dp,
-                                end = 12.dp
-                            )
-                        )
-                    }
+                    )
                     for (group in settlementGroupsWithGradesCollected) {
                         SettlementGroupCard(group)
                     }
