@@ -59,7 +59,9 @@ import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.HorizontalLoadingDivider
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
+import noorg.kloud.vthelper.ui.components.common.SmartFetcher
 import noorg.kloud.vthelper.ui.theme.customColors
+import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
 import org.jetbrains.compose.resources.painterResource
@@ -181,6 +183,7 @@ fun SubjectCard(
     showSnack: SnackbarFun,
     manoEmployeeViewModel: ManoEmployeeViewModel,
     manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     semAbsoluteSequenceNum: Int,
     subjectData: ProvidedManoSubjectEntity
 ) {
@@ -192,8 +195,8 @@ fun SubjectCard(
         )
     }
 
-    var isLoading by remember { mutableStateOf(false) }
-    var settlementsFetched by remember { mutableStateOf(false) }
+    val isLoadingState = remember { mutableStateOf(false) }
+    val isLoading by isLoadingState
 
     ExpandableCard(
         border = BorderStroke(0.dp, color = Color.Transparent),
@@ -254,19 +257,15 @@ fun SubjectCard(
             // Collect only when rendered
             val settlementGroupsWithGradesCollected by settlementGroupsWithGrades.collectAsStateWithLifecycle()
 
-            LaunchedEffect(Unit) {
-                if (settlementsFetched) {
-                    // Don't fetch every time the card is expanded
-                    return@LaunchedEffect
-                }
-                isLoading = true
+            SmartFetcher(
+                loggedInUserAndInternetViewModel,
+                isLoadingState
+            ) {
                 manoSemesterAndSubjectViewModel.fetchSettlementGroupsFromApi(
                     semAbsoluteSequenceNum,
                     subjectData.modId,
                     showSnack
-                ).join()
-                isLoading = false
-                settlementsFetched = true
+                ).await()
             }
 
             Row {
@@ -297,6 +296,7 @@ fun SemesterCard(
     showSnack: SnackbarFun,
     manoEmployeeViewModel: ManoEmployeeViewModel,
     manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     currentSemesterData: ProvidedManoSemesterEntity,
     semesterData: ProvidedManoSemesterEntity,
 ) {
@@ -371,6 +371,7 @@ fun SemesterCard(
                         showSnack,
                         manoEmployeeViewModel,
                         manoSemesterAndSubjectViewModel,
+                        loggedInUserAndInternetViewModel,
                         semesterData.absoluteSequenceNum,
                         subject
                     )

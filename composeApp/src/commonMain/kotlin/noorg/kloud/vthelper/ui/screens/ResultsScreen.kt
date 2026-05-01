@@ -44,9 +44,7 @@ fun ResultsScreen(
         loggedInUserAndInternetViewModel = loggedInUserAndInternetViewModel,
         items = allSemesters,
         fetchFunction = {
-            manoSemesterAndSubjectViewModel
-                .fetchAllSemestersFromApi(showSnack)
-                .await()
+            manoSemesterAndSubjectViewModel.fetchAllSemestersFromApi(showSnack).await()
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Results per semester", isLoading)
@@ -59,6 +57,7 @@ fun ResultsScreen(
                 showSnack,
                 manoEmployeeViewModel,
                 manoSemesterAndSubjectViewModel,
+                loggedInUserAndInternetViewModel,
                 it,
                 semesterData
             )

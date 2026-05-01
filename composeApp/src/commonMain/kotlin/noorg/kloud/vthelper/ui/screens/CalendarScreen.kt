@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.api.models.combine
@@ -42,9 +43,9 @@ fun CalendarScreen(
         isLoadingState
     ) {
         listOf(
-            calendarViewModel.fetchMoodleEvents(showSnack).await(),
-            moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack).await()
-        ).combine()
+            calendarViewModel.fetchMoodleEvents(showSnack),
+            moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack)
+        ).awaitAll().combine()
     }
 
     Column(

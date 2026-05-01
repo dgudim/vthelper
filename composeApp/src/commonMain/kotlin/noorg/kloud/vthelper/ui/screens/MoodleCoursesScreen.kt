@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.api.models.combine
@@ -35,9 +36,9 @@ fun MoodleCoursesScreen(
         items = courses,
         fetchFunction = {
             listOf(
-                moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack).await(),
-                manoSemesterAndSubjectViewModel.fetchCurrentSemesterFromApi(showSnack).await()
-            ).combine()
+                moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack),
+                manoSemesterAndSubjectViewModel.fetchCurrentSemesterFromApi(showSnack)
+            ).awaitAll().combine()
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Moodle courses", isLoading)

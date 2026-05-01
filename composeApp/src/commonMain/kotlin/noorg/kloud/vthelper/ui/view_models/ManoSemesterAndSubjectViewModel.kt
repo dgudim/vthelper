@@ -64,8 +64,8 @@ class ManoSemesterAndSubjectViewModel(
         semesterAbsoluteSequenceNum: Int,
         subjectModId: Int,
         showSnack: SnackbarFun
-    ): Job {
-        return viewModelScope.launch {
+    ): Deferred<Result<String>> {
+        return viewModelScope.async {
             manoSemesterAndSubjectProvider.fetchSettlementGroupsForSubjectInSemester(semesterAbsoluteSequenceNum, subjectModId)
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
