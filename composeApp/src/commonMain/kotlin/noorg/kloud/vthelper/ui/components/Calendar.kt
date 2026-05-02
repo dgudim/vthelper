@@ -170,7 +170,7 @@ fun Calendar(
                 .wrapContentHeight()
         ) {
             items(items = eventsInSelectedDate) { event ->
-                EventInformation(event, EventInformationDisplayMode.RELATIVE)
+                EventInformation(event, EventInformationDisplayMode.ABSOLUTE)
             }
         }
     }
