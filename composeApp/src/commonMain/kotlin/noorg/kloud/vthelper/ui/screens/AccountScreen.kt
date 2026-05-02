@@ -257,7 +257,8 @@ fun AccountScreen(
             )
 
             HorizontalLoadingDivider(
-                isAdditionalLoading, color = MaterialTheme.colorScheme.outline,
+                isAdditionalLoading,
+                color = MaterialTheme.colorScheme.outlineVariant,
                 PaddingValues(16.dp)
             )
 

@@ -232,7 +232,13 @@ fun Navigation(
         remember { ManoSemesterViewModel(manoSemesterAndSubjectProvider) }
     val manoEmployeeViewModel = remember { ManoEmployeeViewModel(manoEmployeeProvider) }
     val manoCalloutsViewModel = remember { ManoCalloutsViewModel(manoCalloutsProvider) }
-    val calendarViewModel = remember { CalendarViewModel(calendarProvider, moodleCourseProvider, manoSemesterAndSubjectProvider) }
+    val calendarViewModel = remember {
+        CalendarViewModel(
+            calendarProvider,
+            moodleCourseProvider,
+            manoSemesterAndSubjectProvider
+        )
+    }
 
     NavHost(
         navController = navController,
@@ -242,7 +248,13 @@ fun Navigation(
             .padding(innerPadding)
     ) {
         composable(NavDrawerItem.Dashboard.route) {
-            DashboardScreen(manoCalloutsViewModel, loggedInUserAndInternetViewModel, showSnack)
+            DashboardScreen(
+                manoCalloutsViewModel,
+                loggedInUserAndInternetViewModel,
+                calendarViewModel,
+                moodleCoursesViewModel,
+                showSnack
+            )
         }
         composable(NavDrawerItem.Account.route) {
             AccountScreen(

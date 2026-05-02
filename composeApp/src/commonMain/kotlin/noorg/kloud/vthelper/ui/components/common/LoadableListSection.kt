@@ -43,46 +43,13 @@ fun <T> LoadableListSection(
         fetchFunction
     )
 
-    var columnModifier = Modifier
-        .fillMaxWidth()
-        .wrapContentHeight()
-
-    if (scroll) {
-        columnModifier = columnModifier.verticalScroll(rememberScrollState())
-    }
-
-    Column(
-        modifier = modifier
-    ) {
-
-        header(isLoading)
-
-        if (items.isEmpty()) {
-            Text(
-                text = "Nothing to show ¯ \\_(ツ)_/¯",
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
-            )
-        } else {
-            if (displayDirectly) {
-                Column(
-                    modifier = columnModifier
-                ) {
-                    for (data in items) {
-                        item(data)
-                    }
-                }
-
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                ) {
-                    items(items = items) { course -> item(course) }
-                }
-            }
-        }
-    }
+    ListSectionWithHeader(
+        modifier = modifier,
+        items = items,
+        isLoading = isLoading,
+        displayDirectly = displayDirectly,
+        scroll = scroll,
+        header = header,
+        item = item
+    )
 }

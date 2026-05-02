@@ -35,7 +35,6 @@ fun ScreenHeaderTextWithLoader(text: String, isLoading: Boolean) {
     }
 
     HorizontalDivider(
-        thickness = 2.dp,
         modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp)
     )
 }

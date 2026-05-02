@@ -8,7 +8,7 @@ import noorg.kloud.vthelper.platform_specific.toSystemLocalDt
 import kotlin.time.Instant
 
 enum class LocalCalendarEventType {
-    ASSIGNMENT, TIMETABLE, ANNOUNCEMENT, ATTENDANCE, OTHER
+    ASSIGNMENT, EXAM, TIMETABLE, ANNOUNCEMENT, ATTENDANCE, OTHER
 }
 
 abstract class LocalCalendarEvent(

@@ -96,7 +96,6 @@ fun CourseEntry(
                 contentScale = ContentScale.Crop
             )
             VerticalDivider(
-                thickness = 2.dp,
                 color = mixedColor
             )
             Column(

@@ -96,7 +96,6 @@ fun Calendar(
 ) {
 
     val currentDate = remember { LocalDate.now() }
-    val currentClock = remember { Clock.System.now() }
 
     val startMonth = remember { currentDate.yearMonth.minusMonths(500) }
     val endMonth = remember { currentDate.yearMonth.plusMonths(500) }
@@ -171,7 +170,7 @@ fun Calendar(
                 .wrapContentHeight()
         ) {
             items(items = eventsInSelectedDate) { event ->
-                EventInformation(event, currentClock)
+                EventInformation(event, EventInformationDisplayMode.RELATIVE)
             }
         }
     }
@@ -357,98 +356,4 @@ private fun CalendarNavigationIcon(
         painter = painterResource(res),
         contentDescription = contentDescription,
     )
-}
-
-@Composable
-private fun EventInformation(event: LocalCalendarEvent, now: Instant) {
-
-    val subtext = event.getSubtext()
-
-    val formattedTimeSpan = remember(event.startTime, event.endTime) {
-        if(event.startLocalDt == event.endLocalDt) {
-            return@remember event.startLocalDt.formatLocalTime()
-        }
-        return@remember "${event.startLocalDt.formatLocalTime()} - ${event.endLocalDt.formatLocalTime()}"
-    }
-
-    val strikethroughIfDone =
-        if (event.endTime <= now)
-            LocalTextStyle.current.copy(textDecoration = TextDecoration.LineThrough)
-        else
-            LocalTextStyle.current
-
-    // https://developer.android.com/develop/ui/compose/layouts/intrinsic-measurements
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .padding(top = 8.dp, start = 8.dp, end = 8.dp),
-        border = BorderStroke(1.dp, event.getColor().mixedWithPrimary()),
-    ) {
-        Column {
-
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .weight(1F)
-                    .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp)
-            ) {
-                Icon(
-                    painter = painterResource(
-                        when (event.eventType) {
-                            LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
-                            LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
-                            LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
-                            LocalCalendarEventType.ATTENDANCE -> Res.drawable.person_add_24px
-                            LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
-                        }
-                    ),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .padding(end = 8.dp)
-                )
-
-                Column(
-                    modifier = Modifier
-                        .weight(1F)
-                ) {
-                    Text(
-                        fontWeight = FontWeight.Bold,
-                        text = event.title
-                    )
-                    Text(
-                        color = MaterialTheme.colorScheme.outline,
-                        text = event.description
-                    )
-                }
-                Text(
-                    modifier = Modifier.fillMaxHeight(),
-                    text = formattedTimeSpan,
-                    style = strikethroughIfDone
-                )
-            }
-
-            if (!subtext.isBlank()) {
-                HorizontalDivider()
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.info_24px),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                    Text(
-                        color = MaterialTheme.colorScheme.outline,
-                        text = subtext,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-            }
-        }
-    }
-
 }
