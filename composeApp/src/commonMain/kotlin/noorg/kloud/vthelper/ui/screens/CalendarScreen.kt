@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,11 @@ fun CalendarScreen(
 
     val isLoadingState = remember { mutableStateOf(false) }
     val isLoading by isLoadingState
+
+    LaunchedEffect(Unit) {
+        // Don't wait for the API, load immediately if present
+        calendarViewModel.loadMoodleEventsFromFileIfAvailable()
+    }
 
     SmartFetcher(
         loggedInUserAndInternetViewModel,

@@ -365,7 +365,10 @@ private fun EventInformation(event: LocalCalendarEvent, now: Instant) {
     val subtext = event.getSubtext()
 
     val formattedTimeSpan = remember(event.startTime, event.endTime) {
-        "${event.startLocalDt.formatLocalTime()} - ${event.endLocalDt.formatLocalTime()}"
+        if(event.startLocalDt == event.endLocalDt) {
+            return@remember event.startLocalDt.formatLocalTime()
+        }
+        return@remember "${event.startLocalDt.formatLocalTime()} - ${event.endLocalDt.formatLocalTime()}"
     }
 
     val strikethroughIfDone =

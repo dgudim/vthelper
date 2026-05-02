@@ -10,7 +10,7 @@ class LocalManoExamEvent(
     backingField.examDateTime,
     backingField.examDateTime,
     LocalCalendarEventType.TIMETABLE,
-    backingField.subjectName,
+    "${backingField.subjectName} exam",
     backingField.examClassroom
 ) {
 

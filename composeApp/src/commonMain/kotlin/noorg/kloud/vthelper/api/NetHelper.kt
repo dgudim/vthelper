@@ -27,6 +27,7 @@ inline fun <T, R> safeRetryWithPrecall(
 ): NetResult<T> {
     val result = safeNetCall(operation) { mainBlock(it) }
     if (!result.isSuccess) {
+        println("$operation failed, retrying with precall")
         val beforeRetryResult =
             safeNetCall("$retryOperation (retry before '$operation')") {
                 beforeRetryBlock(

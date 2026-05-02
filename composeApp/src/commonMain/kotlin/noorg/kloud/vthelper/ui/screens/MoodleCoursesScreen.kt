@@ -3,6 +3,7 @@ package noorg.kloud.vthelper.ui.screens
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -36,7 +37,7 @@ fun MoodleCoursesScreen(
         fetchFunction = {
             listOf(
                 moodleCoursesViewModel.fetchCourses(showSnack),
-                manoSemesterViewModel.fetchCurrentSemester(showSnack, true)
+                manoSemesterViewModel.fetchCurrentSemester(showSnack, true) // Subject list is needed for the 'current' badge
             ).awaitAll().combine()
         },
         header = { isLoading ->

@@ -53,9 +53,9 @@ class CalendarViewModel(
             .map { events ->
                 events.map { LocalManoExamEvent(it) }
             }
-    ) { moodleEvents, courses, manoExams ->
+    ) { moodleEvents, moodleCourses, manoExams ->
         for (event in moodleEvents) {
-            event.setLinkedMoodleCourse(courses[event.courseModCode])
+            event.setLinkedMoodleCourse(moodleCourses[event.courseModCode])
         }
         return@combine moodleEvents.asSequence() + manoExams.asSequence()
     }.stateIn(
@@ -64,14 +64,16 @@ class CalendarViewModel(
         sequenceOf()
     )
 
+    fun loadMoodleEventsFromFileIfAvailable() {
+        calendarProvider.loadFromFileIfAvailable()
+            .onSuccess {
+                _moodleEvents.value = it
+            }
+    }
+
     fun fetchMoodleEvents(showSnack: SnackbarFun): Deferred<Result<String>> {
         // https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html
         return viewModelScope.async {
-            // Don't wait for the API, load immediately if present
-            calendarProvider.loadFromFileIfAvailable()
-                .onSuccess {
-                    _moodleEvents.value = it
-                }
             calendarProvider.fetchMoodleEventsIfNeeded(6.hours)
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)

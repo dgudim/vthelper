@@ -488,15 +488,15 @@ object ManoApi {
         semesterAbsoluteSequenceNum: Int
     ): NetResult<List<ApiManoSubjectExamInfo>> {
 
-        val basePageResponse = client.get("$baseUrl/examstimetable/exams/student")
+        val selectorsResponse = client.get("$baseUrl/examstimetable/exams/student")
 
-        basePageResponse.expect200<List<ApiManoSubjectExamInfo>>(
-            "$rootOperationName + main request"
+        selectorsResponse.expect200<List<ApiManoSubjectExamInfo>>(
+            "$rootOperationName + selectors request"
         )?.let { return it }
 
-        val basePageContent = basePageResponse.bodyAsText().unescape().singleLine()
+        val basePageContent = selectorsResponse.bodyAsText().unescape().singleLine()
 
-        val groupOptionIndex = basePageContent.indexOf("$groupName</option>", ignoreCase = true)
+        val groupOptionIndex = basePageContent.indexOf(groupName)
 
         if (groupOptionIndex == -1) {
             return "Could not find group option index"
@@ -507,7 +507,7 @@ object ManoApi {
         }
 
         // <option value="7287890">ITVf-23</option>
-        val fullOption = basePageContent.substring(groupOptionIndex - 25, groupOptionIndex)
+        val fullOption = basePageContent.substring(groupOptionIndex - 30, groupOptionIndex)
         val groupId = fullOption.split('"')[1]
 
         val examSchedulePageResponse = client.submitForm(
@@ -769,8 +769,8 @@ object ManoApi {
                 ApiManoCompletedSemesterResult(
                     absoluteSequenceNum = semHeaderParts[2].replace("semester", "").trim()
                         .toInt(),
-                    sessionSeason = semHeaderParts[1],
-                    group = semHeader.groupValues[2],
+                    sessionSeason = semHeaderParts[1].trim(),
+                    group = semHeader.groupValues[2].trim(),
                     yearTimeSpan = semHeaderParts[0].replace("academic year", "").trim(),
                     finalTotalCredits = semFooterParts?.groupValues[1]?.toInt() ?: 0,
                     finalWeightedGrade = semFooterParts?.groupValues[2]?.toFloatDashAsNull() ?: 0F,
