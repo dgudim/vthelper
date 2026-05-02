@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,7 +53,6 @@ import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.data_providers.CalendarProvider
 import noorg.kloud.vthelper.data.data_providers.ManoCalloutsProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
-import noorg.kloud.vthelper.data.dbdaos.LoggedInUserDao
 import noorg.kloud.vthelper.platform_specific.AppDatabase
 import noorg.kloud.vthelper.platform_specific.getHttpClientBase
 import noorg.kloud.vthelper.ui.components.StatusSnackbar
@@ -69,7 +67,7 @@ import noorg.kloud.vthelper.ui.view_models.CalendarViewModel
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoCalloutsViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
-import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -211,6 +209,7 @@ fun Navigation(
     val manoSettlementGradeDao = remember { db.manoSettlementGradeDao() }
     val manoCalloutsDao = remember { db.manoCalloutsDao() }
     val manoEmployeeDao = remember { db.manoEmployeeDao() }
+    val manoSubjectExamTimetableDao = remember { db.manoSubjectExamTimetableDao() }
 
     val manoEmployeeProvider = remember { ManoEmployeeProvider(manoEmployeeDao) }
     val manoCalloutsProvider = remember { ManoCalloutsProvider(manoCalloutsDao) }
@@ -221,6 +220,7 @@ fun Navigation(
             manoSubjectDao,
             manoSettlementGradeDao,
             manoSettlementGroupDao,
+            manoSubjectExamTimetableDao,
             manoEmployeeProvider
         )
     }
@@ -228,11 +228,11 @@ fun Navigation(
 
     val moodleCoursesViewModel =
         remember { MoodleCoursesViewModel(moodleCourseProvider, manoSemesterAndSubjectProvider) }
-    val manoSemesterAndSubjectViewModel =
-        remember { ManoSemesterAndSubjectViewModel(manoSemesterAndSubjectProvider) }
+    val manoSemesterViewModel =
+        remember { ManoSemesterViewModel(manoSemesterAndSubjectProvider) }
     val manoEmployeeViewModel = remember { ManoEmployeeViewModel(manoEmployeeProvider) }
     val manoCalloutsViewModel = remember { ManoCalloutsViewModel(manoCalloutsProvider) }
-    val calendarViewModel = remember { CalendarViewModel(calendarProvider, moodleCourseProvider) }
+    val calendarViewModel = remember { CalendarViewModel(calendarProvider, moodleCourseProvider, manoSemesterAndSubjectProvider) }
 
     NavHost(
         navController = navController,
@@ -247,7 +247,7 @@ fun Navigation(
         composable(NavDrawerItem.Account.route) {
             AccountScreen(
                 loggedInUserAndInternetViewModel,
-                manoSemesterAndSubjectViewModel,
+                manoSemesterViewModel,
                 showSnack
             )
         }
@@ -255,7 +255,7 @@ fun Navigation(
             ResultsScreen(
                 loggedInUserAndInternetViewModel,
                 manoEmployeeViewModel,
-                manoSemesterAndSubjectViewModel,
+                manoSemesterViewModel,
                 showSnack
             )
         }
@@ -271,7 +271,7 @@ fun Navigation(
             MoodleCoursesScreen(
                 loggedInUserAndInternetViewModel,
                 moodleCoursesViewModel,
-                manoSemesterAndSubjectViewModel,
+                manoSemesterViewModel,
                 showSnack
             )
         }

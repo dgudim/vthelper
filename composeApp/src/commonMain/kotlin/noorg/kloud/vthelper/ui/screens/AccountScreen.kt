@@ -2,6 +2,7 @@ package noorg.kloud.vthelper.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -11,7 +12,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -34,9 +34,11 @@ import noorg.kloud.vthelper.ui.components.common.InfoField
 import noorg.kloud.vthelper.ui.components.common.LoaderTextButton
 import noorg.kloud.vthelper.ui.components.PasswordTextField
 import noorg.kloud.vthelper.ui.components.common.AsyncImageWithPlaceholder
+import noorg.kloud.vthelper.ui.components.common.HorizontalLoadingDivider
+import noorg.kloud.vthelper.ui.components.common.SmartFetcher
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
-import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.account_circle_24px
 import vthelper.composeapp.generated.resources.alternate_email_24px
@@ -52,11 +54,11 @@ import vthelper.composeapp.generated.resources.vt_48px
 @Composable
 fun AccountScreen(
     loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
-    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    manoSemesterViewModel: ManoSemesterViewModel,
     showSnack: SnackbarFun
 ) {
     val userState by loggedInUserAndInternetViewModel.userState.collectAsStateWithLifecycle()
-    val currentSemester by manoSemesterAndSubjectViewModel.currentSemester.collectAsStateWithLifecycle()
+    val currentSemester by manoSemesterViewModel.currentSemester.collectAsStateWithLifecycle()
 
     val localMfaCode by loggedInUserAndInternetViewModel.mfaCode.collectAsStateWithLifecycle()
     val localStudentId by loggedInUserAndInternetViewModel.studentId.collectAsStateWithLifecycle()
@@ -75,7 +77,10 @@ fun AccountScreen(
     val loggedInTopHeaderText =
         if (userState.isSessionValid) "${userState.fullName} (${userState.studentId})" else "Login into your Vilniustech account"
 
-    var isLoading by remember { mutableStateOf(false) }
+    var isButtonLoading by remember { mutableStateOf(false) }
+
+    val isAdditionalLoadingState = remember { mutableStateOf(false) }
+    val isAdditionalLoading by isAdditionalLoadingState
 
     val loggedInColor = if (userState.isSessionValid)
         MaterialTheme.customColors.goodResult
@@ -105,6 +110,13 @@ fun AccountScreen(
         logoutDialogShown
     ) {
         loggedInUserAndInternetViewModel.logout(showSnack)
+    }
+
+    SmartFetcher(
+        loggedInUserAndInternetViewModel,
+        isAdditionalLoadingState
+    ) {
+        manoSemesterViewModel.fetchCurrentSemester(showSnack, false).await()
     }
 
     Column(
@@ -181,23 +193,18 @@ fun AccountScreen(
                 )
                 LoaderTextButton(
                     onClick = {
-                        if (isLoading) {
+                        if (isButtonLoading) {
                             return@LoaderTextButton
                         }
                         if (userState.isSessionValid) {
                             logoutDialogShown.value = true
                         } else {
-                            isLoading = true
+                            isButtonLoading = true
                             loggedInUserAndInternetViewModel.login(
                                 localStudentId, localPassword, localMfaCode,
-                                showSnack,
-                                onSuccess = {
-                                    manoSemesterAndSubjectViewModel.fetchCurrentSemesterFromApi(
-                                        showSnack
-                                    )
-                                }
+                                showSnack
                             ).invokeOnCompletion {
-                                isLoading = false
+                                isButtonLoading = false
                             }
                         }
                     },
@@ -205,8 +212,8 @@ fun AccountScreen(
                     modifier = Modifier
                         .padding(4.dp, 10.dp, 4.dp, 4.dp)
                         .width(160.dp),
-                    isLoading = isLoading,
-                    enabled = !(userLoginInvalid || passwordInvalid || mfaInvalid || isLoading) || userState.isSessionValid,
+                    isLoading = isButtonLoading,
+                    enabled = !(userLoginInvalid || passwordInvalid || mfaInvalid || isButtonLoading) || userState.isSessionValid,
                     colors = loginButtonColors,
                     text = if (userState.isSessionValid) "Logout" else "Login"
                 )
@@ -248,7 +255,12 @@ fun AccountScreen(
                 "Current semester",
                 currentSemester?.absoluteSequenceNum?.toString()
             )
-            HorizontalDivider(modifier = Modifier.padding(16.dp))
+
+            HorizontalLoadingDivider(
+                isAdditionalLoading, color = MaterialTheme.colorScheme.outline,
+                PaddingValues(16.dp)
+            )
+
             InfoField(Res.drawable.vt_48px, "Open mano", "mano.vilniustech.lt", {
                 uriHandler.openUri("https://mano.vilniustech.lt")
             }, true)

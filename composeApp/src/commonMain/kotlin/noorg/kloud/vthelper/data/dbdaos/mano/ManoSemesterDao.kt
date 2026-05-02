@@ -25,4 +25,10 @@ interface ManoSemesterDao {
                         ORDER BY absolute_seq desc
                         LIMIT 1""")
     fun getCurrentAsFlow(): Flow<List<DBManoSemesterEntity>>
+
+
+    @Query("""SELECT * FROM mano_semesters
+                        ORDER BY absolute_seq desc
+                        LIMIT 1""")
+    suspend fun getCurrent(): List<DBManoSemesterEntity>
 }

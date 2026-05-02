@@ -1,14 +1,13 @@
 package noorg.kloud.vthelper.data.data_providers
 
 import androidx.compose.ui.graphics.Color
-import kotlinx.atomicfu.AtomicInt
+import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.flow.toList
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.models.toResultFail
 import noorg.kloud.vthelper.api.models.toResultOk
@@ -16,6 +15,7 @@ import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectExamTimetableDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSemesterEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSettlementGroup
@@ -26,8 +26,10 @@ import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEntityWithEmployee
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectEvaluationVerdict
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectMediateData
 import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
+import noorg.kloud.vthelper.data.dbentities.mano.DbManoSubjectExamTimetableEntity
 import noorg.kloud.vthelper.data.dbentities.mano.getSettlementGroupCompositeKey
 import noorg.kloud.vthelper.data.dbentities.mano.getSubjectCompositeKey
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoExamTimetableEvent
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGrade
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
@@ -37,18 +39,20 @@ import noorg.kloud.vthelper.fuzzyFindEmployee
 import noorg.kloud.vthelper.getHashedColor
 import noorg.kloud.vthelper.getSemesterYearRange
 import kotlin.String
+import kotlin.time.Instant
 
 class ManoSemesterAndSubjectProvider(
     private val manoSemesterDao: ManoSemesterDao,
     private val manoSubjectDao: ManoSubjectDao,
     private val manoSettlementGradeDao: ManoSettlementGradeDao,
     private val manoSettlementGroupDao: ManoSettlementGroupDao,
+    private val manoSubjectExamTimetableDao: ManoSubjectExamTimetableDao,
     private val manoEmployeeProvider: ManoEmployeeProvider
 ) {
 
     private val employeeList = mutableListOf<DBManoBareEmployeeData>()
 
-    private val currentSemesterNumber: AtomicInt = atomic(0)
+    private val currentSemesterNumber: AtomicRef<DBManoSemesterEntity?> = atomic(null)
 
     private suspend fun fetchEmployeesIfNeeded(): Result<String> {
         // It's important to actually put the employees into the DB. Needed for FK constraints
@@ -64,33 +68,34 @@ class ManoSemesterAndSubjectProvider(
         return "OK".toResultOk()
     }
 
-    private suspend fun fetchCurrentSemesterNumberIfNeeded(): Result<Int> {
+    private suspend fun getCurrentSemesterDataCached(): Result<DBManoSemesterEntity> {
 
-        if (currentSemesterNumber.value == 0) {
-            ManoApi.getThisSemesterInfo(::fetchCurrentSemesterNumberIfNeeded.name)
-                .onFailure { return toResultFail() }
-                .onSuccess { currentSemesterNumber.value = it.absoluteSequenceNum }
+        if (currentSemesterNumber.value == null) {
+            val current = manoSemesterDao.getCurrent()
+            if (current.isEmpty()) {
+                return "Current semester data is missing".toResultFail()
+            }
+            currentSemesterNumber.value = current.first()
         }
 
-        return currentSemesterNumber.value.toResultOk()
+        return currentSemesterNumber.value!!.toResultOk()
     }
 
-    suspend fun fetchAllSemestersAndSubjectsFromApiIfNeeded(): Result<String> {
+    suspend fun fetchAllSemestersAndSubjectsFromApiIfNeeded(includeSubjects: Boolean): Result<String> {
 
-        fetchCurrentSemesterAndSubjectsFromApi().onFailure { return it.toResultFail() }
-        fetchCompletedSemestersWithResultsFromApi().onFailure { return it.toResultFail() }
+        fetchCurrentSemesterAndSubjectsFromApi(includeSubjects).onFailure { return it.toResultFail() }
+        fetchCompletedSemestersWithResultsFromApi(includeSubjects).onFailure { return it.toResultFail() }
 
         return "OK".toResultOk()
     }
 
-    suspend fun fetchCurrentSemesterAndSubjectsFromApi(): Result<String> {
+    suspend fun fetchCurrentSemesterAndSubjectsFromApi(includeSubjects: Boolean): Result<String> {
 
         val currentSemesterResponse =
             ManoApi.getThisSemesterInfo(::fetchCurrentSemesterAndSubjectsFromApi.name)
                 .onFailure { return toResultFail() }
 
         val currentSemesterInfo = currentSemesterResponse.bodyTyped!!
-        currentSemesterNumber.value = currentSemesterInfo.absoluteSequenceNum
 
         with(currentSemesterInfo) {
             manoSemesterDao.upsert(
@@ -100,6 +105,10 @@ class ManoSemesterAndSubjectProvider(
                     studyProgram = studyProgram
                 )
             )
+        }
+
+        if (!includeSubjects) {
+            return "OK".toResultOk()
         }
 
         fetchEmployeesIfNeeded().onFailure { return it.toResultFail() }
@@ -143,7 +152,7 @@ class ManoSemesterAndSubjectProvider(
         return "OK".toResultOk()
     }
 
-    private suspend fun fetchCompletedSemestersWithResultsFromApi(): Result<String> {
+    private suspend fun fetchCompletedSemestersWithResultsFromApi(includeSubjects: Boolean): Result<String> {
 
         val existingSemesters = manoSemesterDao
             .getAllAsFlow()
@@ -177,6 +186,10 @@ class ManoSemesterAndSubjectProvider(
                 )
             }.toList()
         )
+
+        if (!includeSubjects) {
+            return "OK".toResultOk()
+        }
 
         fetchEmployeesIfNeeded().onFailure { return it.toResultFail() }
 
@@ -234,13 +247,16 @@ class ManoSemesterAndSubjectProvider(
     suspend fun fetchMediateResultsForSemester(
         semesterAbsoluteSequenceNum: Int
     ): Result<Map<String, DBManoSubjectMediateData>> {
-        val currentSemesterSequenceNum =
-            fetchCurrentSemesterNumberIfNeeded()
+        val currentSemesterData =
+            getCurrentSemesterDataCached()
                 .onFailure { return it.toResultFail() }
-                .getOrNull() ?: 0
+                .getOrNull()!!
 
         val targetSemesterYearRange =
-            getSemesterYearRange(currentSemesterSequenceNum, semesterAbsoluteSequenceNum)
+            getSemesterYearRange(
+                currentSemesterData.absoluteSequenceNum,
+                semesterAbsoluteSequenceNum
+            )
 
         val mediateResultsResponse =
             ManoApi.getSemesterMediateResults(
@@ -269,13 +285,16 @@ class ManoSemesterAndSubjectProvider(
         subjectModId: Int,
     ): Result<String> {
 
-        val currentSemesterSequenceNum =
-            fetchCurrentSemesterNumberIfNeeded()
+        val currentSemesterData =
+            getCurrentSemesterDataCached()
                 .onFailure { return it.toResultFail() }
-                .getOrNull() ?: 0
+                .getOrNull()!!
 
         val targetSemesterYearRange =
-            getSemesterYearRange(currentSemesterSequenceNum, semesterAbsoluteSequenceNum)
+            getSemesterYearRange(
+                currentSemesterData.absoluteSequenceNum,
+                semesterAbsoluteSequenceNum
+            )
 
         val settlementGroupsResponse =
             ManoApi.getSubjectSettlementGroups(
@@ -471,5 +490,61 @@ class ManoSemesterAndSubjectProvider(
             }
     }
 
+    // ================ Exams
+
+    suspend fun fetchExamTimetable(): Result<String> {
+        val currentSemesterData =
+            getCurrentSemesterDataCached()
+                .onFailure { return it.toResultFail() }
+                .getOrNull()!!
+
+        val examTimetableFromApi = ManoApi.getExamTimetable(
+            ::fetchExamTimetable.name,
+            currentSemesterData.group,
+            currentSemesterData.absoluteSequenceNum
+        ).onFailure { return toResultFail() }
+
+        manoSubjectExamTimetableDao.replaceAll(
+            examTimetableFromApi.bodyTyped!!.map {
+                DbManoSubjectExamTimetableEntity(
+                    subjectName = it.subjectName,
+                    subjectModCode = it.subjectModCode,
+                    examType = it.examType,
+                    examClassroom = it.examClassroom,
+                    examCredits = it.examCredits,
+                    examDateTimeMsUTC = it.examDateTime.toEpochMilliseconds(),
+                    examLecturerFullName = it.examLecturerFullName,
+                    consultationDateTimeMsUTC = it.consultationDateTime?.toEpochMilliseconds(),
+                    consultationClassroom = it.consultationClassroom
+                )
+            }
+        )
+
+        return "OK".toResultOk()
+    }
+
+    fun getExamTimetableEvents(): Flow<List<ProvidedManoExamTimetableEvent>> {
+        return manoSubjectExamTimetableDao
+            .getAllAsFlow()
+            .distinctUntilChanged()
+            .map { entities ->
+                entities.map {
+                    ProvidedManoExamTimetableEvent(
+                        subjectName = it.subjectName,
+                        subjectModCode = it.subjectModCode,
+                        color = getHashedColor(it.subjectModCode.hashCode().toLong()),
+                        examType = it.examType,
+                        examClassroom = it.examClassroom,
+                        examCredits = it.examCredits,
+                        examDateTime = Instant.fromEpochMilliseconds(it.examDateTimeMsUTC),
+                        examLecturerFullName = it.examLecturerFullName,
+                        consultationDateTime = it.consultationDateTimeMsUTC?.let { ts ->
+                            Instant.fromEpochMilliseconds(ts)
+                        },
+                        consultationClassroom = it.consultationClassroom
+                    )
+                }
+            }
+    }
 
 }

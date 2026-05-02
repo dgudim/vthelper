@@ -64,8 +64,7 @@ class LoggedInUserAndInternetViewModel(
         studentId: String,
         password: String,
         mfaCode: String,
-        showSnack: SnackbarFun,
-        onSuccess: () -> Unit
+        showSnack: SnackbarFun
     ): Job {
         return viewModelScope.launch {
             loggedInUserProvider.login(studentId, password, mfaCode)
@@ -73,7 +72,6 @@ class LoggedInUserAndInternetViewModel(
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
                 .onSuccess {
-                    onSuccess()
                     showSnack(
                         "Logged in successfully",
                         SnackBarSeverityLevel.SUCCESS,

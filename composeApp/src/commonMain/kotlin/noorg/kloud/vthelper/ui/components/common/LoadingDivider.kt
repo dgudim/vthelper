@@ -20,7 +20,7 @@ import noorg.kloud.vthelper.setAlpha
 fun HorizontalLoadingDivider(
     isLoading: Boolean,
     color: Color,
-    padding: PaddingValues.Absolute
+    padding: PaddingValues
 ) {
 
     val progressPadding = remember {

@@ -62,7 +62,7 @@ fun <T> LoadableListSection(
                 text = "Nothing to show ¯ \\_(ツ)_/¯",
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 48.dp)
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
             )
         } else {
             if (displayDirectly) {

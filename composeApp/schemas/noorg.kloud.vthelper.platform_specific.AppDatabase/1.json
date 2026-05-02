@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "eae15624271fb61c8b85428c9c9eba9c",
+    "identityHash": "09946ffa39409ae53833a6bf2b1426c8",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -492,6 +492,76 @@
         ]
       },
       {
+        "tableName": "mano_exam_timetable",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`absolute_seq` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject_name` TEXT NOT NULL, `subject_mod_code` TEXT NOT NULL, `exam_type` TEXT NOT NULL, `exam_ms_utc` INTEGER NOT NULL, `exam_classroom` TEXT NOT NULL, `exam_lecturer_full_name` TEXT NOT NULL, `exam_credits` INTEGER NOT NULL, `consultation_ms_utc` INTEGER, `consultation_classroom` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "absolute_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectName",
+            "columnName": "subject_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subjectModCode",
+            "columnName": "subject_mod_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examType",
+            "columnName": "exam_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examDateTimeMsUTC",
+            "columnName": "exam_ms_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examClassroom",
+            "columnName": "exam_classroom",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examLecturerFullName",
+            "columnName": "exam_lecturer_full_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "examCredits",
+            "columnName": "exam_credits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consultationDateTimeMsUTC",
+            "columnName": "consultation_ms_utc",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "consultationClassroom",
+            "columnName": "consultation_classroom",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "absolute_seq"
+          ]
+        }
+      },
+      {
         "tableName": "mano_employees",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mano_id` INTEGER NOT NULL, `shortname` TEXT NOT NULL, `avatar_path` TEXT, `fullname` TEXT, `positions` TEXT, `departments` TEXT, `phones` TEXT, `emails` TEXT, `offices` TEXT, PRIMARY KEY(`mano_id`))",
         "fields": [
@@ -630,7 +700,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eae15624271fb61c8b85428c9c9eba9c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '09946ffa39409ae53833a6bf2b1426c8')"
     ]
   }
 }

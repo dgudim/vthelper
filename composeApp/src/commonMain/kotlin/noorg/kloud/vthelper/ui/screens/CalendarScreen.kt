@@ -5,16 +5,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.api.models.combine
 import noorg.kloud.vthelper.setAlpha
@@ -25,6 +21,7 @@ import noorg.kloud.vthelper.ui.theme.ColorVariants
 import noorg.kloud.vthelper.ui.theme.LocalCalendarColorPalette
 import noorg.kloud.vthelper.ui.view_models.CalendarViewModel
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 
 @Composable
@@ -44,7 +41,8 @@ fun CalendarScreen(
     ) {
         listOf(
             calendarViewModel.fetchMoodleEvents(showSnack),
-            moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack)
+            calendarViewModel.fetchManoExams(showSnack),
+            moodleCoursesViewModel.fetchCourses(showSnack)
         ).awaitAll().combine()
     }
 

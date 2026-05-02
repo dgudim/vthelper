@@ -15,19 +15,19 @@ import noorg.kloud.vthelper.ui.components.common.ScreenHeaderTextWithLoader
 import noorg.kloud.vthelper.ui.components.common.UserInfoDialog
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
-import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultsScreen(
     loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     manoEmployeeViewModel: ManoEmployeeViewModel,
-    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    manoSemesterViewModel: ManoSemesterViewModel,
     showSnack: SnackbarFun
 ) {
 
-    val allSemesters by manoSemesterAndSubjectViewModel.semesters.collectAsStateWithLifecycle()
-    val currentSemesterData by manoSemesterAndSubjectViewModel.currentSemester.collectAsStateWithLifecycle()
+    val allSemesters by manoSemesterViewModel.semesters.collectAsStateWithLifecycle()
+    val currentSemester by manoSemesterViewModel.currentSemester.collectAsStateWithLifecycle()
 
     val selectedEmployee by manoEmployeeViewModel.selectedEmployee.collectAsStateWithLifecycle()
 
@@ -44,7 +44,7 @@ fun ResultsScreen(
         loggedInUserAndInternetViewModel = loggedInUserAndInternetViewModel,
         items = allSemesters,
         fetchFunction = {
-            manoSemesterAndSubjectViewModel.fetchAllSemestersFromApi(showSnack).await()
+            manoSemesterViewModel.fetchAllSemestersFromApi(showSnack, true).await()
         },
         header = { isLoading ->
             ScreenHeaderTextWithLoader("Results per semester", isLoading)
@@ -52,11 +52,11 @@ fun ResultsScreen(
         displayDirectly = true,
         scroll = true
     ) { semesterData ->
-        currentSemesterData?.let {
+        currentSemester?.let {
             SemesterCard(
                 showSnack,
                 manoEmployeeViewModel,
-                manoSemesterAndSubjectViewModel,
+                manoSemesterViewModel,
                 loggedInUserAndInternetViewModel,
                 it,
                 semesterData

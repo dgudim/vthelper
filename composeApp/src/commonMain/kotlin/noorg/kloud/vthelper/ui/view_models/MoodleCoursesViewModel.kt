@@ -7,24 +7,17 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.timeout
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.toSet
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.data_providers.ManoSemesterAndSubjectProvider
 import noorg.kloud.vthelper.data.data_providers.MoodleCoursesProvider
@@ -80,7 +73,7 @@ class MoodleCoursesViewModel(
                 initialValue = emptyList(),
             )
 
-    fun fetchLatestCourseListFromApi(showSnack: SnackbarFun): Deferred<Result<String>> {
+    fun fetchCourses(showSnack: SnackbarFun): Deferred<Result<String>> {
         return viewModelScope.async {
             moodleCoursesProvider
                 .fetchCoursesFromApi()

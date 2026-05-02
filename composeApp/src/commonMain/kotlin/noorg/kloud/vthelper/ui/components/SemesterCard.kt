@@ -1,7 +1,6 @@
 package noorg.kloud.vthelper.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -9,65 +8,47 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.datetime.Month
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.getColorFromGrade
-import noorg.kloud.vthelper.getHashedColor
 import noorg.kloud.vthelper.getSemesterSessionSeason
 import noorg.kloud.vthelper.getSemesterYearRange
-import noorg.kloud.vthelper.mixWith
 import noorg.kloud.vthelper.mixedWithPrimary
 import noorg.kloud.vthelper.setAlpha
 import noorg.kloud.vthelper.ui.components.common.ExpandableCard
 import noorg.kloud.vthelper.ui.components.common.HorizontalLoadingDivider
-import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.components.common.SmartFetcher
 import noorg.kloud.vthelper.ui.theme.customColors
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
-import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
-import vthelper.composeapp.generated.resources.info_24px
-import vthelper.composeapp.generated.resources.menu_24px
 import vthelper.composeapp.generated.resources.person_24px
 
 @Composable
@@ -182,14 +163,14 @@ fun SettlementGroupCard(settlementGroup: ProvidedManoSettlementGroup) {
 fun SubjectCard(
     showSnack: SnackbarFun,
     manoEmployeeViewModel: ManoEmployeeViewModel,
-    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    manoSemesterViewModel: ManoSemesterViewModel,
     loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     semAbsoluteSequenceNum: Int,
     subjectData: ProvidedManoSubjectEntity
 ) {
 
     val settlementGroupsWithGrades = remember {
-        manoSemesterAndSubjectViewModel.getSettlementGroupsForSubjectAsStateFlow(
+        manoSemesterViewModel.getSettlementGroupsForSubjectAsStateFlow(
             semAbsoluteSequenceNum,
             subjectData.modId
         )
@@ -261,7 +242,7 @@ fun SubjectCard(
                 loggedInUserAndInternetViewModel,
                 isLoadingState
             ) {
-                manoSemesterAndSubjectViewModel.fetchSettlementGroupsFromApi(
+                manoSemesterViewModel.fetchSettlementGroupsFromApi(
                     semAbsoluteSequenceNum,
                     subjectData.modId,
                     showSnack
@@ -295,7 +276,7 @@ fun SubjectCard(
 fun SemesterCard(
     showSnack: SnackbarFun,
     manoEmployeeViewModel: ManoEmployeeViewModel,
-    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    manoSemesterViewModel: ManoSemesterViewModel,
     loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     currentSemesterData: ProvidedManoSemesterEntity,
     semesterData: ProvidedManoSemesterEntity,
@@ -320,7 +301,7 @@ fun SemesterCard(
     }
 
     val subjectsForSemester = remember {
-        manoSemesterAndSubjectViewModel.getSubjectsForSemesterAsStateFlow(semesterData.absoluteSequenceNum)
+        manoSemesterViewModel.getSubjectsForSemesterAsStateFlow(semesterData.absoluteSequenceNum)
     }
 
     ExpandableCard(
@@ -370,7 +351,7 @@ fun SemesterCard(
                     SubjectCard(
                         showSnack,
                         manoEmployeeViewModel,
-                        manoSemesterAndSubjectViewModel,
+                        manoSemesterViewModel,
                         loggedInUserAndInternetViewModel,
                         semesterData.absoluteSequenceNum,
                         subject

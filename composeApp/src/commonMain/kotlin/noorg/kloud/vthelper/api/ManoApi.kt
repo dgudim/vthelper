@@ -2,7 +2,6 @@ package noorg.kloud.vthelper.api
 
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastZip
-import io.ktor.client.HttpClient
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
@@ -10,10 +9,10 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMessageBuilder
 import io.ktor.http.Url
 import io.ktor.http.parameters
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.offsetAt
 import kotlinx.serialization.json.Json
 import noorg.kloud.vthelper.api.ManoApi.getCompletedSemesterResultsUnsafe
 import noorg.kloud.vthelper.api.ManoApi.getEmployeeDetailsUnsafe
@@ -32,6 +31,7 @@ import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
 import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
+import noorg.kloud.vthelper.api.models.mano.ApiManoSubjectExamInfo
 import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterInfo
 import noorg.kloud.vthelper.api.models.mano.ApiManoThisSemesterSubjectEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoTimetableEntityType
@@ -50,19 +50,21 @@ import noorg.kloud.vthelper.nullIfDash
 import noorg.kloud.vthelper.findFirstGroup
 import noorg.kloud.vthelper.nullIfBlank
 import noorg.kloud.vthelper.platform_specific.getHttpClientBase
-import noorg.kloud.vthelper.platform_specific.getHttpClientEngine
 import noorg.kloud.vthelper.toFloatDashAsNull
 import noorg.kloud.vthelper.toIntDashAsNull
 import noorg.kloud.vthelper.toIntNotNull
 import noorg.kloud.vthelper.toRelativeSemester
 import kotlin.concurrent.Volatile
 import kotlin.time.Duration
+import kotlin.time.Instant
 
 
 object ManoApi {
 
     private val baseUrl = Url("https://mano.vilniustech.lt")
     private val jsonSerializer = Json { ignoreUnknownKeys = true }
+
+    private const val UPDATE_SESSION_OP = "update session"
 
     private val unicodeUnescapeRegex = Regex("""\\u([0-9a-fA-F]{4})""")
 
@@ -107,6 +109,14 @@ object ManoApi {
     private val courseTimetableExtractionRegex =
         Regex(
             """data-title="Work day".*?>(.*?)<.*?data-title="Week".*?>(.*?)<.*?data-title="Time".*?>(.*?)<.*?data-title="Auditorium".*?>(.*?)<.*?data-title="Lecture type".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<""",
+            RegexOption.MULTILINE
+        )
+
+    /** [getExamTimetableUnsafe] */
+
+    private val examTimetableExtractionRegex =
+        Regex(
+            """data-title="Subject".*?>(.*?)<.*?data-title="Type".*?>(.*?)<.*?data-title="Credits".*?>(.*?)<.*?data-title="Lecturer".*?>(.*?)<.*?data-title="Exam date".*?>(.*?)<.*?data-title="Exam time".*?>(.*?)<.*?class="auditory".*?>(.*?)<.*?>.*?data-title="Consultation date".*?>(.*?)<.*?data-title="Consultation time".*?>(.*?)<.*?data-title="Consultation auditorium".*?>(.*?)<""",
             RegexOption.MULTILINE
         )
 
@@ -286,7 +296,7 @@ object ManoApi {
     suspend fun getStudentInfo(source: String): NetResult<ApiManoStudentInfo> {
         println("${::getStudentInfo.name} called from $source")
         return safeRetryWithPrecall(
-            "get student info", "update session",
+            "get student info", UPDATE_SESSION_OP,
             mainBlock = {
                 getStudentInfoUnsafe(it)
             },
@@ -349,7 +359,7 @@ object ManoApi {
     suspend fun getThisSemesterInfo(source: String): NetResult<ApiManoThisSemesterInfo> {
         println("${::getThisSemesterInfo.name} called from $source")
         return safeRetryWithPrecall(
-            "get current semester info", "update session",
+            "get current semester info", UPDATE_SESSION_OP,
             mainBlock = {
                 getThisSemesterInfoUnsafe(it)
             },
@@ -416,7 +426,7 @@ object ManoApi {
     ): NetResult<List<ApiManoCourseTimetableEntity>> {
         println("${::getSubjectTimetable.name} called from $source")
         return safeRetryWithPrecall(
-            "get subject timetable for '$subjectModId'", "update session",
+            "get subject timetable for '$subjectModId'", UPDATE_SESSION_OP,
             mainBlock = {
                 getSubjectTimetableUnsafe(it, subjectModId)
             },
@@ -456,10 +466,97 @@ object ManoApi {
         return subjects.toNetResultOk("$rootOperationName + ret")
     }
 
+    suspend fun getExamTimetable(
+        source: String,
+        groupName: String,
+        semesterAbsoluteSequenceNum: Int
+    ): NetResult<List<ApiManoSubjectExamInfo>> {
+        println("${::getExamTimetable.name} called from $source")
+        return safeRetryWithPrecall(
+            "get exam timetable for '$groupName' and semester number $semesterAbsoluteSequenceNum", UPDATE_SESSION_OP,
+            mainBlock = {
+                getExamTimetableUnsafe(it, groupName, semesterAbsoluteSequenceNum)
+            },
+            beforeRetryBlock = { op, mainCallResult ->
+                updateSessionIfNeeded(op, mainCallResult.bodyRaw)
+            })
+    }
+
+    private suspend fun getExamTimetableUnsafe(
+        rootOperationName: String,
+        groupName: String,
+        semesterAbsoluteSequenceNum: Int
+    ): NetResult<List<ApiManoSubjectExamInfo>> {
+
+        val basePageResponse = client.get("$baseUrl/examstimetable/exams/student")
+
+        basePageResponse.expect200<List<ApiManoSubjectExamInfo>>(
+            "$rootOperationName + main request"
+        )?.let { return it }
+
+        val basePageContent = basePageResponse.bodyAsText().unescape().singleLine()
+
+        val groupOptionIndex = basePageContent.indexOf("$groupName</option>", ignoreCase = true)
+
+        if (groupOptionIndex == -1) {
+            return "Could not find group option index"
+                .toNetResultFail(
+                    "group option index search",
+                    "$rootOperationName + find group"
+                )
+        }
+
+        // <option value="7287890">ITVf-23</option>
+        val fullOption = basePageContent.substring(groupOptionIndex - 25, groupOptionIndex)
+        val groupId = fullOption.split('"')[1]
+
+        val examSchedulePageResponse = client.submitForm(
+            url = "${baseUrl}/examstimetable/exams/get-students-exams-schedule",
+            formParameters = parameters {
+                append("group-name", groupName)
+                append("group-code", groupId)
+                append("semester", "$semesterAbsoluteSequenceNum")
+            }
+        ) { addCsrfHeaders() }
+
+        examSchedulePageResponse.expect200<List<ApiManoSubjectExamInfo>>(
+            "$rootOperationName + timetable request"
+        )?.let { return it }
+
+        val examSchedulePageContent = examSchedulePageResponse.bodyAsText().unescape().singleLine()
+        val systemTimezone = TimeZone.currentSystemDefault()
+
+        val exams = examTimetableExtractionRegex
+            .findAll(examSchedulePageContent)
+            .map {
+                val modCodeAndName = it.groupValues[1].trim().split(" ", limit = 2)
+                val dateOnly = Instant.parse("${it.groupValues[5]}T14:00:00Z")
+                val dateTime = Instant.parse(
+                    "${it.groupValues[5].trim()}T${it.groupValues[6].trim()}:00+0${
+                        systemTimezone.offsetAt(dateOnly).totalSeconds.floorDiv(3600)
+                    }:00"
+                )
+                ApiManoSubjectExamInfo(
+                    subjectName = modCodeAndName[1].trim(),
+                    subjectModCode = modCodeAndName[0].trim(),
+                    examType = it.groupValues[2].trim(),
+                    examClassroom = it.groupValues[7].trim(),
+                    examDateTime = dateTime,
+                    examCredits = it.groupValues[3].trim().toInt(),
+                    examLecturerFullName = it.groupValues[4].trim(),
+                    consultationClassroom = it.groupValues[10].trim(),
+                    consultationDateTime = null // TODO: Extract and use
+                )
+            }
+            .toList()
+
+        return exams.toNetResultOk("$rootOperationName + ret")
+    }
+
     suspend fun getEmployees(source: String): NetResult<List<ApiManoEmployeeBasicEntity>> {
         println("${::getEmployees.name} called from $source")
         return safeRetryWithPrecall(
-            "get employees", "update session",
+            "get employees", UPDATE_SESSION_OP,
             mainBlock = {
                 getEmployeesUnsafe(it)
             },
@@ -508,7 +605,7 @@ object ManoApi {
     ): NetResult<ApiManoEmployeeDetails> {
         println("${::getEmployeeDetails.name} called from $source")
         return safeRetryWithPrecall(
-            "get employee details for '$employeeId'", "update session",
+            "get employee details for '$employeeId'", UPDATE_SESSION_OP,
             mainBlock = {
                 getEmployeeDetailsUnsafe(it, employeeId)
             },
@@ -627,7 +724,7 @@ object ManoApi {
     suspend fun getCompletedSemesterResults(source: String): NetResult<List<ApiManoCompletedSemesterResult>> {
         println("${::getCompletedSemesterResults.name} called from $source")
         return safeRetryWithPrecall(
-            "get completed semester results", "update session",
+            "get completed semester results", UPDATE_SESSION_OP,
             mainBlock = {
                 getCompletedSemesterResultsUnsafe(it)
             },
@@ -739,7 +836,7 @@ object ManoApi {
         println("${::getSemesterMediateResults.name} called from $source")
         return safeRetryWithPrecall(
             "get mediate results for semester '$semesterAbsoluteSequenceNum' in '$semesterYearRange'",
-            "update session",
+            UPDATE_SESSION_OP,
             mainBlock = {
                 getSemesterMediateResultsUnsafe(semesterAbsoluteSequenceNum, semesterYearRange, it)
             },
@@ -784,7 +881,7 @@ object ManoApi {
         println("${::getSubjectSettlementGroups.name} called from $source")
         return safeRetryWithPrecall(
             "get settlement groups for subject (mod id) '$subjectModId'",
-            "update session",
+            UPDATE_SESSION_OP,
             mainBlock = {
                 getSubjectSettlementGroupsUnsafe(
                     semesterAbsoluteSequenceNum,
@@ -862,7 +959,7 @@ object ManoApi {
         println("${::getSettlementGrades.name} called from $source")
         return safeRetryWithPrecall(
             "get grades for '$settlementType', '$subjectName'",
-            "update session",
+            UPDATE_SESSION_OP,
             mainBlock = {
                 getSettlementGradesUnsafe(
                     semesterRelativeSequenceNum,
@@ -929,7 +1026,7 @@ object ManoApi {
     suspend fun getCallouts(source: String): NetResult<List<ApiManoCalloutData>> {
         println("${::getCallouts.name} called from $source")
         return safeRetryWithPrecall(
-            "get callouts", "update session",
+            "get callouts", UPDATE_SESSION_OP,
             mainBlock = {
                 getCalloutsUnsafe(it)
             },

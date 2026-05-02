@@ -17,6 +17,7 @@ import noorg.kloud.vthelper.data.dbdaos.mano.ManoSemesterDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGradeDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSettlementGroupDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectDao
+import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectExamTimetableDao
 import noorg.kloud.vthelper.data.dbdaos.mano.ManoSubjectTimetableDao
 import noorg.kloud.vthelper.data.dbdaos.moodle.MoodleCourseDao
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
@@ -28,6 +29,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DBManoSubjectTimetableEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DbManoCalloutEntity
 import noorg.kloud.vthelper.data.dbentities.moodle.DBMoodleCourseEntity
 import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
+import noorg.kloud.vthelper.data.dbentities.mano.DbManoSubjectExamTimetableEntity
 
 // https://developer.android.com/kotlin/multiplatform/room
 // https://medium.com/@hidayatasep43/implementing-room-database-in-kotlin-multiplatform-a-step-by-step-guide-2bc3e1b3aa16
@@ -44,6 +46,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DbManoSettlementGrade
         DbManoSettlementGrade::class,
         DbManoCalloutEntity::class,
         DBManoSubjectTimetableEntity::class,
+        DbManoSubjectExamTimetableEntity::class,
         DBManoEmployeeEntity::class,
         DBLoggedInUserEntity::class,
     ],
@@ -67,6 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun manoEmployeeDao(): ManoEmployeeDao
     abstract fun manoCalloutsDao(): ManoCalloutsDao
     abstract fun manoCourseTimetableDao(): ManoSubjectTimetableDao
+    abstract fun manoSubjectExamTimetableDao(): ManoSubjectExamTimetableDao
     abstract fun loggedInUserDao(): LoggedInUserDao
 }
 

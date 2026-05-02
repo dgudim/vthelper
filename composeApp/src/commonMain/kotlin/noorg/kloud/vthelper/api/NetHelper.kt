@@ -62,7 +62,7 @@ inline fun <T> safeRetry(
 
 suspend fun downloadFile(target: Path, sourceUrl: Url): NetResult<String> {
     return safeNetCall("download $sourceUrl") {
-        VTBaseApi.clientWithRedirects
+        VTBaseApi.clientWithoutRedirects
             .get(sourceUrl)
             .bodyAsChannel()
             .copyAndClose(

@@ -8,21 +8,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.joinAll
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.api.models.combine
 import noorg.kloud.vthelper.ui.components.CourseEntry
 import noorg.kloud.vthelper.ui.components.common.LoadableListSection
 import noorg.kloud.vthelper.ui.components.common.ScreenHeaderTextWithLoader
 import noorg.kloud.vthelper.ui.view_models.LoggedInUserAndInternetViewModel
-import noorg.kloud.vthelper.ui.view_models.ManoSemesterAndSubjectViewModel
+import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import noorg.kloud.vthelper.ui.view_models.MoodleCoursesViewModel
 
 @Composable
 fun MoodleCoursesScreen(
     loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
     moodleCoursesViewModel: MoodleCoursesViewModel,
-    manoSemesterAndSubjectViewModel: ManoSemesterAndSubjectViewModel,
+    manoSemesterViewModel: ManoSemesterViewModel,
     showSnack: SnackbarFun
 ) {
 
@@ -36,8 +35,8 @@ fun MoodleCoursesScreen(
         items = courses,
         fetchFunction = {
             listOf(
-                moodleCoursesViewModel.fetchLatestCourseListFromApi(showSnack),
-                manoSemesterAndSubjectViewModel.fetchCurrentSemesterFromApi(showSnack)
+                moodleCoursesViewModel.fetchCourses(showSnack),
+                manoSemesterViewModel.fetchCurrentSemester(showSnack, true)
             ).awaitAll().combine()
         },
         header = { isLoading ->
