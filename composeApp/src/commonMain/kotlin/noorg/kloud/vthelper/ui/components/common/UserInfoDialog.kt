@@ -3,10 +3,13 @@ package noorg.kloud.vthelper.ui.components.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoEmployeeEntity
 import noorg.kloud.vthelper.setAlpha
 import vthelper.composeapp.generated.resources.Res
@@ -38,70 +42,83 @@ fun UserInfoDialog(
     isLoading: Boolean,
     onDismissRequest: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismissRequest) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
         Box(
-            Modifier
-                .clip(AlertDialogDefaults.shape)
-                .fillMaxWidth()
-                .background(AlertDialogDefaults.containerColor)
+            modifier = Modifier
+                .padding(start = 32.dp, end = 32.dp)
+                .widthIn(0.dp, 600.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                Modifier
+                    .clip(AlertDialogDefaults.shape)
+                    .fillMaxWidth()
+                    .background(AlertDialogDefaults.containerColor)
             ) {
-                AsyncImageWithPlaceholder(
-                    userInfo.avatarPath,
-                    Res.drawable.account_circle_24px,
-                    true,
-                    102.dp
-                )
-                Row {
-                    Text(
-                        text = userInfo.shortName,
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
-
-                HorizontalLoadingDivider(
-                    isLoading = isLoading,
-                    color = MaterialTheme.colorScheme.primary.setAlpha(0.5F),
-                    padding = PaddingValues.Absolute(
-                        left = 8.dp, right = 8.dp,
-                        top = 4.dp, bottom = 8.dp
-                    )
-                )
-
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .verticalScroll(rememberScrollState())
+                    modifier = Modifier.padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    InfoField(
-                        Res.drawable.person_24px,
-                        "Full name", userInfo.fullName
+                    AsyncImageWithPlaceholder(
+                        userInfo.avatarPath,
+                        Res.drawable.account_circle_24px,
+                        true,
+                        102.dp
                     )
-                    InfoField(
-                        Res.drawable.school_24px,
-                        "Position(s)", userInfo.positions?.replace(", ", "\n")
+                    Row {
+                        Text(
+                            text = userInfo.shortName,
+                            modifier = Modifier.padding(8.dp),
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+
+                    HorizontalLoadingDivider(
+                        isLoading = isLoading,
+                        color = MaterialTheme.colorScheme.primary.setAlpha(0.5F),
+                        padding = PaddingValues.Absolute(
+                            left = 8.dp, right = 8.dp,
+                            top = 4.dp, bottom = 8.dp
+                        )
                     )
-                    InfoField(
-                        Res.drawable.alternate_email_24px,
-                        "Email(s)", userInfo.emails?.replace(", ", "\n")
-                    )
-                    InfoField(
-                        Res.drawable.call_24px,
-                        "Phone(s)", userInfo.phones?.replace(", ", "\n")
-                    )
-                    InfoField(
-                        Res.drawable.book_24px,
-                        "Department(s)", userInfo.departments?.replace(", ", "\n")
-                    )
-                    InfoField(
-                        Res.drawable.corporate_fare_24px,
-                        "Office(s)", userInfo.offices?.replace(", ", "\n")
-                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        InfoField(
+                            Res.drawable.person_24px,
+                            "Full name", userInfo.fullName
+                        )
+                        InfoField(
+                            Res.drawable.school_24px,
+                            "Position(s)", userInfo.positions?.replace(", ", "\n")
+                        )
+                        InfoField(
+                            Res.drawable.alternate_email_24px,
+                            "Email(s)", userInfo.emails?.replace(", ", "\n")
+                        )
+                        InfoField(
+                            Res.drawable.call_24px,
+                            "Phone(s)", userInfo.phones?.replace(", ", "\n")
+                        )
+                        InfoField(
+                            Res.drawable.book_24px,
+                            "Department(s)", userInfo.departments?.replace(", ", "\n")
+                        )
+                        InfoField(
+                            Res.drawable.corporate_fare_24px,
+                            "Office(s)", userInfo.offices?.replace(", ", "\n")
+                        )
+                    }
                 }
             }
         }
