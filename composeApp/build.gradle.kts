@@ -12,7 +12,6 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
 
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
     // Serialization
     alias(libs.plugins.jetbrains.kotlin.serialization)
     // Kotlin annotation processing
