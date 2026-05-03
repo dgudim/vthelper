@@ -71,19 +71,23 @@ fun EventInformation(
 
     val nowSecUtc = remember { Clock.System.now().toEpochMilliseconds() / 1000 }
 
+    val formattedStart = remember { event.startLocalDt.formatLocalTime() }
 
     val formattedTimeSpan = remember(event.startTime, event.endTime) {
         if (displayMode == EventInformationDisplayMode.RELATIVE) {
             val diffDays = (event.startTime.epochSeconds - nowSecUtc).seconds.inWholeDays.coerceIn(0, 365)
-            if (diffDays == 1L) {
-                return@remember "In $diffDays day"
+            if (diffDays == 0L) {
+                return@remember "Tomorrow at $formattedStart"
             }
-            return@remember "In $diffDays days"
+            if (diffDays == 1L) {
+                return@remember "In a day at $formattedStart"
+            }
+            return@remember "In $diffDays days at $formattedStart"
         }
         if (event.startLocalDt == event.endLocalDt) {
-            return@remember event.startLocalDt.formatLocalTime()
+            return@remember formattedStart
         }
-        return@remember "${event.startLocalDt.formatLocalTime()} - ${event.endLocalDt.formatLocalTime()}"
+        return@remember "$formattedStart - ${event.endLocalDt.formatLocalTime()}"
     }
 
     val indicatorColor = when (displayMode) {
