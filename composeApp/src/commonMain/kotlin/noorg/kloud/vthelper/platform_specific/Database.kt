@@ -50,7 +50,7 @@ import noorg.kloud.vthelper.data.dbentities.mano.DbManoSubjectExamTimetableEntit
         DBManoEmployeeEntity::class,
         DBLoggedInUserEntity::class,
     ],
-    version = 1,
+    version = 2,
 )
 @TypeConverters(
     builtInTypeConverters = BuiltInTypeConverters(

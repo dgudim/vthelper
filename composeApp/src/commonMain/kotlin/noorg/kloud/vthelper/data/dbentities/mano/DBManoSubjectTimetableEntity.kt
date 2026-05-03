@@ -3,6 +3,7 @@ package noorg.kloud.vthelper.data.dbentities.mano
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 enum class DBManoTimetableEntityType(val s: String) {
@@ -23,6 +24,9 @@ enum class DBManoTimetableEntityWeek(val w: Int) {
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index("subject_composite_pk_id")
     ]
 )
 data class DBManoSubjectTimetableEntity(
@@ -30,6 +34,7 @@ data class DBManoSubjectTimetableEntity(
     @ColumnInfo(name = "id")
     val id: Long = 0,
 
+    // FK to mano_subjects
     @ColumnInfo(name = "subject_composite_pk_id")
     val compositeSubjectId: Int = 0,
     @ColumnInfo(name = "subject_mod_id")

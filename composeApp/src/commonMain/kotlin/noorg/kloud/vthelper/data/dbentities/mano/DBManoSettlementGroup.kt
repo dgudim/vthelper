@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 
@@ -24,6 +25,10 @@ import androidx.room.Relation
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         ),
+    ],
+    indices = [
+        Index("sem_absolute_seq"),
+        Index("composite_subject_pk_id"),
     ]
 )
 class DBManoSettlementGroup (
@@ -33,6 +38,7 @@ class DBManoSettlementGroup (
     val compositePrimaryId: String,
 
     // subjectModId + semesterAbsoluteSequenceNum
+    // FK to mano_subjects
     @ColumnInfo(name = "composite_subject_pk_id")
     val compositeSubjectId: String,
 
@@ -40,6 +46,7 @@ class DBManoSettlementGroup (
     val settlementType: String,
     @ColumnInfo(name = "subject_mod_id")
     val subjectModId: Int,
+    // FK to mano_semesters
     @ColumnInfo(name = "sem_absolute_seq")
     val semesterAbsoluteSequenceNum: Int,
 

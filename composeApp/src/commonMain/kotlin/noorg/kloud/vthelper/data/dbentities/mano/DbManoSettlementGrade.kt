@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 
@@ -24,6 +25,10 @@ import androidx.room.Relation
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index("composite_settlement_pk_id"),
+        Index("grader_id")
     ]
 )
 data class DbManoSettlementGrade(
@@ -34,6 +39,7 @@ data class DbManoSettlementGrade(
     val compositePrimaryId: String,
 
     //  subjectModId + semesterAbsoluteSequenceNum + settlementType
+    // FK to mano_settlement_groups
     @ColumnInfo(name = "composite_settlement_pk_id")
     val compositeSettlementId: String,
 
@@ -44,6 +50,7 @@ data class DbManoSettlementGrade(
     @ColumnInfo(name = "date")
     val date: String?,
 
+    // FK to mano_employees
     @ColumnInfo(name = "grader_id")
     val graderId: Long
 )

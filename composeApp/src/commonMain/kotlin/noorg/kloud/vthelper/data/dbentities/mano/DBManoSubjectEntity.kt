@@ -1,10 +1,10 @@
 package noorg.kloud.vthelper.data.dbentities.mano
 
-import androidx.compose.ui.graphics.Color
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 
@@ -33,6 +33,10 @@ enum class DBManoSubjectEvaluationVerdict(v: String) {
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index("semester_absolute_seq"),
+        Index("lecturer_id"),
     ]
 )
 data class DBManoSubjectEntity(
