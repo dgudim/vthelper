@@ -5,12 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,18 +15,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
+import kotlinx.datetime.daysUntil
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.api.models.combine
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEventType
+import noorg.kloud.vthelper.platform_specific.toSystemLocalDt
 import noorg.kloud.vthelper.ui.components.EventInformation
 import noorg.kloud.vthelper.ui.components.EventInformationDisplayMode
 import noorg.kloud.vthelper.ui.components.common.HtmlCard
@@ -85,14 +81,14 @@ fun DashboardScreen(
 
     val callouts by manoCalloutsViewModel.callouts.collectAsStateWithLifecycle()
 
-    val nowSecUtc = remember { Clock.System.now().toEpochMilliseconds() / 1000 }
+    val now = remember { Clock.System.now().toSystemLocalDt() }
     val deadlinesAndExams by calendarViewModel.events
         .map {
             it.filter { event ->
                 event.eventType in listOf(
                     LocalCalendarEventType.ASSIGNMENT,
                     LocalCalendarEventType.EXAM
-                ) && (event.startTime.epochSeconds - nowSecUtc).seconds.inWholeDays in 0..7
+                ) && now.date.daysUntil(event.startLocalDt.date) in 0..7
             }.toList()
         }.collectAsStateWithLifecycle(listOf())
 
@@ -101,7 +97,7 @@ fun DashboardScreen(
             it.filter { event ->
                 event.eventType in listOf(
                     LocalCalendarEventType.TIMETABLE
-                ) && (event.startTime.epochSeconds - nowSecUtc).seconds.inWholeDays in 0..1
+                ) && now.date.daysUntil(event.startLocalDt.date) in 0..1
             }.toList()
         }.collectAsStateWithLifecycle(listOf())
 
@@ -192,7 +188,13 @@ fun DashboardScreen(
             header = { isLoading ->
                 ScreenHeaderTextWithLoader("Timetable for today and tomorrow", isLoading)
             }
-        ) { EventInformation(it, EventInformationDisplayMode.RELATIVE) }
+        ) {
+            EventInformation(
+                modifier = Modifier.padding(top = 8.dp),
+                it,
+                EventInformationDisplayMode.RELATIVE
+            )
+        }
 
         ListSectionWithHeader(
             modifier = Modifier
@@ -206,6 +208,12 @@ fun DashboardScreen(
             header = { isLoading ->
                 ScreenHeaderTextWithLoader("Upcoming deadlines and exams", isLoading)
             }
-        ) { EventInformation(it, EventInformationDisplayMode.RELATIVE) }
+        ) {
+            EventInformation(
+                modifier = Modifier.padding(top = 8.dp),
+                it,
+                EventInformationDisplayMode.RELATIVE
+            )
+        }
     }
 }

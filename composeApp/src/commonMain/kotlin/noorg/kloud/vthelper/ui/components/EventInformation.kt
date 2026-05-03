@@ -24,10 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.daysUntil
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEventType
 import noorg.kloud.vthelper.mixedWithPrimary
 import noorg.kloud.vthelper.platform_specific.formatLocalTime
+import noorg.kloud.vthelper.platform_specific.toSystemLocalDt
 import noorg.kloud.vthelper.ui.theme.customColors
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
@@ -49,7 +51,7 @@ enum class EventInformationDisplayMode {
 
 @Composable
 @Stable
-private fun daysToColor(days: Long): Color {
+private fun daysToColor(days: Int): Color {
     if (days < 2) {
         return MaterialTheme.customColors.badResult
     }
@@ -63,24 +65,25 @@ private fun daysToColor(days: Long): Color {
 
 @Composable
 fun EventInformation(
+    modifier: Modifier,
     event: LocalCalendarEvent,
     displayMode: EventInformationDisplayMode
 ) {
 
     val subtext = event.getSubtext()
 
-    val nowSecUtc = remember { Clock.System.now().toEpochMilliseconds() / 1000 }
+    val now = remember { Clock.System.now().toSystemLocalDt() }
 
     val formattedStart = remember { event.startLocalDt.formatLocalTime() }
 
     val formattedTimeSpan = remember(event.startTime, event.endTime) {
         if (displayMode == EventInformationDisplayMode.RELATIVE) {
-            val diffDays = (event.startTime.epochSeconds - nowSecUtc).seconds.inWholeDays.coerceIn(0, 365)
-            if (diffDays == 0L) {
-                return@remember "Tomorrow at $formattedStart"
+            val diffDays = now.date.daysUntil(event.startLocalDt.date)
+            if (diffDays == 0) {
+                return@remember "Today at $formattedStart"
             }
-            if (diffDays == 1L) {
-                return@remember "In a day at $formattedStart"
+            if (diffDays == 1) {
+                return@remember "Tomorrow at $formattedStart"
             }
             return@remember "In $diffDays days at $formattedStart"
         }
@@ -92,15 +95,14 @@ fun EventInformation(
 
     val indicatorColor = when (displayMode) {
         EventInformationDisplayMode.ABSOLUTE -> Color.Transparent
-        EventInformationDisplayMode.RELATIVE -> daysToColor((event.startTime.epochSeconds - nowSecUtc).seconds.inWholeDays)
+        EventInformationDisplayMode.RELATIVE -> daysToColor(now.date.daysUntil(event.startLocalDt.date))
     }
 
     // https://developer.android.com/develop/ui/compose/layouts/intrinsic-measurements
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .padding(top = 8.dp, start = 8.dp, end = 8.dp),
+            .height(IntrinsicSize.Min),
         border = BorderStroke(1.dp, event.getColor().mixedWithPrimary()),
     ) {
         Column {
@@ -129,6 +131,7 @@ fun EventInformation(
 
                 Column(
                     modifier = Modifier
+                        .padding(end = 4.dp)
                         .weight(1F)
                 ) {
                     Text(

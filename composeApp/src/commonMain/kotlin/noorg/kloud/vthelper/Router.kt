@@ -309,7 +309,7 @@ fun NavigationDrawer(
             scope = appIOScope
         ) {
             timeoutMs = 3.seconds
-            pollingIntervalMs = 15.seconds
+            pollingIntervalMs = 10.seconds
             autoStart = true
         }
     }

@@ -168,9 +168,14 @@ fun Calendar(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
+                .padding(start = 12.dp, end = 12.dp)
         ) {
             items(items = eventsInSelectedDate) { event ->
-                EventInformation(event, EventInformationDisplayMode.ABSOLUTE)
+                EventInformation(
+                    modifier = Modifier.padding(top = 8.dp),
+                    event,
+                    EventInformationDisplayMode.ABSOLUTE
+                )
             }
         }
     }

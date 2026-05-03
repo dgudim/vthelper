@@ -54,12 +54,13 @@ fun ResultsScreen(
     ) { semesterData ->
         currentSemester?.let {
             SemesterCard(
-                showSnack,
+                modifier = Modifier.padding(top = 8.dp),
+                it,
+                semesterData,
                 manoEmployeeViewModel,
                 manoSemesterViewModel,
                 loggedInUserAndInternetViewModel,
-                it,
-                semesterData
+                showSnack
             )
         }
     }

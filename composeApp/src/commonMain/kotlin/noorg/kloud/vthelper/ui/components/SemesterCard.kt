@@ -274,12 +274,13 @@ fun SubjectCard(
 
 @Composable
 fun SemesterCard(
-    showSnack: SnackbarFun,
+    modifier: Modifier,
+    currentSemesterData: ProvidedManoSemesterEntity,
+    semesterData: ProvidedManoSemesterEntity,
     manoEmployeeViewModel: ManoEmployeeViewModel,
     manoSemesterViewModel: ManoSemesterViewModel,
     loggedInUserAndInternetViewModel: LoggedInUserAndInternetViewModel,
-    currentSemesterData: ProvidedManoSemesterEntity,
-    semesterData: ProvidedManoSemesterEntity,
+    showSnack: SnackbarFun
 ) {
 
     val borderColor =
@@ -308,9 +309,7 @@ fun SemesterCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
+        modifier = modifier.fillMaxWidth(),
         shouldBeExpanded = semesterData.isCurrent,
         internalPadding = 4.dp,
         border = BorderStroke(1.dp, borderColor),
