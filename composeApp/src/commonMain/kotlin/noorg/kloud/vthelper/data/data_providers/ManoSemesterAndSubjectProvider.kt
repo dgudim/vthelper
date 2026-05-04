@@ -33,11 +33,18 @@ import noorg.kloud.vthelper.data.provider_models.ProvidedManoExamTimetableEvent
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGrade
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroupClass
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEvaluationVerdict
 import noorg.kloud.vthelper.fuzzyFindEmployee
 import noorg.kloud.vthelper.getHashedColor
 import noorg.kloud.vthelper.getSemesterYearRange
+import vthelper.composeapp.generated.resources.Res
+import vthelper.composeapp.generated.resources.assignment_24px
+import vthelper.composeapp.generated.resources.bar_chart_4_bars_24px
+import vthelper.composeapp.generated.resources.docs_24px
+import vthelper.composeapp.generated.resources.experiment_24px
+import vthelper.composeapp.generated.resources.grading_24px
 import kotlin.String
 import kotlin.time.Instant
 
@@ -459,8 +466,18 @@ class ManoSemesterAndSubjectProvider(
 
     fun mapSettlementWithGrades(model: DBManoSettlementGroupWithGrades): ProvidedManoSettlementGroup {
         println("Mapped settlement: [subject mod id: ${model.group.subjectModId}, type: ${model.group.settlementType}, nGrades: ${model.grades.size}]")
+
+        val typeClass = when {
+            model.group.settlementType.contains("Homework") -> ProvidedManoSettlementGroupClass.HOMEWORK
+            model.group.settlementType.contains("exam") -> ProvidedManoSettlementGroupClass.EXAM
+            model.group.settlementType.contains("Laboratory") -> ProvidedManoSettlementGroupClass.LAB
+            model.group.settlementType.contains("essay") -> ProvidedManoSettlementGroupClass.ESSAY
+            else -> ProvidedManoSettlementGroupClass.OTHER
+        }
+
         return ProvidedManoSettlementGroup(
             settlementType = model.group.settlementType,
+            settlementTypeClass = typeClass,
             completedRatio = model.group.completedRatio,
             percentageOfFinalAssessment = model.group.percentageOfFinalAssessment,
             finalGrade = model.group.finalGrade,

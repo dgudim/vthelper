@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import noorg.kloud.vthelper.SnackbarFun
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSemesterEntity
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroup
+import noorg.kloud.vthelper.data.provider_models.ProvidedManoSettlementGroupClass
 import noorg.kloud.vthelper.data.provider_models.ProvidedManoSubjectEntity
 import noorg.kloud.vthelper.getColorFromGrade
 import noorg.kloud.vthelper.getSemesterSessionSeason
@@ -49,6 +50,11 @@ import noorg.kloud.vthelper.ui.view_models.ManoEmployeeViewModel
 import noorg.kloud.vthelper.ui.view_models.ManoSemesterViewModel
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
+import vthelper.composeapp.generated.resources.assignment_24px
+import vthelper.composeapp.generated.resources.bar_chart_4_bars_24px
+import vthelper.composeapp.generated.resources.docs_24px
+import vthelper.composeapp.generated.resources.experiment_24px
+import vthelper.composeapp.generated.resources.grading_24px
 import vthelper.composeapp.generated.resources.person_24px
 
 @Composable
@@ -114,17 +120,31 @@ fun RowScope.CollapsedTitle(
 
 @Composable
 fun SettlementGroupCard(settlementGroup: ProvidedManoSettlementGroup) {
+
+    val icon = when(settlementGroup.settlementTypeClass) {
+        ProvidedManoSettlementGroupClass.LAB -> Res.drawable.experiment_24px
+        ProvidedManoSettlementGroupClass.ESSAY -> Res.drawable.docs_24px
+        ProvidedManoSettlementGroupClass.EXAM -> Res.drawable.grading_24px
+        ProvidedManoSettlementGroupClass.HOMEWORK -> Res.drawable.assignment_24px
+        ProvidedManoSettlementGroupClass.OTHER -> Res.drawable.bar_chart_4_bars_24px
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(top = 4.dp)
     ) {
         Column(modifier = Modifier.weight(1F)) {
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     color = MaterialTheme.colorScheme.outline,
                     text = settlementGroup.completedRatio,
                     textAlign = TextAlign.Left,
                     modifier = Modifier.width(50.dp).padding(end = 4.dp)
+                )
+                Icon(
+                    modifier = Modifier.width(22.dp).padding(end = 4.dp),
+                    painter = painterResource(icon),
+                    contentDescription = null
                 )
                 Text(
                     fontWeight = FontWeight.Bold,

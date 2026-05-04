@@ -1,5 +1,9 @@
 package noorg.kloud.vthelper.data.provider_models
 
+enum class ProvidedManoSettlementGroupClass {
+    LAB, ESSAY, EXAM, HOMEWORK, OTHER
+}
+
 data class ProvidedManoSettlementGrade(
     val name: String,
     val value: Int?,
@@ -13,6 +17,7 @@ data class ProvidedManoSettlementGrade(
 
 data class ProvidedManoSettlementGroup(
     val settlementType: String,
+    val settlementTypeClass: ProvidedManoSettlementGroupClass,
 
     val completedRatio: String,
 

@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.daysUntil
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
@@ -33,17 +30,13 @@ import noorg.kloud.vthelper.platform_specific.toSystemLocalDt
 import noorg.kloud.vthelper.ui.theme.customColors
 import org.jetbrains.compose.resources.painterResource
 import vthelper.composeapp.generated.resources.Res
-import vthelper.composeapp.generated.resources.assignment_late_24px
+import vthelper.composeapp.generated.resources.assignment_24px
 import vthelper.composeapp.generated.resources.book_24px
 import vthelper.composeapp.generated.resources.circle_24px
-import vthelper.composeapp.generated.resources.circle_filled_24px
 import vthelper.composeapp.generated.resources.grading_24px
 import vthelper.composeapp.generated.resources.info_24px
 import vthelper.composeapp.generated.resources.person_add_24px
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 
 enum class EventInformationDisplayMode {
     ABSOLUTE, RELATIVE
@@ -117,7 +110,7 @@ fun EventInformation(
                         when (event.eventType) {
                             LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
                             LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
-                            LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_late_24px
+                            LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_24px
                             LocalCalendarEventType.EXAM -> Res.drawable.grading_24px
                             LocalCalendarEventType.ATTENDANCE -> Res.drawable.person_add_24px
                             LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
