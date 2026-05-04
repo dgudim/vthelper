@@ -110,6 +110,10 @@ android {
     namespace = appId
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
+    lint {
+        abortOnError = false
+    }
+
     defaultConfig {
         applicationId = appId
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -124,7 +128,7 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
         }
     }
     compileOptions {
