@@ -92,6 +92,7 @@ fun DashboardScreen(
             }
         }.collectAsStateWithLifecycle(listOf())
 
+    // TODO: investigate why on the first fetch moodle events are gray and not linked (?)
     val timetableEvents by calendarViewModel.events
         .map {
             it.filter { event ->
