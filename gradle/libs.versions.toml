@@ -41,6 +41,8 @@ calendar = "2.10.1"
 html-converter = "1.1.0"
 connectivity = "2.4.1"
 
+cryptography = "0.6.0"
+
 vico-charts = "3.1.0"
 
 [libraries]
@@ -108,6 +110,9 @@ connectivity-http = { module = "dev.jordond.connectivity:connectivity-http", ver
 connectivity-compose-http = { module = "dev.jordond.connectivity:connectivity-compose-http", version.ref = "connectivity" }
 connectivity-compose = { module = "dev.jordond.connectivity:connectivity-compose", version.ref = "connectivity" }
 
+crypto-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
+crypto-providers = { module = "dev.whyoleg.cryptography:cryptography-provider-optimal", version.ref = "cryptography" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -118,8 +123,8 @@ jetbrains-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serializati
 androidx-room = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
-stabilityAnalyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability-analyzer"}
-atomicFu = { id = "org.jetbrains.kotlinx.atomicfu", version.ref = "atomicfu"} # For atomics in the cookie storage
+stabilityAnalyzer = { id = "com.github.skydoves.compose.stability.analyzer", version.ref = "stability-analyzer" }
+atomicFu = { id = "org.jetbrains.kotlinx.atomicfu", version.ref = "atomicfu" } # For atomics in the cookie storage
 
 [bundles]
 ktor = [
@@ -141,4 +146,8 @@ connectivity = [
     "connectivity-http",
     "connectivity-compose",
     "connectivity-compose-http"
+]
+crypto = [
+    "crypto-core",
+    "crypto-providers"
 ]

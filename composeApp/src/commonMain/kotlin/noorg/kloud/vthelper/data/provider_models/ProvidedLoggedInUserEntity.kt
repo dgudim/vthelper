@@ -3,7 +3,7 @@ package noorg.kloud.vthelper.data.provider_models
 data class ProvidedLoggedInUserEntity (
 
     val studentId: String? = null,
-    val password: String? = null,
+    val plainPassword: String? = null,
 
     val moodleId: String? = null,
 
@@ -19,5 +19,5 @@ data class ProvidedLoggedInUserEntity (
     val fullName: String? = null,
     val avatarPath: String? = null,
 
-    val cookiesJson: String? = null,
+    val plainCookiesJson: String? = null,
 )

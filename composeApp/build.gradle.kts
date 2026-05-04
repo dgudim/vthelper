@@ -68,6 +68,7 @@ kotlin {
             implementation(libs.vico.compose)
             implementation(libs.vico.compose.m3)
             implementation(libs.html.converter)
+            implementation(libs.bundles.crypto)
 
             // Debugging and developing
             implementation(libs.compose.uiToolingPreview)

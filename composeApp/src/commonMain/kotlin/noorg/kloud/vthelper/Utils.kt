@@ -15,11 +15,21 @@ import androidx.compose.ui.graphics.compositeOver
 import com.kizitonwose.calendar.compose.CalendarLayoutInfo
 import com.kizitonwose.calendar.compose.CalendarState
 import com.kizitonwose.calendar.core.CalendarMonth
+import dev.whyoleg.cryptography.BinarySize.Companion.bits
+import dev.whyoleg.cryptography.CryptographyProvider
+import dev.whyoleg.cryptography.algorithms.AES
+import dev.whyoleg.cryptography.algorithms.HKDF
+import dev.whyoleg.cryptography.algorithms.SHA256
 import io.ktor.util.cio.use
 import io.ktor.utils.io.asByteWriteChannel
 import io.ktor.utils.io.core.writeText
 import io.ktor.utils.io.readText
 import io.ktor.utils.io.writeByteArray
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -31,7 +41,6 @@ import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import noorg.kloud.vthelper.data.dbentities.mano.DBManoBareEmployeeData
-import noorg.kloud.vthelper.data.dbentities.mano.DBManoEmployeeEntity
 import noorg.kloud.vthelper.ui.components.SnackBarSeverityLevel
 import noorg.kloud.vthelper.ui.theme.CustomColorPalette
 import kotlin.io.encoding.Base64
@@ -41,6 +50,48 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 typealias SnackbarFun = (String, SnackBarSeverityLevel, SnackbarDuration) -> Unit
+
+// https://whyoleg.github.io/cryptography-kotlin/primitives/operations/key-derivation/
+@OptIn(DelicateCoroutinesApi::class)
+val lazyCipher = GlobalScope.async(
+    Dispatchers.Unconfined,
+    start = CoroutineStart.LAZY
+) {
+
+    val salt = byteArrayOf(
+        9, 71, 51, 22, 17,
+        52, 58, 15, 65, 18,
+        117, 87, 112, 29, 87,
+        20, 20, 112, 46, 67,
+        83, 36, 60, 127, 84,
+        73, 124, 8, 36, 52,
+        113, 87
+    )
+
+    val inputKeyMaterial = byteArrayOf(
+        30, 70, 81, 75, 113,
+        39, 21, 33, 14, 46,
+        0, 0, 25, 61, 27,
+        125, 56, 97, 46, 121,
+        72, 53, 53, 37, 10,
+        38, 73, 22, 41, 60,
+        12, 18
+    )
+
+    val encryptionKeyInfo = "Verysecret!!!!!".encodeToByteArray()
+
+    val derivedKey = CryptographyProvider.Default.get(HKDF)
+        .secretDerivation(
+            digest = SHA256,
+            outputSize = 256.bits,
+            salt = salt,
+            info = encryptionKeyInfo
+        ).deriveSecretToByteArray(inputKeyMaterial)
+
+    CryptographyProvider.Default.get(AES.GCM).keyDecoder()
+        .decodeFromByteArray(AES.Key.Format.RAW, derivedKey)
+        .cipher()
+}
 
 // ============================= CALENDAR
 
@@ -247,6 +298,27 @@ fun List<DBManoBareEmployeeData>.fuzzyFindEmployee(lecturerName: String?): DBMan
         }
     }
     return null
+}
+
+// ============================= ENCRYPTION
+
+fun String.fromHexString(): ByteArray {
+    check(length % 2 == 0) { "Must have an even length" }
+
+    return chunked(2)
+        .map { it.toInt(16).toByte() }
+        .toByteArray()
+}
+
+
+suspend fun String.aesEncrypt(): String {
+    val cipher = lazyCipher.await()
+    return cipher.encrypt(plaintext = encodeToByteArray()).toHexString()
+}
+
+suspend fun String.aesDecrypt(): String {
+    val cipher = lazyCipher.await()
+    return cipher.decrypt(ciphertext = fromHexString()).decodeToString()
 }
 
 // ============================= OTHER HELPERS

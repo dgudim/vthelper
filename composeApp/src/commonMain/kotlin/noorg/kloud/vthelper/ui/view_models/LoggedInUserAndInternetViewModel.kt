@@ -50,8 +50,8 @@ class LoggedInUserAndInternetViewModel(
     private var _studentId = MutableStateFlow("")
     val studentId = _studentId.asStateFlow()
 
-    private var _password = MutableStateFlow("")
-    val password = _password.asStateFlow()
+    private var _plainPassword = MutableStateFlow("")
+    val plainPassword = _plainPassword.asStateFlow()
 
     fun logout(showSnack: SnackbarFun): Job {
         return viewModelScope.launch {
@@ -62,12 +62,12 @@ class LoggedInUserAndInternetViewModel(
 
     fun login(
         studentId: String,
-        password: String,
+        plainPassword: String,
         mfaCode: String,
         showSnack: SnackbarFun
     ): Job {
         return viewModelScope.launch {
-            loggedInUserProvider.login(studentId, password, mfaCode)
+            loggedInUserProvider.login(studentId, plainPassword, mfaCode)
                 .onFailure {
                     showSnack(it.message ?: "", SnackBarSeverityLevel.ERROR, SnackbarDuration.Long)
                 }
@@ -84,7 +84,7 @@ class LoggedInUserAndInternetViewModel(
     fun initLocalValuesFromFlowIfNeeded(loggedInUser: ProvidedLoggedInUserEntity) {
         if (_studentId.value.isEmpty()) {
             updateStudentId(loggedInUser.studentId ?: "")
-            updatePassword(loggedInUser.password ?: "")
+            updatePassword(loggedInUser.plainPassword ?: "")
         }
     }
 
@@ -93,7 +93,7 @@ class LoggedInUserAndInternetViewModel(
     }
 
     fun updatePassword(newPassword: String) {
-        _password.update { newPassword }
+        _plainPassword.update { newPassword }
     }
 
     fun updateMfa(newMfa: String) {

@@ -13,8 +13,8 @@ data class DBLoggedInUserEntity (
     val studentId: String,
     @ColumnInfo(name = "moodle_id")
     val moodleId: String,
-    @ColumnInfo(name = "password")
-    val password: String,
+    @ColumnInfo(name = "password_aes")
+    val passwordAes: String,
     @ColumnInfo(name = "session_valid")
     val isSessionValid: Boolean,
     @ColumnInfo(name = "personal_email")
@@ -31,6 +31,6 @@ data class DBLoggedInUserEntity (
     val fullName: String?,
     @ColumnInfo(name = "avatar_path")
     val avatarPath: String?,
-    @ColumnInfo(name = "cookies_json")
-    val cookiesJson: String,
+    @ColumnInfo(name = "cookies_json_aes")
+    val cookiesJsonAes: String,
 )

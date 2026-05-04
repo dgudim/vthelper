@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "073fd26c0c6f80449ce1b7b3857960b0",
+    "identityHash": "57c65a50c68ecc777e4f3e4441d3c500",
     "entities": [
       {
         "tableName": "moodle_courses",
@@ -693,7 +693,7 @@
       },
       {
         "tableName": "logged_in_user",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT, `university_email` TEXT, `phone` TEXT, `address` TEXT, `birth_date` TEXT, `full_name` TEXT, `avatar_path` TEXT, `cookies_json` TEXT NOT NULL, PRIMARY KEY(`student_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`student_id` TEXT NOT NULL, `moodle_id` TEXT NOT NULL, `password_aes` TEXT NOT NULL, `session_valid` INTEGER NOT NULL, `personal_email` TEXT, `university_email` TEXT, `phone` TEXT, `address` TEXT, `birth_date` TEXT, `full_name` TEXT, `avatar_path` TEXT, `cookies_json_aes` TEXT NOT NULL, PRIMARY KEY(`student_id`))",
         "fields": [
           {
             "fieldPath": "studentId",
@@ -708,8 +708,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "password",
-            "columnName": "password",
+            "fieldPath": "passwordAes",
+            "columnName": "password_aes",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -755,8 +755,8 @@
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "cookiesJson",
-            "columnName": "cookies_json",
+            "fieldPath": "cookiesJsonAes",
+            "columnName": "cookies_json_aes",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -771,7 +771,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '073fd26c0c6f80449ce1b7b3857960b0')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '57c65a50c68ecc777e4f3e4441d3c500')"
     ]
   }
 }

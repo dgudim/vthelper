@@ -13,10 +13,6 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
-private val localDateFormat = LocalDateTime.Format {
-    date(LocalDate.Formats.ISO)
-}
-
 private val localTimeFormat = LocalDateTime.Format {
     hour()
     char(':')

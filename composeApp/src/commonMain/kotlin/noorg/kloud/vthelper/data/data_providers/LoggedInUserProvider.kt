@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.io.files.Path
+import noorg.kloud.vthelper.aesDecrypt
+import noorg.kloud.vthelper.aesEncrypt
 import noorg.kloud.vthelper.api.ManoApi
 import noorg.kloud.vthelper.api.MoodleApi
 import noorg.kloud.vthelper.api.VTBaseApi
@@ -29,21 +31,21 @@ class LoggedInUserProvider(
 
     suspend fun login(
         studentId: String,
-        password: String,
+        plainPassword: String,
         mfaCode: String
     ): Result<String> {
 
-        ManoApi.loginIfNeeded(studentId, password, mfaCode)
+        ManoApi.loginIfNeeded(studentId, plainPassword, mfaCode)
             .onFailure { return toResultFail() }
 
-        MoodleApi.loginIfNeeded(studentId, password, mfaCode)
+        MoodleApi.loginIfNeeded(studentId, plainPassword, mfaCode)
             .onFailure { return toResultFail() }
 
-        return fetchUserDataFromApi(studentId, password)
+        return fetchUserDataFromApi(studentId, plainPassword)
     }
 
     private suspend fun fetchUserDataFromApi(
-        studentId: String, password: String
+        studentId: String, plainPassword: String
     ): Result<String> {
         val studentInfoResult = ManoApi.getStudentInfo(::fetchUserDataFromApi.name)
             .onFailure { return toResultFail() }
@@ -65,14 +67,14 @@ class LoggedInUserProvider(
         loggedInUserDao.replace(
             DBLoggedInUserEntity(
                 studentId = studentId,
-                password = password,
+                passwordAes = plainPassword.aesEncrypt(),
                 moodleId = moodleUserId.toString(),
                 isSessionValid = true,
                 universityEmail = studentInfo.universityEmail,
                 personalEmail = studentInfo.personalEmail,
                 fullName = studentInfo.fullName,
                 phone = studentInfo.phone,
-                cookiesJson = VTBaseApi.cookieStorage.getAllAsJson(),
+                cookiesJsonAes = VTBaseApi.cookieStorage.getAllAsJson().aesEncrypt(),
                 address = studentInfo.address,
                 birthDate = studentInfo.birthDate,
                 avatarPath = avatarPath?.toString()
@@ -98,12 +100,12 @@ class LoggedInUserProvider(
                         moodleId = moodleId,
 
                         studentId = studentId,
-                        password = password,
+                        plainPassword = passwordAes.aesDecrypt(),
                         fullName = fullName,
                         birthDate = birthDate,
                         avatarPath = avatarPath,
 
-                        cookiesJson = cookiesJson,
+                        plainCookiesJson = cookiesJsonAes.aesDecrypt(),
                         isSessionValid = isSessionValid
                     )
                 }

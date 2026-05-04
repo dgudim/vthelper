@@ -62,11 +62,11 @@ fun AccountScreen(
 
     val localMfaCode by loggedInUserAndInternetViewModel.mfaCode.collectAsStateWithLifecycle()
     val localStudentId by loggedInUserAndInternetViewModel.studentId.collectAsStateWithLifecycle()
-    val localPassword by loggedInUserAndInternetViewModel.password.collectAsStateWithLifecycle()
+    val localPlainPassword by loggedInUserAndInternetViewModel.plainPassword.collectAsStateWithLifecycle()
 
     val mfaInvalid = localMfaCode.length != 6
     val userLoginInvalid = localStudentId.length < 4
-    val passwordInvalid = localPassword.isEmpty()
+    val passwordInvalid = localPlainPassword.isEmpty()
 
     val uriHandler = LocalUriHandler.current
 
@@ -177,7 +177,7 @@ fun AccountScreen(
                     enabled = !userState.isSessionValid
                 )
                 PasswordTextField(
-                    value = localPassword,
+                    value = localPlainPassword,
                     onValueChange = loggedInUserAndInternetViewModel::updatePassword,
                     "Enter your password",
                     isError = passwordInvalid,
@@ -201,7 +201,7 @@ fun AccountScreen(
                         } else {
                             isButtonLoading = true
                             loggedInUserAndInternetViewModel.login(
-                                localStudentId, localPassword, localMfaCode,
+                                localStudentId, localPlainPassword, localMfaCode,
                                 showSnack
                             ).invokeOnCompletion {
                                 isButtonLoading = false
