@@ -70,8 +70,8 @@ import vthelper.composeapp.generated.resources.Res
 import vthelper.composeapp.generated.resources.keyboard_arrow_left_24px
 import vthelper.composeapp.generated.resources.keyboard_arrow_right_24px
 
-fun getEventsOnDay(day: LocalDate, events: Sequence<LocalCalendarEvent>): List<LocalCalendarEvent> {
-    return events.filter { it.isVisibleOnDate(day) }.toList()
+fun getEventsOnDay(day: LocalDate, events: List<LocalCalendarEvent>): List<LocalCalendarEvent> {
+    return events.filter { it.isVisibleOnDate(day) }
 }
 
 @Composable

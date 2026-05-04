@@ -89,7 +89,7 @@ fun DashboardScreen(
                     LocalCalendarEventType.ASSIGNMENT,
                     LocalCalendarEventType.EXAM
                 ) && now.date.daysUntil(event.startLocalDt.date) in 0..7
-            }.toList()
+            }
         }.collectAsStateWithLifecycle(listOf())
 
     val timetableEvents by calendarViewModel.events
@@ -98,7 +98,7 @@ fun DashboardScreen(
                 event.eventType in listOf(
                     LocalCalendarEventType.TIMETABLE
                 ) && now.date.daysUntil(event.startLocalDt.date) in 0..1
-            }.toList()
+            }
         }.collectAsStateWithLifecycle(listOf())
 
     Column(

@@ -65,20 +65,24 @@ class CalendarProvider {
 
     fun getEventType(title: String, description: String): LocalCalendarEventType {
         val strToMatch = "${title.lowercase()} ${description.lowercase()}"
+
+        if (strToMatch.contains("midterm")
+            || strToMatch.contains("exam")
+        ) {
+            return LocalCalendarEventType.EXAM
+        }
+
         if (strToMatch.contains("homework")
             || strToMatch.contains("essay")
             || strToMatch.contains("task")
         ) {
             return LocalCalendarEventType.ASSIGNMENT
         }
-        if (strToMatch.contains("midterm")
-            || strToMatch.contains("exam")
-        ) {
-            return LocalCalendarEventType.TIMETABLE
-        }
+
         if (strToMatch.contains("attendance")) {
             return LocalCalendarEventType.ATTENDANCE
         }
+
         return LocalCalendarEventType.OTHER
     }
 

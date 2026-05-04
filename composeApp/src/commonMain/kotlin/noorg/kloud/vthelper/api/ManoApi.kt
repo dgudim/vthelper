@@ -932,7 +932,7 @@ object ManoApi {
                     subjectModId = values[3],
                     subjectKmdId = values[4],
                     subjectDestVart = values[5],
-                    settlementType = values[6],
+                    settlementType = values[6].split('(').first().trim(), // Remove the extra name in the brackets
                     subjectName = values[7],
                     lecturerName = values[8],
                     completedRatio = values[9],
