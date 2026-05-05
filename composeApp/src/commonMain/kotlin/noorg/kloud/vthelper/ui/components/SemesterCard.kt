@@ -121,12 +121,14 @@ fun RowScope.CollapsedTitle(
 @Composable
 fun SettlementGroupCard(settlementGroup: ProvidedManoSettlementGroup) {
 
-    val icon = when(settlementGroup.settlementTypeClass) {
-        ProvidedManoSettlementGroupClass.LAB -> Res.drawable.experiment_24px
-        ProvidedManoSettlementGroupClass.ESSAY -> Res.drawable.docs_24px
-        ProvidedManoSettlementGroupClass.EXAM -> Res.drawable.grading_24px
-        ProvidedManoSettlementGroupClass.HOMEWORK -> Res.drawable.assignment_24px
-        ProvidedManoSettlementGroupClass.OTHER -> Res.drawable.bar_chart_4_bars_24px
+    val icon = remember {
+        when (settlementGroup.settlementTypeClass) {
+            ProvidedManoSettlementGroupClass.LAB -> Res.drawable.experiment_24px
+            ProvidedManoSettlementGroupClass.ESSAY -> Res.drawable.docs_24px
+            ProvidedManoSettlementGroupClass.EXAM -> Res.drawable.grading_24px
+            ProvidedManoSettlementGroupClass.HOMEWORK -> Res.drawable.assignment_24px
+            ProvidedManoSettlementGroupClass.OTHER -> Res.drawable.bar_chart_4_bars_24px
+        }
     }
 
     Row(

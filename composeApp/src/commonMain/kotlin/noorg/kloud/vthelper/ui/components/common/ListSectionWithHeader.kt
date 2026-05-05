@@ -43,7 +43,7 @@ fun <T> ListSectionWithHeader(
         if (items.isEmpty()) {
             Text(
                 text = "Nothing to show ¯ \\_(ツ)_/¯",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(16.dp)
             )

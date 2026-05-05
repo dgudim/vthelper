@@ -4,10 +4,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -20,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.daysUntil
 import noorg.kloud.vthelper.data.local_models.LocalCalendarEvent
@@ -91,6 +94,17 @@ fun EventInformation(
         EventInformationDisplayMode.RELATIVE -> daysToColor(now.date.daysUntil(event.startLocalDt.date))
     }
 
+    val icon = remember {
+        when (event.eventType) {
+            LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
+            LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
+            LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_24px
+            LocalCalendarEventType.EXAM -> Res.drawable.grading_24px
+            LocalCalendarEventType.ATTENDANCE -> Res.drawable.person_add_24px
+            LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
+        }
+    }
+
     // https://developer.android.com/develop/ui/compose/layouts/intrinsic-measurements
     Card(
         modifier = modifier
@@ -103,58 +117,46 @@ fun EventInformation(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .weight(1F)
-                    .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp)
+                    .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 4.dp)
             ) {
                 Icon(
-                    painter = painterResource(
-                        when (event.eventType) {
-                            LocalCalendarEventType.TIMETABLE -> Res.drawable.book_24px
-                            LocalCalendarEventType.ANNOUNCEMENT -> Res.drawable.info_24px
-                            LocalCalendarEventType.ASSIGNMENT -> Res.drawable.assignment_24px
-                            LocalCalendarEventType.EXAM -> Res.drawable.grading_24px
-                            LocalCalendarEventType.ATTENDANCE -> Res.drawable.person_add_24px
-                            LocalCalendarEventType.OTHER -> Res.drawable.circle_24px
-                        }
-                    ),
+                    painter = painterResource(icon),
                     contentDescription = null,
                     modifier = Modifier
                         .size(40.dp)
-                        .padding(end = 8.dp)
+                        .padding(end = 6.dp)
                 )
 
-                Column(
-                    modifier = Modifier
-                        .padding(end = 4.dp)
-                        .weight(1F)
-                ) {
-                    Text(
-                        fontWeight = FontWeight.Bold,
-                        text = event.title
-                    )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            fontWeight = FontWeight.Bold,
+                            text = event.title,
+                            modifier = Modifier
+                                .weight(1F)
+                        )
+                        Text(
+                            text = formattedTimeSpan,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .weight(0.5F),
+                            textAlign = TextAlign.End
+                        )
+                        if (displayMode == EventInformationDisplayMode.RELATIVE) {
+                            Icon(
+                                painter = painterResource(Res.drawable.circle_24px),
+                                contentDescription = null,
+                                tint = indicatorColor
+                            )
+                        }
+                    }
                     Text(
                         color = MaterialTheme.colorScheme.outline,
                         text = event.description
                     )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.align(Alignment.Top)
-                ) {
-                    Text(
-                        text = formattedTimeSpan
-                    )
-                    if (displayMode == EventInformationDisplayMode.RELATIVE) {
-                        Icon(
-                            painter = painterResource(Res.drawable.circle_24px),
-                            contentDescription = null,
-                            tint = indicatorColor,
-                            modifier = Modifier
-                                .padding(
-                                    top = 2.dp,
-                                    start = 4.dp
-                                )
-                        )
-                    }
                 }
             }
 
