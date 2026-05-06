@@ -69,7 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun manoSemesterDao(): ManoSemesterDao
     abstract fun manoEmployeeDao(): ManoEmployeeDao
     abstract fun manoCalloutsDao(): ManoCalloutsDao
-    abstract fun manoCourseTimetableDao(): ManoSubjectTimetableDao
+    abstract fun manoSubjectTimetableDao(): ManoSubjectTimetableDao
     abstract fun manoSubjectExamTimetableDao(): ManoSubjectExamTimetableDao
     abstract fun loggedInUserDao(): LoggedInUserDao
 }

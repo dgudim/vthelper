@@ -27,7 +27,7 @@ import noorg.kloud.vthelper.api.models.expect200
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicDepartmentData
 import noorg.kloud.vthelper.api.models.mano.ApiManoBasicOfficeData
 import noorg.kloud.vthelper.api.models.mano.ApiManoCalloutData
-import noorg.kloud.vthelper.api.models.mano.ApiManoCourseTimetableEntity
+import noorg.kloud.vthelper.api.models.mano.ApiManoSubjectTimetableEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeBasicEntity
 import noorg.kloud.vthelper.api.models.mano.ApiManoEmployeeDetails
 import noorg.kloud.vthelper.api.models.mano.ApiManoStudentInfo
@@ -423,7 +423,7 @@ object ManoApi {
     suspend fun getSubjectTimetable(
         source: String,
         subjectModId: String
-    ): NetResult<List<ApiManoCourseTimetableEntity>> {
+    ): NetResult<List<ApiManoSubjectTimetableEntity>> {
         println("${::getSubjectTimetable.name} called from $source")
         return safeRetryWithPrecall(
             "get subject timetable for '$subjectModId'", UPDATE_SESSION_OP,
@@ -438,11 +438,11 @@ object ManoApi {
     private suspend fun getSubjectTimetableUnsafe(
         rootOperationName: String,
         subjectModId: String
-    ): NetResult<List<ApiManoCourseTimetableEntity>> {
+    ): NetResult<List<ApiManoSubjectTimetableEntity>> {
         val courseTimetablePageResponse =
             client.get("$baseUrl/thissemester/site/tab-timetable?MOD_ID=$subjectModId")
 
-        courseTimetablePageResponse.expect200<List<ApiManoCourseTimetableEntity>>(
+        courseTimetablePageResponse.expect200<List<ApiManoSubjectTimetableEntity>>(
             "$rootOperationName + main request"
         )?.let { return it }
 
@@ -452,7 +452,7 @@ object ManoApi {
 
         val subjects = matches.map { result ->
             val times = result.groupValues[3].split("-")
-            ApiManoCourseTimetableEntity(
+            ApiManoSubjectTimetableEntity(
                 weekDay = ManoTimetableWeekday.valueOf(result.groupValues[1]),
                 week = ApiManoTimetableEntityWeek.valueOf(result.groupValues[2]),
                 startTime = times[0].timeToDuration(),

@@ -18,7 +18,7 @@ enum class ApiManoTimetableEntityType(val s: String) {
     LECTURE("lecture"), PRACTICE("practice"), LAB("lab")
 }
 
-data class ApiManoCourseTimetableEntity(
+data class ApiManoSubjectTimetableEntity(
     val weekDay: ManoTimetableWeekday,
     val week: ApiManoTimetableEntityWeek,
     val startTime: Duration,
