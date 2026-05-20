@@ -135,6 +135,10 @@ fun DashboardScreen(
                     MaterialTheme.customColors.okResult
                 }
 
+                callout.type.contains("danger") -> {
+                    MaterialTheme.customColors.badResult
+                }
+
                 callout.type.contains("success") -> {
                     MaterialTheme.customColors.goodResult
                 }
